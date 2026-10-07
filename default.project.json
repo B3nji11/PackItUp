@@ -1,0 +1,11 @@
+{
+  "name": "Put the Fries in the Bag",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": { "FriesShared": { "$path": "src/shared" } },
+    "ServerScriptService": { "FriesServer": { "$path": "src/server" } },
+    "StarterPlayer": { "StarterPlayerScripts": { "FriesClient": { "$path": "src/client" } } },
+    "Workspace": { "$properties": { "FilteringEnabled": true } },
+    "SoundService": { "$properties": { "RespectFilteringEnabled": true } }
+  }
+}

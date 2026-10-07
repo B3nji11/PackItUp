@@ -1,0 +1,49 @@
+Compilation passed for 42 Luau files.
+PASS fresh profiles are valid and isolated
+PASS reject corrupt, nonfinite and future profiles
+PASS catalogue probabilities and starter equipment are consistent
+PASS weighted boundaries have no gaps or overlaps
+PASS packing clamps overflow and rolls only once
+PASS partial bag cannot be sold
+PASS repeated sell cannot duplicate a reward
+PASS full bag value is locked across upgrades and equipment swaps
+PASS upgrades check balance, spend once and respect level cap
+PASS sales bonus is additive and upgrade costs grow
+PASS unowned or unknown equipment cannot be equipped
+PASS gacha rejects invalid pool and insufficient tickets
+PASS gacha grants ownership without auto-equipping
+PASS duplicate refunds exactly one ticket and advances counter
+PASS tenth unlucky roll guarantees Epic and resets only its pool
+PASS guaranteed Legendary boundary is 90 percent
+PASS natural Epic resets pity
+PASS order milestones carry overflow and tutorial pays once
+PASS index completion pays once and survives sales
+PASS perfect fold uses server time and can be attempted only once
+PASS early and late fold misses preserve normal sale
+PASS currency credits stay within safe range
+PASS rate limiter blocks bursts and cleans disconnected players
+PASS rush freezes participant roster and rejects late sales
+PASS rush rewards only qualifying contributors once
+PASS failed rush pays no tickets and empty servers do not start
+PASS 10000 mixed progression actions preserve profile invariants
+PASS save/load round trip retains cash inventory full bag and pity
+PASS second live session cannot acquire active lease
+PASS expired lease can be recovered but stale writer cannot save
+PASS transient storage failures retry successfully
+PASS exhausted load failures do not create fallback data
+PASS corrupt and future records are not overwritten
+PASS failed writes preserve last committed data
+PASS lost response after final save is recovered idempotently
+PASS lease renewal does not mutate the caller or saved snapshots
+PASS invalid in-memory profiles cannot overwrite a valid save
+[Fries] Restaurant ready. Studio memory mode:	true
+PASS server composition starts and constructs six complete stations
+PASS players join separate counters and receive independent profiles
+PASS remote flow packs sells upgrades and rejects malformed commands
+PASS server distance checks reject work away from the station
+PASS client composition constructs every screen and renders server state
+PASS portrait and landscape menu bounds fit the viewport
+PASS every machine and bag cosmetic can be constructed and replaced
+PASS unknown action names cannot grow per-player cooldown storage
+PASS disconnect releases station and shutdown closes memory sessions
+RESULT: 46 passed, 0 failed
