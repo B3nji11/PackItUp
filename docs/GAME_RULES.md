@@ -24,7 +24,7 @@ There are no random variants, folding bonuses, upgrades, Tickets, or event rewar
 
 ## Controls
 
-The packing and selling cards remain at the bottom centre. Packing shows up to 4 clicks/sec and changes to Click on hover/selection. The sell card shows capacity and progress until full, then Sell Bag and +$10 Cash. The Cash card updates directly after a sale; there is no sold-message toast.
+The packing and selling cards remain at the bottom centre. Packing highlights +1 fry/click and changes to Click on hover/selection, retaining the yield underneath. The internal rate limit is not displayed. The sell card shows capacity and progress until full, then Sell Bag and +$10 Cash. The Cash card updates directly after a sale; there is no sold-message toast.
 
 Return to Counter stays at the top and is disabled before claiming. Keyboard shortcuts are E for claiming, F for packing, and R for selling. The Sell button is disabled until a full bag is ready at the player's own counter; the server independently enforces that rule.
 

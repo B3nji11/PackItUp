@@ -59,6 +59,11 @@ local function makeInstance(class)
             return nil
         end,
         __newindex = function(self,key,value)
+            -- Studio/place configuration only; normal game scripts cannot write these.
+            if class == "Lighting" and (key == "LightingStyle" or key == "Technology"
+                or key == "PrioritizeLightingQuality") then
+                error("Cannot write Lighting." .. key .. " from a game script")
+            end
             if key == "Parent" then
                 local previous = values.Parent
                 if previous and previous._children then
@@ -231,6 +236,46 @@ test("plots are separated and entrances face the central plaza", function()
     end
 end)
 
+test("ceilings cover restaurants and the solid perimeter encloses all plots", function()
+    local world = workspace.FriesRestaurant
+    local boundary = world.Boundary
+    local function low(part, axis) return part.Position[axis] - part.Size[axis] / 2 end
+    local function high(part, axis) return part.Position[axis] + part.Size[axis] / 2 end
+    for _, side in ipairs({"North", "South", "East", "West"}) do
+        local wall = boundary[side]
+        assert(wall.Anchored and wall.CanCollide)
+        assert(low(wall, "Y") <= high(world.Ground, "Y"))
+    end
+    -- Adjacent walls overlap at the corners and sit on the ground's outer edges.
+    near(low(boundary.West, "X"), low(world.Ground, "X"))
+    near(high(boundary.East, "X"), high(world.Ground, "X"))
+    near(low(boundary.North, "Z"), low(world.Ground, "Z"))
+    near(high(boundary.South, "Z"), high(world.Ground, "Z"))
+    for _, side in ipairs({"North", "South"}) do
+        assert(low(boundary[side], "X") <= high(boundary.West, "X"))
+        assert(high(boundary[side], "X") >= low(boundary.East, "X"))
+    end
+    for _, side in ipairs({"West", "East"}) do
+        assert(low(boundary[side], "Z") <= high(boundary.North, "Z"))
+        assert(high(boundary[side], "Z") >= low(boundary.South, "Z"))
+    end
+    for i=1,6 do
+        local station = world["Station"..i]
+        local roof, floor = station.Ceiling, station.RestaurantFloor
+        for _, axis in ipairs({"X", "Z"}) do
+            assert(low(roof, axis) <= low(floor, axis) and high(roof, axis) >= high(floor, axis))
+        end
+        near(low(roof, "Y"), high(station.BackWall, "Y"))
+        near(low(roof, "Y"), high(station.LeftWall, "Y"))
+        near(low(roof, "Y"), high(station.RightWall, "Y"))
+        assert(low(roof, "Y") - high(floor, "Y") >= 10)
+        assert(low(station.Plot, "X") > high(boundary.West, "X"))
+        assert(high(station.Plot, "X") < low(boundary.East, "X"))
+        assert(low(station.Plot, "Z") > high(boundary.North, "Z"))
+        assert(high(station.Plot, "Z") < low(boundary.South, "Z"))
+    end
+end)
+
 test("admission reserves six player spaces even before restaurants are claimed", function()
     local extra = {}
     for id=401,404 do
@@ -348,6 +393,11 @@ test("permanent core controls fit portrait landscape and desktop", function()
         local top = viewport.Y - 60 - 22 - gui.Actions.Size.Y.Offset * scale
         assert(gui.Teleport.Position.Y.Offset + gui.Teleport.Size.Y.Offset <= top)
         assert(gui.Guidance.Position.Y.Offset + gui.Guidance.Size.Y.Offset <= top)
+        local cash = gui.CashCard
+        eq(cash.AnchorPoint.Y, 0.5); eq(cash.Position.Y.Scale, 0.5); eq(cash.Position.X.Offset, 16)
+        if viewport.Y >= 500 then eq(cash.Position.Y.Offset, 0) end
+        local cashBottom = (viewport.Y - 60) / 2 + cash.Position.Y.Offset + cash.Size.Y.Offset / 2
+        assert(cashBottom + 12 <= top + 0.001)
         assert(gui.Actions.Click.Size.Y.Offset * scale >= 36)
         eq(gui.Actions.AnchorPoint.X, 0.5); eq(gui.Actions.AnchorPoint.Y, 1)
         eq(gui.Teleport.Position.X.Scale, 0.5)
@@ -386,17 +436,18 @@ test("click packs while full bags and distance block further client packing", fu
     end
 end)
 
-test("HUD moves rate capacity and full-bag feedback inside the buttons", function()
+test("HUD highlights fries per click capacity and full-bag feedback inside the buttons", function()
     local gui = first.PlayerGui.FriesInterface
     local state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
     state.hasStation, state.nearStation, state.profile.bag.fries = true, true, 12
     state.profile.cash = 1234567
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
     eq(gui.CashCard.Cash.Text, "$1,234,567")
-    eq(gui.Actions.Click.Title.Text, "4 clicks/sec")
+    eq(gui.Actions.Click.Title.Text, "+1 fry/click")
     eq(gui.Actions.Sell.Title.Text, "12 / 20")
     gui.Actions.Click.MouseEnter:Fire(); eq(gui.Actions.Click.Title.Text, "CLICK")
-    gui.Actions.Click.MouseLeave:Fire(); eq(gui.Actions.Click.Title.Text, "4 clicks/sec")
+    eq(gui.Actions.Click.Detail.Text, "+1 FRY/CLICK")
+    gui.Actions.Click.MouseLeave:Fire(); eq(gui.Actions.Click.Title.Text, "+1 fry/click")
     state.profile.bag.fries = 20
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
     eq(gui.Actions.Sell.Title.Text, "SELL BAG"); eq(gui.Actions.Sell.Detail.Text, "+$10 CASH")

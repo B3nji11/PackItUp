@@ -4,7 +4,9 @@ function Primitives.part(parent, name, size, position, color, material)
     part.Name, part.Size, part.Position = name, size, position
     part.Anchored = true
     part.Color = color
+    -- Smooth, untextured surfaces are the default art direction for new world pieces.
     part.Material = material or Enum.Material.SmoothPlastic
+    part.Reflectance = 0
     part.TopSurface, part.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
     part.Parent = parent
     return part

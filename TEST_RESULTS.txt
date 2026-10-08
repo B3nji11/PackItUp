@@ -27,6 +27,7 @@ PASS joining leaves all restaurants available and production waits for claiming
 PASS unclaimed players cannot pack sell or return to an arbitrary restaurant
 PASS claiming enforces distance life ownership and one restaurant per player
 PASS plots are separated and entrances face the central plaza
+PASS ceilings cover restaurants and the solid perimeter encloses all plots
 PASS admission reserves six player spaces even before restaurants are claimed
 PASS remote fill sell repeat loop awards cash once per full bag
 PASS server rejects work away from the counter and teleport returns its owner
@@ -37,7 +38,7 @@ PASS client has exactly click sell and teleport with no feature panels
 PASS permanent core controls fit portrait landscape and desktop
 PASS button and keyboard selling require a full bag at the counter
 PASS click packs while full bags and distance block further client packing
-PASS HUD moves rate capacity and full-bag feedback inside the buttons
+PASS HUD highlights fries per click capacity and full-bag feedback inside the buttons
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
-RESULT: 40 passed, 0 failed
+RESULT: 41 passed, 0 failed

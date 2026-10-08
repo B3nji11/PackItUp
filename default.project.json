@@ -6,6 +6,7 @@
     "ServerScriptService": { "FriesServer": { "$path": "src/server" } },
     "StarterPlayer": { "StarterPlayerScripts": { "FriesClient": { "$path": "src/client" } } },
     "Workspace": { "$properties": { "FilteringEnabled": true } },
+    "Lighting": { "$className": "Lighting", "$properties": { "LightingStyle": "Soft" } },
     "SoundService": { "$properties": { "RespectFilteringEnabled": true } }
   }
 }

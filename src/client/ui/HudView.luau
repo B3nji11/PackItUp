@@ -71,14 +71,16 @@ function HudView:update(state)
     local full = bag.fries >= Economy.Capacity
     local canPack = state.hasStation and state.nearStation and not full
     local canSell = state.hasStation and state.nearStation and full
+    local perClick = state.stats.perClick
+    local yieldText = "+" .. perClick .. (if perClick == 1 then " fry/click" else " fries/click")
     self.pack.Active, self.pack.Selectable = canPack, canPack
     self.sell.Active, self.sell.Selectable = canSell, canSell
     self.pack.BackgroundColor3 = if canPack and self.hovered then Theme.GoldLight else Theme.Gold
     self.packTitle.Text = if not state.hasStation then "CLAIM FIRST" elseif full then "BAG FULL"
-        elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else Economy.ClicksPerSecond .. " clicks/sec"
+        elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else yieldText
     self.packTitle.TextSize = if not state.hasStation then 17 else 21
     self.packDetail.Text = if not state.hasStation then "CLAIM AT THE ENTRANCE" elseif full then "SELL TO KEEP PACKING"
-        elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then "TAP / HOLD TO PACK" else "+" .. state.stats.perClick .. " FRY PER CLICK"
+        elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then string.upper(yieldText) else "TAP / HOLD TO PACK"
     self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. Economy.Capacity
     self.sellDetail.Text = if not state.hasStation then "CLAIM A RESTAURANT"
         elseif full and not state.nearStation then "RETURN TO COUNTER"

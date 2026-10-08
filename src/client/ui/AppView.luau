@@ -9,6 +9,7 @@ function AppView.new(playerGui, send)
     gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "FriesInterface", false, Enum.ZIndexBehavior.Sibling
     gui.Parent = playerGui
     self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, 76), Theme.Background, 18)
+    self.cashCard.AnchorPoint = Vector2.new(0, 0.5)
     E.stroke(self.cashCard, Theme.Gold, 2, 0.12)
     local coin = E.box(self.cashCard, "Coin", UDim2.fromOffset(12, 17), UDim2.fromOffset(42, 42), Theme.Gold, 21)
     local symbol = E.label(coin, "$", 42, Theme.Ink)
@@ -23,7 +24,7 @@ function AppView.new(playerGui, send)
     local cashTextSize = Instance.new("UITextSizeConstraint")
     cashTextSize.MinTextSize, cashTextSize.MaxTextSize, cashTextSize.Parent = 10, 27, self.wallet
     self.mode = E.label(gui, "", 20, Theme.Text)
-    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 96), UDim2.fromOffset(220, 20), 10
+    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 8), UDim2.fromOffset(220, 20), 10
     self.teleport = E.button(gui, "RETURN TO COUNTER", function()
         if self.hasStation then send("Return") end
     end, Theme.Background)
@@ -66,12 +67,18 @@ function AppView:resize(viewport)
     self.viewportX, self.viewportY = viewport.X, viewport.Y
     local portrait = viewport.X < 760 and viewport.Y >= 500
     local compact = viewport.X < 760 and not portrait
+    local hudScale = math.min(1, (viewport.X - 24) / 392)
+    local height = viewport.Y - 60
+    local actionTop = height - 22 - 104 * hudScale
+    -- Centre Cash on the left; lift it only when a short screen needs room for actions.
+    local cashOffset = math.min(0, actionTop - 12 - 38 - height / 2)
+    self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
     self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
     self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
     self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
-    self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 122 else 16)
-    self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 174 elseif compact then 68 else 118)
+    self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 36 else 16)
+    self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
-    self.hud.scale.Scale = math.min(1, (viewport.X - 24) / 392)
+    self.hud.scale.Scale = hudScale
 end
 return AppView

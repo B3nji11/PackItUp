@@ -21,8 +21,10 @@ Develop in small, reviewable iterations. Prove the basic functionality works bef
 - Players enter the central plaza without an assigned restaurant, walk to an available entrance, and press E (or tap the proximity prompt) to claim it.
 - Claiming requires a loaded profile, a living nearby character, an unoccupied plot, and no existing claim. One player owns one restaurant per session; leaving frees it.
 - Six spacious restaurant plots face a central promenade. Ownership is shown on the building; the title is wall art. Never add floating fryer/equipment name tags, now or in future iterations.
-- Packing shows its maximum click rate inside the button and changes to Click on hover/focus. Selling shows bag capacity/progress until full, then Sell Bag and its Cash value.
-- Cash has a visible card, coin symbol, and grouped amount. Successful sales update the card and reset the bag without a bottom message.
+- The world uses smooth, untextured surfaces, bright cartoon colors, rounded plaza bushes, and soft lighting. Check the result in Studio before accepting this visual pass.
+- Brown central paths connect to brown restaurant walkways. Every restaurant has a high ceiling with a colored roof trim, and a continuous solid hedge boundary encloses the playing area.
+- Packing highlights fries per click (currently +1 fry/click) and changes to Click on hover/focus, with the yield retained below. The internal click-rate limit is not shown to players. Selling shows bag capacity/progress until full, then Sell Bag and its Cash value.
+- Cash has a visible card at the middle left, with a coin symbol and grouped amount. On short landscape screens it lifts enough to clear the action buttons. Successful sales update the card and reset the bag without a bottom message.
 - Clicking, holding the button, or holding F adds fries at the player's counter.
 - After claiming, the basic fryer retains its existing online rate of 0.5 fries per second.
 - A bag stops filling at 20 fries.
@@ -35,12 +37,16 @@ Automated checks alone do not finish the iteration. The new claiming/layout/HUD 
 
 Folding, Upgrades, Delivery, Index, and Inventory have been removed from the running game and source modules. Their connected bonus systems—Tickets, random fry variants, discovery rewards, order rewards, and Lunch Rush—are also outside this iteration. They are possible future backlog items, not a commitment to implement them. There are no placeholder menus or active background rewards for these systems.
 
+**Future visual refinement:** replace the current simple fry and bag symbols with more recognizable fries and bag artwork in an agreed later iteration. Keep the current symbols for now.
+
+**World art direction:** aim for a bright, smooth cartoon feel inspired by Pet Simulator. Use SmoothPlastic for code-built surfaces rather than grainy grass, concrete, brick, wood, or metal textures. Favor clear color blocks, warm brown paths, coral/mint restaurants with cream ceilings, and soft lighting with restrained reflections. Solid perimeter hedges frame the district. Detailed rounded restaurant/fryer models remain a later art iteration. No manual Studio asset creation is needed for this pass.
+
 ## Open and play
 
 1. Open **FriesGame.rbxlx** in Roblox Studio using **File > Open from File**.
 2. Press **Play**. The restaurant appears when the server starts.
 3. Walk to a free restaurant entrance and press **E**, or tap the entrance prompt on touch devices. Claiming puts you at its counter.
-4. Hold or tap the gold packing button at the bottom centre. It displays **4 clicks/sec** (the maximum rate) and changes to **CLICK** on hover or selection. Its packing hint stays visible for touch users.
+4. Hold or tap the gold packing button at the bottom centre. It displays **+1 fry/click** and changes to **CLICK** on hover or selection, with the fries-per-click value shown underneath. Its packing hint stays visible for touch users.
 5. The adjacent button shows **fries / capacity** and a progress bar. When full, it turns green and reads **SELL BAG +$10**. Selling requires proximity to your own counter.
 6. Use **RETURN TO COUNTER** at the top to return to your claimed restaurant. It is disabled before you claim.
 

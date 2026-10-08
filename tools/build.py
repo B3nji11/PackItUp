@@ -43,7 +43,9 @@ def build():
     for parent, name in ((shared, "shared"), (server, "server"), (client, "client")):
         add_sources(parent, ROOT / "src" / name)
     item(root, "StarterGui", "StarterGui")
-    item(root, "Lighting", "Lighting")
+    lighting = item(root, "Lighting", "Lighting")
+    # Editor-only property: normal game scripts cannot set LightingStyle.
+    ET.SubElement(lighting.find("Properties"), "token", {"name": "LightingStyle"}).text = "1"  # Soft
     item(root, "Players", "Players")
     sound = item(root, "SoundService", "SoundService")
     ET.SubElement(sound.find("Properties"), "bool", {"name": "RespectFilteringEnabled"}).text = "true"
@@ -59,6 +61,7 @@ def build():
     assert sorted(actual) == sorted(expected), "Embedded source differs from source files"
     assert len(parsed.findall(".//Item[@class='Script']")) == 1
     assert len(parsed.findall(".//Item[@class='LocalScript']")) == 1
+    assert parsed.findtext(".//Item[@class='Lighting']/Properties/token[@name='LightingStyle']") == "1"
     print(f"Built {output.name}: {len(actual)} source files, XML and source round-trip verified.")
 
 
