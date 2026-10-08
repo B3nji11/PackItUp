@@ -9,27 +9,21 @@ function Primitives.part(parent, name, size, position, color, material)
     part.Parent = parent
     return part
 end
-function Primitives.label(parent, text, offset, width, height)
-    local gui = Instance.new("BillboardGui")
-    gui.Name = "Sign"
-    gui.Size = UDim2.fromOffset(width or 230, height or 70)
-    gui.StudsOffset = offset or Vector3.new(0, 3, 0)
-    gui.MaxDistance = 100
-    gui.AlwaysOnTop = false
+function Primitives.surfaceLabel(parent, text, face, color)
+    local gui = Instance.new("SurfaceGui")
+    gui.Name, gui.Face = "WallArt", face
+    gui.SizingMode, gui.PixelsPerStud = Enum.SurfaceGuiSizingMode.PixelsPerStud, 40
+    gui.AlwaysOnTop, gui.LightInfluence = false, 0.5
     gui.Parent = parent
     local label = Instance.new("TextLabel")
     label.Size = UDim2.fromScale(1, 1)
-    label.BackgroundColor3 = Color3.fromRGB(29, 34, 48)
-    label.BackgroundTransparency = 0.15
-    label.TextColor3 = Color3.fromRGB(255, 238, 194)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = color
     label.Font = Enum.Font.GothamBold
-    label.TextSize = 17
+    label.TextScaled = true
     label.TextWrapped = true
     label.Text = text
     label.Parent = gui
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = label
     return label
 end
 return Primitives

@@ -21,89 +21,33 @@
         <Item class="ModuleScript" referent="RBX00004">
           <Properties>
             <string name="Name">Actions</string>
-            <ProtectedString name="Source">-- A closed action vocabulary prevents arbitrary remote names from allocating state.
-return table.freeze({
-    Pack = false, Sell = false, StartFold = false, FinishFold = false,
-    Sync = false, Return = false,
-    Upgrade = true, Equip = true, Roll = true,
-})
+            <ProtectedString name="Source">-- Only these core actions are accepted; none takes a client argument.
+return table.freeze({ Pack = true, Sell = true, Return = true, Sync = true })
 </ProtectedString>
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="RBX00005">
           <Properties>
             <string name="Name">Economy</string>
-            <ProtectedString name="Source">-- All currency and packing balance lives here. No Robux purchases.
+            <ProtectedString name="Source">-- Balance for the core filling-and-selling loop.
 return table.freeze({
     Capacity = 20,
     BaseSale = 10,
     BaseClick = 1,
+    BasicFryerPerSecond = 0.5,
     ClicksPerSecond = 4,
-    UpgradeBaseCost = 30,
-    UpgradeGrowth = 1.5,
-    MaxUpgradeLevel = 20,
-    SalesBonusPerLevel = 0.2,
     MaxCurrency = 1e12,
-    RollCost = 3,
-    DuplicateRefund = 1,
-    PityAt = 10,
-    OrderFries = 100,
-    OrderReward = 1,
-    TutorialSales = 5,
-    TutorialTickets = 3,
-    IndexTickets = 3,
-    FoldLeadTime = 0.65,
-    FoldDuration = 1.5,
-    FoldWindowMin = 0.40,
-    FoldWindowMax = 0.60,
-    PerfectMultiplier = 1.25,
 })
 </ProtectedString>
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="RBX00006">
           <Properties>
-            <string name="Name">Equipment</string>
-            <ProtectedString name="Source">-- RGB arrays keep catalogue data usable in both Roblox and offline tests.
-return {
-    Categories = { "Machine", "Bag" },
-    Rarities = {
-        { id = "Common", weight = 60 },
-        { id = "Rare", weight = 30 },
-        { id = "Epic", weight = 9 },
-        { id = "Legendary", weight = 1 },
-    },
-    GuaranteedRarities = {
-        { id = "Epic", weight = 90 },
-        { id = "Legendary", weight = 10 },
-    },
-    Starter = { Machine = "starter_fryer", Bag = "starter_bag" },
-    Pools = {
-        Machine = { Common = "countertop", Rare = "conveyor", Epic = "robot", Legendary = "ufo" },
-        Bag = { Common = "paper", Rare = "striped", Epic = "neon", Legendary = "briefcase" },
-    },
-    Items = {
-        starter_fryer = { name = "Training Fryer", category = "Machine", rarity = "Starter", power = 0.5, color = { 145, 151, 161 } },
-        countertop = { name = "Countertop Fryer", category = "Machine", rarity = "Common", power = 1, color = { 198, 209, 224 } },
-        conveyor = { name = "Conveyor Fryer", category = "Machine", rarity = "Rare", power = 2, color = { 72, 166, 245 } },
-        robot = { name = "Robot Fry Chef", category = "Machine", rarity = "Epic", power = 3, color = { 173, 101, 244 } },
-        ufo = { name = "UFO Fry Dispenser", category = "Machine", rarity = "Legendary", power = 5, color = { 255, 207, 73 } },
-        starter_bag = { name = "Training Bag", category = "Bag", rarity = "Starter", power = 1, color = { 165, 130, 92 } },
-        paper = { name = "Paper Takeaway Bag", category = "Bag", rarity = "Common", power = 1.1, color = { 205, 172, 115 } },
-        striped = { name = "Striped Carton", category = "Bag", rarity = "Rare", power = 1.3, color = { 234, 104, 98 } },
-        neon = { name = "Neon Takeaway Box", category = "Bag", rarity = "Epic", power = 1.6, color = { 108, 243, 211 } },
-        briefcase = { name = "Golden Briefcase", category = "Bag", rarity = "Legendary", power = 2, color = { 255, 211, 79 } },
-    },
-}
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00007">
-          <Properties>
             <string name="Name">Runtime</string>
             <ProtectedString name="Source">return table.freeze({
     StationCount = 6,
     StationDistance = 16,
+    ClaimDistance = 10,
     SnapshotInterval = 0.2,
     StudioUseDataStore = false,
     LiveStoreName = "FriesProfiles_v1",
@@ -116,197 +60,27 @@ return {
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00008">
-          <Properties>
-            <string name="Name">Rush</string>
-            <ProtectedString name="Source">return table.freeze({
-    Interval = 240,
-    FirstDelay = 90,
-    Duration = 90,
-    BagsPerPlayer = 8,
-    MinimumContribution = 3,
-    TicketReward = 3,
-})
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00009">
-          <Properties>
-            <string name="Name">Variants</string>
-            <ProtectedString name="Source">return {
-    { id = "regular", name = "Regular", weight = 80, multiplier = 1, color = { 247, 191, 69 } },
-    { id = "loaded", name = "Loaded", weight = 18, multiplier = 1.5, color = { 255, 142, 47 } },
-    { id = "golden", name = "Golden", weight = 2, multiplier = 3, color = { 255, 242, 117 } },
-}
-</ProtectedString>
-          </Properties>
-        </Item>
       </Item>
-      <Item class="Folder" referent="RBX00010">
+      <Item class="Folder" referent="RBX00007">
         <Properties>
           <string name="Name">domain</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00011">
-          <Properties>
-            <string name="Name">Discovery</string>
-            <ProtectedString name="Source">local Variants = require(script.Parent.Parent.config.Variants)
-local Economy = require(script.Parent.Parent.config.Economy)
-local Pricing = require(script.Parent.Pricing)
-return function(p, id)
-    p.discoveries[id] = true
-    if p.indexRewardClaimed then return false end
-    for _, variant in ipairs(Variants) do
-        if not p.discoveries[variant.id] then return false end
-    end
-    p.indexRewardClaimed = true
-    Pricing.credit(p, "tickets", Economy.IndexTickets)
-    return true
-end
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00012">
-          <Properties>
-            <string name="Name">Folding</string>
-            <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Folding = {}
-function Folding.start(p, runtime, now)
-    if p.bag.fries &lt; Economy.Capacity then return false, "Fill your bag first." end
-    if p.bag.foldAttempted then return false, "One folding attempt per bag." end
-    p.bag.foldAttempted = true
-    runtime.foldStart = now + Economy.FoldLeadTime
-    return true, "Stop the marker inside the green zone!"
-end
-function Folding.finish(p, runtime, now)
-    if not runtime.foldStart or p.bag.fries &lt; Economy.Capacity then return false, "No active folding attempt." end
-    local fraction = (now - runtime.foldStart) / Economy.FoldDuration
-    runtime.foldStart = nil
-    p.bag.perfect = fraction &gt;= Economy.FoldWindowMin and fraction &lt;= Economy.FoldWindowMax
-    return true, if p.bag.perfect then "Perfect fold! +25% sale value." else "Regular fold. Your bag is still ready to sell."
-end
-return Folding
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00013">
-          <Properties>
-            <string name="Name">Gacha</string>
-            <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Equipment = require(script.Parent.Parent.config.Equipment)
-local Weighted = require(script.Parent.Parent.util.Weighted)
-return function(p, category, nextUnit)
-    local pool = Equipment.Pools[category]
-    if not pool then return false, "Unknown delivery type." end
-    if p.tickets &lt; Economy.RollCost then return false, "You need 3 Order Tickets." end
-    local guaranteed = p.pity[category] &gt;= Economy.PityAt - 1
-    local rarity = Weighted(if guaranteed then Equipment.GuaranteedRarities else Equipment.Rarities, nextUnit).id
-    local id = pool[rarity]
-    local duplicate = p.owned[id] == true
-    p.tickets -= Economy.RollCost
-    if duplicate then p.tickets += Economy.DuplicateRefund end
-    p.owned[id] = true
-    p.pity[category] = if rarity == "Epic" or rarity == "Legendary" then 0 else p.pity[category] + 1
-    return true, { id = id, rarity = rarity, duplicate = duplicate, guaranteed = guaranteed }
-end
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00014">
-          <Properties>
-            <string name="Name">LunchRush</string>
-            <ProtectedString name="Source">local Config = require(script.Parent.Parent.config.Rush)
-local LunchRush = {}
-LunchRush.__index = LunchRush
-function LunchRush.new(now)
-    return setmetatable({ active = false, nextStart = now + Config.FirstDelay, endsAt = 0,
-        participants = {}, contributions = {}, target = 0, count = 0, result = "Waiting for lunch rush" }, LunchRush)
-end
-function LunchRush:step(now, playerIds)
-    if self.active and now &gt;= self.endsAt then
-        self.active = false
-        local winners = {}
-        local success = self.count &gt;= self.target
-        self.result = if success then "Lunch rush complete!" else "Rush ended. Keep your normal sales!"
-        if success then
-            for id in pairs(self.participants) do
-                if (self.contributions[id] or 0) &gt;= Config.MinimumContribution then table.insert(winners, id) end
-            end
-        end
-        self.nextStart = now + Config.Interval
-        return winners
-    end
-    if not self.active and now &gt;= self.nextStart and #playerIds &gt; 0 then
-        self.active = true
-        self.endsAt = now + Config.Duration
-        self.participants, self.contributions = {}, {}
-        for _, id in ipairs(playerIds) do self.participants[id] = true end
-        self.target = #playerIds * Config.BagsPerPlayer
-        self.count = 0
-        self.result = "The school bus is here!"
-    end
-    return nil
-end
-function LunchRush:sale(id, now)
-    if not self.active or now &gt;= self.endsAt or not self.participants[id] then return end
-    self.contributions[id] = (self.contributions[id] or 0) + 1
-    self.count += 1
-end
-function LunchRush:snapshot(id)
-    return { active = self.active, nextStart = self.nextStart, endsAt = self.endsAt,
-        count = self.count, target = self.target, contribution = self.contributions[id] or 0,
-        eligible = self.participants[id] == true, result = self.result }
-end
-return LunchRush
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00015">
-          <Properties>
-            <string name="Name">Orders</string>
-            <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Pricing = require(script.Parent.Pricing)
-return function(p)
-    p.orderProgress += Economy.Capacity
-    local completed = math.floor(p.orderProgress / Economy.OrderFries)
-    p.orderProgress %= Economy.OrderFries
-    local reward = completed * Economy.OrderReward
-    if not p.tutorialClaimed and p.sales &gt;= Economy.TutorialSales then
-        p.tutorialClaimed = true
-        reward += Economy.TutorialTickets
-    end
-    Pricing.credit(p, "tickets", reward)
-    return reward
-end
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00016">
+        <Item class="ModuleScript" referent="RBX00008">
           <Properties>
             <string name="Name">Packing</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Variants = require(script.Parent.Parent.config.Variants)
-local Weighted = require(script.Parent.Parent.util.Weighted)
 local Pricing = require(script.Parent.Pricing)
-local Discovery = require(script.Parent.Discovery)
 local Profile = require(script.Parent.Profile)
 local Packing = {}
-function Packing.add(p, amount, nextUnit)
-    if p.bag.fries &gt;= Economy.Capacity or amount &lt;= 0 then return false end
+function Packing.add(p, amount)
+    if type(amount) ~= "number" or amount ~= amount or amount == math.huge or amount &lt;= 0
+        or p.bag.fries &gt;= Economy.Capacity then return false end
     p.bag.fries = math.min(Economy.Capacity, p.bag.fries + amount)
-    if p.bag.fries == Economy.Capacity then
-        local variant = Weighted(Variants, nextUnit)
-        p.bag.variant = variant.id
-        -- Lock the price at completion: equipment swaps cannot reprice a full bag.
-        p.bag.value = Pricing.sale(p, variant.multiplier)
-        Discovery(p, variant.id)
-        return true
-    end
-    return false
+    return p.bag.fries == Economy.Capacity
 end
 function Packing.sell(p)
     if p.bag.fries &lt; Economy.Capacity then return false, "Fill your bag first." end
-    local value = p.bag.value
-    if p.bag.perfect then value = math.floor(value * Economy.PerfectMultiplier + 0.5) end
+    local value = Pricing.sale()
     Pricing.credit(p, "cash", value)
     Pricing.credit(p, "lifetimeCash", value)
     Pricing.credit(p, "sales", 1)
@@ -317,21 +91,14 @@ return Packing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00017">
+        <Item class="ModuleScript" referent="RBX00009">
           <Properties>
             <string name="Name">Pricing</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Equipment = require(script.Parent.Parent.config.Equipment)
 local Pricing = {}
-function Pricing.click(p) return Economy.BaseClick + p.upgrades.Click end
-function Pricing.automatic(p) return Equipment.Items[p.equipped.Machine].power end
-function Pricing.sale(p, variantMultiplier)
-    local bagBonus = Equipment.Items[p.equipped.Bag].power
-    return math.floor(Economy.BaseSale * bagBonus * (1 + p.upgrades.Sales * Economy.SalesBonusPerLevel) * variantMultiplier + 0.5)
-end
-function Pricing.upgrade(level)
-    return math.ceil(Economy.UpgradeBaseCost * Economy.UpgradeGrowth ^ level)
-end
+function Pricing.click() return Economy.BaseClick end
+function Pricing.automatic() return Economy.BasicFryerPerSecond end
+function Pricing.sale() return Economy.BaseSale end
 function Pricing.credit(p, currency, amount)
     p[currency] = math.min(Economy.MaxCurrency, p[currency] + amount)
 end
@@ -339,106 +106,38 @@ return Pricing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00018">
+        <Item class="ModuleScript" referent="RBX00010">
           <Properties>
             <string name="Name">Profile</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Equipment = require(script.Parent.Parent.config.Equipment)
-local Variants = require(script.Parent.Parent.config.Variants)
 local Profile = {}
-function Profile.emptyBag()
-    return { fries = 0, variant = "", value = 0, foldAttempted = false, perfect = false }
-end
+function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
-    return {
-        version = 1, cash = 0, tickets = 0,
-        upgrades = { Click = 0, Sales = 0 },
-        owned = { starter_fryer = true, starter_bag = true },
-        equipped = { Machine = "starter_fryer", Bag = "starter_bag" },
-        pity = { Machine = 0, Bag = 0 },
-        discoveries = {}, indexRewardClaimed = false,
-        orderProgress = 0, tutorialClaimed = false,
-        sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(),
-    }
+    return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag() }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value &gt;= low and value &lt;= high
         and (not integer or value % 1 == 0)
 end
--- Invalid/future profiles are rejected, never replaced with a default save.
+-- Keep the v1 core fields compatible with existing saves. Extra fields from the
+-- earlier prototype remain in storage, but are neither used nor sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end
-    for _, key in ipairs({ "cash", "tickets", "sales", "lifetimeCash" }) do
+    for _, key in ipairs({ "cash", "sales", "lifetimeCash" }) do
         if not numberIn(p[key], 0, Economy.MaxCurrency, true) then return false end
     end
-    if type(p.upgrades) ~= "table" or type(p.owned) ~= "table" or type(p.equipped) ~= "table"
-        or type(p.pity) ~= "table" or type(p.discoveries) ~= "table" then return false end
-    for _, key in ipairs({ "Click", "Sales" }) do
-        if not numberIn(p.upgrades[key], 0, Economy.MaxUpgradeLevel, true) then return false end
-    end
-    for id, owned in pairs(p.owned) do
-        if not Equipment.Items[id] or owned ~= true then return false end
-    end
-    for _, category in ipairs(Equipment.Categories) do
-        local item = Equipment.Items[p.equipped[category]]
-        if not item or item.category ~= category or not p.owned[p.equipped[category]] then return false end
-        if not numberIn(p.pity[category], 0, Economy.PityAt - 1, true) then return false end
-    end
-    local known = {}
-    for _, variant in ipairs(Variants) do known[variant.id] = true end
-    for id, discovered in pairs(p.discoveries) do
-        if not known[id] or discovered ~= true then return false end
-    end
-    if not numberIn(p.orderProgress, 0, Economy.OrderFries - 1, true)
-        or type(p.tutorialClaimed) ~= "boolean" or type(p.indexRewardClaimed) ~= "boolean" then return false end
-    local bag = p.bag
-    if type(bag) ~= "table" or not numberIn(bag.fries, 0, Economy.Capacity, false)
-        or type(bag.foldAttempted) ~= "boolean" or type(bag.perfect) ~= "boolean" then return false end
-    if bag.fries == Economy.Capacity then
-        if not known[bag.variant] or not numberIn(bag.value, 1, Economy.MaxCurrency, true) then return false end
-    elseif bag.variant ~= "" or bag.value ~= 0 or bag.foldAttempted or bag.perfect then
-        return false
-    end
-    if bag.perfect and not bag.foldAttempted then return false end
-    return true
+    return type(p.bag) == "table" and numberIn(p.bag.fries, 0, Economy.Capacity, false)
 end
 return Profile
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00019">
-          <Properties>
-            <string name="Name">Upgrades</string>
-            <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Equipment = require(script.Parent.Parent.config.Equipment)
-local Pricing = require(script.Parent.Pricing)
-local Upgrades = {}
-function Upgrades.buy(p, track)
-    if track ~= "Click" and track ~= "Sales" then return false, "Unknown upgrade." end
-    local level = p.upgrades[track]
-    if level &gt;= Economy.MaxUpgradeLevel then return false, "Upgrade is at maximum level." end
-    local cost = Pricing.upgrade(level)
-    if p.cash &lt; cost then return false, "Not enough Cash." end
-    p.cash -= cost
-    p.upgrades[track] += 1
-    return true, track .. " upgraded!"
-end
-function Upgrades.equip(p, id)
-    local item = Equipment.Items[id]
-    if not item or not p.owned[id] then return false, "You do not own that equipment." end
-    p.equipped[item.category] = id
-    return true, "Equipped " .. item.name
-end
-return Upgrades
-</ProtectedString>
-          </Properties>
-        </Item>
       </Item>
-      <Item class="Folder" referent="RBX00020">
+      <Item class="Folder" referent="RBX00011">
         <Properties>
           <string name="Name">util</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00021">
+        <Item class="ModuleScript" referent="RBX00012">
           <Properties>
             <string name="Name">Copy</string>
             <ProtectedString name="Source">local function copy(value)
@@ -451,7 +150,7 @@ return copy
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00022">
+        <Item class="ModuleScript" referent="RBX00013">
           <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
@@ -474,42 +173,18 @@ return RateLimiter
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00023">
-          <Properties>
-            <string name="Name">Weighted</string>
-            <ProtectedString name="Source">-- nextUnit() must return a number in [0, 1). RNG is supplied by the server.
-return function(entries, nextUnit)
-    local total = 0
-    for _, entry in ipairs(entries) do
-        assert(entry.weight &gt; 0, "Weights must be positive")
-        total += entry.weight
-    end
-    assert(total &gt; 0, "Empty weighted pool")
-    local unit = nextUnit()
-    assert(type(unit) == "number" and unit &gt;= 0 and unit &lt; 1, "Invalid RNG sample")
-    local target = unit * total
-    local cumulative = 0
-    for _, entry in ipairs(entries) do
-        cumulative += entry.weight
-        if target &lt; cumulative then return entry end
-    end
-    return entries[#entries]
-end
-</ProtectedString>
-          </Properties>
-        </Item>
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00024">
+  <Item class="ServerScriptService" referent="RBX00014">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00025">
+    <Item class="Folder" referent="RBX00015">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00026">
+      <Item class="Script" referent="RBX00016">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -517,11 +192,9 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Runtime = require(Shared.config.Runtime)
-local RushConfig = require(Shared.config.Rush)
-local Economy = require(Shared.config.Economy)
 local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
-local LunchRush = require(Shared.domain.LunchRush)
+local RateLimiter = require(Shared.util.RateLimiter)
 local Network = require(script.Parent.Network)
 local DataService = require(script.Parent.services.DataService)
 local StationService = require(script.Parent.services.StationService)
@@ -529,18 +202,32 @@ local SnapshotService = require(script.Parent.services.SnapshotService)
 local ActionService = require(script.Parent.services.ActionService)
 local WorldBuilder = require(script.Parent.world.WorldBuilder)
 
-local stations, rushLabel = WorldBuilder(Runtime.StationCount)
+local stations = WorldBuilder(Runtime.StationCount)
 local data = DataService.new()
 local stationService = StationService.new(stations)
 local network = Network.new()
-local rush = LunchRush.new(workspace:GetServerTimeNow())
-local snapshots = SnapshotService.new(data, stationService, rush, network)
-local random = Random.new()
-local function nextUnit() return math.min(random:NextNumber(), 1 - 1e-12) end
-local actions = ActionService.new(data, stationService, rush, network, snapshots, nextUnit)
+local snapshots = SnapshotService.new(data, stationService, network)
+local actions = ActionService.new(data, stationService, network, snapshots)
 local connections = {}
 local joining = {}
 local shuttingDown = false
+local admitted, admittedCount = {}, 0
+local claimLimit = RateLimiter.new(2, 3)
+local function releaseAdmission(player)
+    if admitted[player] then admitted[player] = nil; admittedCount -= 1 end
+end
+
+for index, station in ipairs(stations) do
+    station.prompt.Triggered:Connect(function(player)
+        if shuttingDown then return end
+        if not claimLimit:allow(player, workspace:GetServerTimeNow()) then return end
+        local p = data:get(player)
+        if not p then return end
+        local ok, message = stationService:claim(player, index)
+        if ok then stationService:render(player, p) else network:notice(player, message, false) end
+        snapshots:send(player)
+    end)
+end
 
 local function moveCharacter(player, character)
     if character:WaitForChild("HumanoidRootPart", 10) and player.Character == character then
@@ -550,19 +237,20 @@ end
 local function join(player)
     if joining[player] or data.entries[player] or shuttingDown then return end
     joining[player] = true
-    if not stationService:assign(player) then
+    if admittedCount &gt;= Runtime.StationCount then
         joining[player] = nil
-        player:Kick("This restaurant is full. Please join another server.")
+        player:Kick("All player spaces are taken. Please join another server.")
         return
     end
+    admitted[player], admittedCount = true, admittedCount + 1
     if not data:load(player) then
-        stationService:release(player)
+        releaseAdmission(player)
         joining[player] = nil
         return
     end
     joining[player] = nil
     if shuttingDown or not player.Parent then
-        stationService:release(player)
+        releaseAdmission(player)
         data:close(player)
         return
     end
@@ -571,13 +259,14 @@ local function join(player)
     end)
     if player.Character then task.spawn(moveCharacter, player, player.Character) end
     snapshots:send(player)
-    network:notice(player, "Welcome! Fill a bag, then SERVE. Your first five sales unlock a delivery.", true)
 end
 Players.PlayerAdded:Connect(function(player) task.spawn(join, player) end)
 Players.PlayerRemoving:Connect(function(player)
     if connections[player] then connections[player]:Disconnect(); connections[player] = nil end
     actions:remove(player)
+    claimLimit:remove(player)
     stationService:release(player)
+    releaseAdmission(player)
     data:close(player)
 end)
 network.Action.OnServerEvent:Connect(function(player, action, argument)
@@ -588,26 +277,11 @@ for _, player in ipairs(Players:GetPlayers()) do task.spawn(join, player) end
 local accumulated = 0
 RunService.Heartbeat:Connect(function(dt)
     if shuttingDown then return end
-    local now = workspace:GetServerTimeNow()
-    local ids = {}
     for _, player in ipairs(Players:GetPlayers()) do
-        local p, runtime = data:get(player)
-        if p then
-            table.insert(ids, player.UserId)
+        local p = data:get(player)
+        if p and stationService:hasStation(player) then
             -- Full bags halt production. There is no offline production in this version.
-            Packing.add(p, Pricing.automatic(p) * math.min(dt, 0.5), nextUnit)
-            if runtime.foldStart and now &gt; runtime.foldStart + Economy.FoldDuration then runtime.foldStart = nil end
-        end
-    end
-    local winners = rush:step(now, ids)
-    if winners then
-        for _, id in ipairs(winners) do
-            local player = Players:GetPlayerByUserId(id)
-            local p = if player then data:get(player) else nil
-            if p then
-                Pricing.credit(p, "tickets", RushConfig.TicketReward)
-                network:notice(player, "Lunch rush complete! +3 Order Tickets", true)
-            end
+            Packing.add(p, Pricing.automatic() * math.min(dt, 0.5))
         end
     end
     accumulated += dt
@@ -617,9 +291,6 @@ RunService.Heartbeat:Connect(function(dt)
             local p = data:get(player)
             if p then stationService:render(player, p); snapshots:send(player) end
         end
-        rushLabel.Text = if rush.active then "LUNCH RUSH: " .. rush.count .. " / " .. rush.target
-            .. " bags\n" .. math.max(0, math.ceil(rush.endsAt - now)) .. " seconds left"
-            else rush.result .. "\nNext rush in " .. math.max(0, math.ceil(rush.nextStart - now)) .. " seconds"
         data:tick()
     end
 end)
@@ -628,7 +299,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00027">
+      <Item class="ModuleScript" referent="RBX00017">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -654,30 +325,25 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00028">
+      <Item class="Folder" referent="RBX00018">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00029">
+        <Item class="ModuleScript" referent="RBX00019">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Economy = require(Shared.config.Economy)
-local Equipment = require(Shared.config.Equipment)
 local AllowedActions = require(Shared.config.Actions)
 local RateLimiter = require(Shared.util.RateLimiter)
 local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
-local Folding = require(Shared.domain.Folding)
-local Orders = require(Shared.domain.Orders)
-local Upgrades = require(Shared.domain.Upgrades)
-local Gacha = require(Shared.domain.Gacha)
 local ActionService = {}
 ActionService.__index = ActionService
-function ActionService.new(data, stations, rush, network, snapshots, nextUnit)
-    return setmetatable({ data = data, stations = stations, rush = rush, network = network,
-        snapshots = snapshots, nextUnit = nextUnit, generalLimit = RateLimiter.new(12, 18),
-        clickLimit = RateLimiter.new(Economy.ClicksPerSecond, 1), cooldowns = {} }, ActionService)
+function ActionService.new(data, stations, network, snapshots)
+    return setmetatable({ data = data, stations = stations, network = network, snapshots = snapshots,
+        generalLimit = RateLimiter.new(12, 18), clickLimit = RateLimiter.new(Economy.ClicksPerSecond, 1),
+        cooldowns = {} }, ActionService)
 end
 function ActionService:remove(player)
     self.generalLimit:remove(player)
@@ -687,61 +353,38 @@ end
 function ActionService:handle(player, action, argument)
     local now = workspace:GetServerTimeNow()
     if not self.generalLimit:allow(player, now) then return end
-    if type(action) ~= "string" or #action &gt; 24 then return end
-    if AllowedActions[action] == nil then return end
-    if argument ~= nil and (type(argument) ~= "string" or #argument &gt; 64) then return end
-    if AllowedActions[action] and type(argument) ~= "string" then return end
-    if not AllowedActions[action] and argument ~= nil then return end
-    local p, runtime = self.data:get(player)
+    if type(action) ~= "string" or #action &gt; 24 or not AllowedActions[action] or argument ~= nil then return end
+    local p = self.data:get(player)
     if not p then return end
-    local physical = action == "Pack" or action == "Sell" or action == "StartFold" or action == "FinishFold"
-    if physical and not self.stations:near(player) then
+    if action ~= "Sync" and not self.stations:hasStation(player) then
+        self.network:notice(player, "Choose an available restaurant and press E at its entrance.", false)
+        return
+    end
+    if (action == "Pack" or action == "Sell") and not self.stations:near(player) then
         self.network:notice(player, "Return to your counter to work.", false)
         return
     end
     if action == "Pack" then
-        if not self.clickLimit:allow(player, now) then return end
-        Packing.add(p, Pricing.click(p), self.nextUnit)
+        if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click()) end
         return -- Periodic snapshots coalesce rapid input.
     end
-    local delay = if action == "Roll" or action == "Sync" or action == "Return" then 1 else 0.2
+    local delay = if action == "Sell" then 0.2 else 1
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now &lt; (cooldowns[action] or 0) then return end
     cooldowns[action] = now + delay
-    local ok, message
-    if action == "Sync" then self.snapshots:send(player); return
-    elseif action == "Return" then self.stations:teleport(player); self.snapshots:send(player); return
+    if action == "Return" then self.stations:teleport(player)
     elseif action == "Sell" then
-        local amount
-        ok, amount = Packing.sell(p)
-        if ok then
-            runtime.foldStart = nil
-            local tickets = Orders(p)
-            self.rush:sale(player.UserId, now)
-            message = "Served! +$" .. amount .. (if tickets &gt; 0 then "  +" .. tickets .. " Tickets" else "")
-        else message = amount end
-    elseif action == "StartFold" then ok, message = Folding.start(p, runtime, now)
-    elseif action == "FinishFold" then ok, message = Folding.finish(p, runtime, now)
-    elseif action == "Upgrade" then ok, message = Upgrades.buy(p, argument)
-    elseif action == "Equip" then ok, message = Upgrades.equip(p, argument)
-    elseif action == "Roll" then
-        local result
-        ok, result = Gacha(p, argument, self.nextUnit)
-        if ok then
-            local item = Equipment.Items[result.id]
-            message = result.rarity .. " delivery: " .. item.name
-                .. (if result.duplicate then " | Duplicate: +1 Ticket refunded" else " | Equip it in GEAR")
-        else message = result end
-    else return end
-    self.network:notice(player, message, ok)
+        local ok, result = Packing.sell(p)
+        if not ok then self.network:notice(player, result, false) end
+    end
     self.snapshots:send(player)
 end
 return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00030">
+        <Item class="ModuleScript" referent="RBX00020">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -781,7 +424,7 @@ function DataService:load(player)
         return false
     end
     self.entries[player] = { data = data, key = key, token = token, expires = expires,
-        saving = false, closing = false, runtime = {}, nextSave = os.clock() + Runtime.AutoSaveSeconds + math.random() * 10 }
+        saving = false, closing = false, nextSave = os.clock() + Runtime.AutoSaveSeconds + math.random() * 10 }
     self.loading[player] = nil
     if self.closing or not player.Parent then self:close(player); return false end
     return true
@@ -794,7 +437,7 @@ function DataService:get(player)
         player:Kick("Saving is unavailable. Please rejoin to protect your saved progress.")
         return nil
     end
-    return entry.data, entry.runtime
+    return entry.data
 end
 function DataService:save(player, release)
     local entry = self.entries[player]
@@ -844,63 +487,70 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00031">
+        <Item class="ModuleScript" referent="RBX00021">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Copy = require(Shared.util.Copy)
 local Pricing = require(Shared.domain.Pricing)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
-function SnapshotService.new(data, stations, rush, network)
-    return setmetatable({ data = data, stations = stations, rush = rush, network = network }, SnapshotService)
+function SnapshotService.new(data, stations, network)
+    return setmetatable({ data = data, stations = stations, network = network }, SnapshotService)
 end
 function SnapshotService:send(player)
-    local p, runtime = self.data:get(player)
+    local p = self.data:get(player)
     if not p or not player.Parent then return end
     self.network.State:FireClient(player, {
-        profile = Copy(p), nearStation = self.stations:near(player), volatile = self.data.volatile,
-        foldStart = runtime.foldStart, rush = self.rush:snapshot(player.UserId),
-        stats = { perClick = Pricing.click(p), perSecond = Pricing.automatic(p),
-            clickCost = Pricing.upgrade(p.upgrades.Click), salesCost = Pricing.upgrade(p.upgrades.Sales) },
+        profile = { cash = p.cash, sales = p.sales, bag = { fries = p.bag.fries } },
+        hasStation = self.stations:hasStation(player), nearStation = self.stations:near(player), volatile = self.data.volatile,
+        stats = { perClick = Pricing.click(), perSecond = Pricing.automatic(), saleValue = Pricing.sale() },
     })
 end
 return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00032">
+        <Item class="ModuleScript" referent="RBX00022">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Equipment = require(Shared.config.Equipment)
 local Economy = require(Shared.config.Economy)
 local Runtime = require(Shared.config.Runtime)
-local Variants = require(Shared.config.Variants)
-local EquipmentVisuals = require(script.Parent.Parent.world.EquipmentVisuals)
 local StationService = {}
 StationService.__index = StationService
 function StationService.new(stations) return setmetatable({ stations = stations, assigned = {} }, StationService) end
-function StationService:assign(player)
-    for _, station in ipairs(self.stations) do
-        if not station.owner then
-            station.owner = player
-            self.assigned[player] = station
-            return true
-        end
-    end
-    return false
+local function livingRoot(player)
+    local character = player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if not player.Parent or not root or not humanoid or humanoid.Health &lt;= 0 then return nil end
+    return root
 end
+function StationService:claim(player, index)
+    local station = self.stations[index]
+    if not station then return false, "That restaurant is unavailable." end
+    if self.assigned[player] then return false, "You already have a restaurant. Use Return to Counter." end
+    if station.owner then return false, "Someone has already claimed this restaurant." end
+    local root = livingRoot(player)
+    if not root or (root.Position - station.claimPart.Position).Magnitude &gt; Runtime.ClaimDistance then
+        return false, "Walk to the entrance to claim this restaurant."
+    end
+    -- No yields between availability and assignment: only one claimant can win.
+    station.owner, self.assigned[player] = player, station
+    station.prompt.Enabled = false
+    station.sign.Text = player.DisplayName .. "'s\nRESTAURANT"
+    station.model:SetAttribute("OwnerUserId", player.UserId)
+    self:teleport(player)
+    return true, "Your restaurant is ready."
+end
+function StationService:hasStation(player) return self.assigned[player] ~= nil end
 function StationService:release(player)
     local station = self.assigned[player]
     if station then
         station.owner = nil
-        station.sign.Text = "AVAILABLE COUNTER"
-        station.orderSign.Text = "Put the fries in the bag!"
-        station.equipmentSign.Text = "Training Fryer"
-        station.machine.Color = Color3.fromRGB(145, 151, 161)
-        station.bag.Color = Color3.fromRGB(165, 130, 92)
-        EquipmentVisuals(station, "starter_fryer", "starter_bag")
+        station.sign.Text = "RESTAURANT " .. station.index .. "\nAVAILABLE"
+        station.model:SetAttribute("OwnerUserId", 0)
+        station.prompt.Enabled = true
         for _, fry in ipairs(station.fries) do fry.Transparency = 1 end
     end
     self.assigned[player] = nil
@@ -909,44 +559,30 @@ function StationService:teleport(player)
     local station, character = self.assigned[player], player.Character
     if station and character and character:FindFirstChild("HumanoidRootPart") then
         character:PivotTo(station.spawn)
+        return true
     end
+    return false
 end
 function StationService:near(player)
-    local station = self.assigned[player]
-    local character = player.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    return station ~= nil and root ~= nil and humanoid ~= nil and humanoid.Health &gt; 0
-        and (root.Position - station.origin).Magnitude &lt;= Runtime.StationDistance
+    local station, root = self.assigned[player], livingRoot(player)
+    return station ~= nil and root ~= nil and (root.Position - station.origin).Magnitude &lt;= Runtime.StationDistance
 end
 function StationService:render(player, p)
     local station = self.assigned[player]
     if not station then return end
-    EquipmentVisuals(station, p.equipped.Machine, p.equipped.Bag)
-    local machine, bag = Equipment.Items[p.equipped.Machine], Equipment.Items[p.equipped.Bag]
-    station.machine.Color = Color3.fromRGB(table.unpack(machine.color))
-    station.bag.Color = Color3.fromRGB(table.unpack(bag.color))
-    station.equipmentSign.Text = machine.name .. "\n" .. machine.power .. " fries / sec"
-    station.sign.Text = player.DisplayName .. "'s counter\n" .. math.floor(p.bag.fries) .. " / " .. Economy.Capacity .. " fries"
-    station.orderSign.Text = if p.bag.fries &gt;= Economy.Capacity then "Ready! Serve my fries!" else "Put the fries in the bag!"
-    local color = Variants[1].color
-    for _, variant in ipairs(Variants) do if variant.id == p.bag.variant then color = variant.color end end
     local visible = math.floor(p.bag.fries / Economy.Capacity * #station.fries)
-    for n, fry in ipairs(station.fries) do
-        fry.Transparency = if n &lt;= visible then 0 else 1
-        fry.Color = Color3.fromRGB(table.unpack(color))
-    end
+    for n, fry in ipairs(station.fries) do fry.Transparency = if n &lt;= visible then 0 else 1 end
 end
 return StationService
 </ProtectedString>
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00033">
+      <Item class="Folder" referent="RBX00023">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00034">
+        <Item class="ModuleScript" referent="RBX00024">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -1031,70 +667,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00035">
+      <Item class="Folder" referent="RBX00025">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00036">
-          <Properties>
-            <string name="Name">EquipmentVisuals</string>
-            <ProtectedString name="Source">-- Rebuild cosmetic geometry only when the equipped machine or bag changes.
-local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Equipment = require(Shared.config.Equipment)
-local P = require(script.Parent.Primitives)
-return function(station, machineId, bagId)
-    local key = machineId .. ":" .. bagId
-    if station.visualKey == key then return end
-    station.visualKey = key
-    local old = station.model:FindFirstChild("EquipmentDetails")
-    if old then old:Destroy() end
-    local details = Instance.new("Model")
-    details.Name, details.Parent = "EquipmentDetails", station.model
-    local function part(name, size, offset, color, material)
-        local value = P.part(details, name, size, station.origin + offset, color, material)
-        value.CanCollide = false
-        return value
-    end
-    local machineColor = Color3.fromRGB(table.unpack(Equipment.Items[machineId].color))
-    station.machine.Transparency = if machineId == "ufo" then 1 else 0
-    if machineId == "conveyor" then
-        part("ConveyorBelt", Vector3.new(4, 0.3, 1), Vector3.new(-2.7, 5.8, -1), Color3.fromRGB(40, 43, 52))
-        for n = 1, 4 do
-            part("Roller"..n, Vector3.new(0.15, 0.15, 1.1), Vector3.new(-4.5+n*0.8, 6, -1), machineColor)
-        end
-    elseif machineId == "robot" then
-        part("RobotHead", Vector3.new(2, 1.4, 1.5), Vector3.new(-3.5, 6.4, -1), machineColor)
-        for _, x in ipairs({-4, -3}) do
-            part("RobotEye", Vector3.new(0.3, 0.3, 0.15), Vector3.new(x, 6.5, -0.2), Color3.fromRGB(89, 255, 211), Enum.Material.Neon)
-        end
-        part("RobotArm", Vector3.new(2.4, 0.4, 0.4), Vector3.new(-1.2, 5.4, -1), machineColor)
-    elseif machineId == "ufo" then
-        local disc = part("UFODisc", Vector3.new(4.5, 0.7, 3.3), Vector3.new(-3.5, 6.2, -1), machineColor)
-        disc.Shape = Enum.PartType.Ball
-        local dome = part("UFODome", Vector3.new(2, 1.3, 1.8), Vector3.new(-3.5, 6.7, -1), Color3.fromRGB(106, 255, 199), Enum.Material.Neon)
-        dome.Shape = Enum.PartType.Ball
-        local beam = part("FryBeam", Vector3.new(1.3, 2.3, 1.3), Vector3.new(-3.5, 4.9, -1), Color3.fromRGB(107, 255, 197), Enum.Material.Neon)
-        beam.Transparency = 0.65
-    else
-        part("FryerBasket", Vector3.new(2.3, 0.15, 1.6), Vector3.new(-3.5, 5.8, -1), Color3.fromRGB(80, 83, 94))
-    end
-    station.bag.Material = if bagId == "neon" then Enum.Material.Neon else Enum.Material.SmoothPlastic
-    if bagId == "striped" then
-        for n = 1, 3 do
-            part("BagStripe"..n, Vector3.new(0.16, 1.6, 0.05), Vector3.new(0.3+n*0.35, 4.35, -0.32), Color3.fromRGB(250, 235, 207))
-        end
-    elseif bagId == "briefcase" then
-        local black = Color3.fromRGB(43, 42, 35)
-        part("HandleTop", Vector3.new(0.8, 0.13, 0.14), Vector3.new(1, 5.45, -1), black)
-        for _, x in ipairs({0.6, 1.4}) do
-            part("HandleSide", Vector3.new(0.13, 0.3, 0.14), Vector3.new(x, 5.3, -1), black)
-        end
-    end
-end
-</ProtectedString>
-          </Properties>
-        </Item>
-        <Item class="ModuleScript" referent="RBX00037">
+        <Item class="ModuleScript" referent="RBX00026">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -1108,107 +685,151 @@ function Primitives.part(parent, name, size, position, color, material)
     part.Parent = parent
     return part
 end
-function Primitives.label(parent, text, offset, width, height)
-    local gui = Instance.new("BillboardGui")
-    gui.Name = "Sign"
-    gui.Size = UDim2.fromOffset(width or 230, height or 70)
-    gui.StudsOffset = offset or Vector3.new(0, 3, 0)
-    gui.MaxDistance = 100
-    gui.AlwaysOnTop = false
+function Primitives.surfaceLabel(parent, text, face, color)
+    local gui = Instance.new("SurfaceGui")
+    gui.Name, gui.Face = "WallArt", face
+    gui.SizingMode, gui.PixelsPerStud = Enum.SurfaceGuiSizingMode.PixelsPerStud, 40
+    gui.AlwaysOnTop, gui.LightInfluence = false, 0.5
     gui.Parent = parent
     local label = Instance.new("TextLabel")
     label.Size = UDim2.fromScale(1, 1)
-    label.BackgroundColor3 = Color3.fromRGB(29, 34, 48)
-    label.BackgroundTransparency = 0.15
-    label.TextColor3 = Color3.fromRGB(255, 238, 194)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = color
     label.Font = Enum.Font.GothamBold
-    label.TextSize = 17
+    label.TextScaled = true
     label.TextWrapped = true
     label.Text = text
     label.Parent = gui
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = label
     return label
 end
 return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00038">
+        <Item class="ModuleScript" referent="RBX00027">
           <Properties>
             <string name="Name">StationBuilder</string>
-            <ProtectedString name="Source">local P = require(script.Parent.Primitives)
-return function(parent, index, origin)
+            <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local Runtime = require(Shared.config.Runtime)
+local P = require(script.Parent.Primitives)
+return function(parent, index, origin, yaw)
     local model = Instance.new("Model")
-    model.Name = "Station" .. index
-    model.Parent = parent
-    P.part(model, "Mat", Vector3.new(15, 0.2, 14), origin + Vector3.new(0, 0.2, 0), Color3.fromRGB(55, 65, 83))
-    local counter = P.part(model, "Counter", Vector3.new(12, 3, 3), origin + Vector3.new(0, 1.7, -1), Color3.fromRGB(190, 70, 64))
-    P.part(model, "Worktop", Vector3.new(12.5, 0.3, 3.5), origin + Vector3.new(0, 3.35, -1), Color3.fromRGB(238, 225, 197))
-    local machine = P.part(model, "Machine", Vector3.new(3, 2.2, 2.4), origin + Vector3.new(-3.5, 4.6, -1), Color3.fromRGB(145, 151, 161))
-    P.part(model, "MachineScreen", Vector3.new(1.8, 0.7, 0.1), origin + Vector3.new(-3.5, 4.8, 0.25), Color3.fromRGB(100, 234, 198), Enum.Material.Neon)
-    local bag = P.part(model, "Bag", Vector3.new(1.8, 1.7, 1.3), origin + Vector3.new(1, 4.35, -1), Color3.fromRGB(165, 130, 92))
+    model.Name, model.Parent = "Station" .. index, parent
+    model:SetAttribute("OwnerUserId", 0)
+    local transform = CFrame.new(origin) * CFrame.Angles(0, yaw or 0, 0)
+    local function part(name, size, offset, color, material)
+        local object = P.part(model, name, size, transform:PointToWorldSpace(offset), color, material)
+        object.CFrame = transform * CFrame.new(offset)
+        return object
+    end
+    local cream, brick = Color3.fromRGB(247, 236, 213), Color3.fromRGB(176, 77, 56)
+    local accent = if index % 2 == 0 then Color3.fromRGB(54, 119, 102) else brick
+    part("Plot", Vector3.new(52, 0.4, 52), Vector3.new(0, 0.05, 0), Color3.fromRGB(129, 162, 111), Enum.Material.Grass)
+    part("RestaurantFloor", Vector3.new(42, 0.5, 34), Vector3.new(0, 0.35, -3), cream, Enum.Material.Concrete)
+    part("EntrancePath", Vector3.new(12, 0.25, 12), Vector3.new(0, 0.25, 20), Color3.fromRGB(218, 202, 174), Enum.Material.Concrete)
+    part("BackWall", Vector3.new(42, 12, 0.8), Vector3.new(0, 6.5, -20), cream)
+    part("LeftWall", Vector3.new(0.8, 8, 34), Vector3.new(-21, 4.5, -3), cream)
+    part("RightWall", Vector3.new(0.8, 8, 34), Vector3.new(21, 4.5, -3), cream)
+    -- Open roof and wide frontage keep the third-person camera unobstructed.
+    part("Fascia", Vector3.new(43, 2.5, 1.2), Vector3.new(0, 10.5, 14), accent)
+    for _, x in ipairs({-20, 20}) do
+        part("FrontPost", Vector3.new(1, 10, 1), Vector3.new(x, 5.5, 14), accent)
+        part("Hedge", Vector3.new(1.5, 2, 50), Vector3.new(x / 20 * 25, 1.3, 0), Color3.fromRGB(70, 114, 72), Enum.Material.Grass)
+    end
+    for n = 1, 10 do
+        part("AwningStripe" .. n, Vector3.new(4.2, 0.3, 4), Vector3.new(-23.1 + n * 4.2, 11.8, 13),
+            if n % 2 == 0 then cream else accent)
+    end
+    local plaque = part("RestaurantPlaque", Vector3.new(15, 2, 0.2), Vector3.new(0, 10.5, 14.7), accent)
+    local sign = P.surfaceLabel(plaque, "RESTAURANT " .. index .. "\nAVAILABLE", Enum.NormalId.Back, cream)
+    local claimPart = part("ClaimPoint", Vector3.new(0.5, 0.5, 0.5), Vector3.new(0, 3, 18), accent)
+    claimPart.Transparency, claimPart.CanCollide = 1, false
+    local prompt = Instance.new("ProximityPrompt")
+    prompt.Name, prompt.ActionText, prompt.ObjectText = "ClaimRestaurant", "Claim restaurant", "Restaurant " .. index
+    prompt.KeyboardKeyCode, prompt.GamepadKeyCode = Enum.KeyCode.E, Enum.KeyCode.ButtonX
+    prompt.HoldDuration, prompt.MaxActivationDistance = 0, Runtime.ClaimDistance
+    prompt.RequiresLineOfSight, prompt.ClickablePrompt, prompt.Enabled = false, true, true
+    prompt.Parent = claimPart
+
+    part("Counter", Vector3.new(16, 3, 3), Vector3.new(0, 2, -1), accent)
+    part("Worktop", Vector3.new(16.5, 0.3, 3.5), Vector3.new(0, 3.65, -1), cream)
+    local machine = part("Machine", Vector3.new(3, 2.2, 2.4), Vector3.new(-3.5, 4.9, -1), Color3.fromRGB(145, 151, 161), Enum.Material.Metal)
+    part("MachineScreen", Vector3.new(1.8, 0.7, 0.1), Vector3.new(-3.5, 5.1, 0.25), Color3.fromRGB(100, 234, 198), Enum.Material.Neon)
+    part("FryerBasket", Vector3.new(2.3, 0.15, 1.6), Vector3.new(-3.5, 6.1, -1), Color3.fromRGB(80, 83, 94), Enum.Material.Metal)
+    local bag = part("Bag", Vector3.new(1.8, 1.7, 1.3), Vector3.new(1, 4.65, -1), Color3.fromRGB(193, 150, 87))
     local fries = {}
     for n = 1, 10 do
-        local x = (n - 1) % 5
-        local z = math.floor((n - 1) / 5)
-        local fry = P.part(model, "Fry" .. n, Vector3.new(0.22, 1.2 + (n % 3) * 0.15, 0.22),
-            origin + Vector3.new(0.4 + x * 0.29, 5.05, -1.3 + z * 0.5), Color3.fromRGB(247, 191, 69))
-        fry.CanCollide = false
-        fry.Transparency = 1
+        local fry = part("Fry" .. n, Vector3.new(0.22, 1.2 + n % 3 * 0.15, 0.22),
+            Vector3.new(0.4 + (n - 1) % 5 * 0.29, 5.35, -1.3 + math.floor((n - 1) / 5) * 0.5),
+            Color3.fromRGB(247, 191, 69))
+        fry.CanCollide, fry.Transparency = false, 1
         table.insert(fries, fry)
     end
-    local sign = P.label(counter, "AVAILABLE COUNTER", Vector3.new(0, 6.8, 0), 270, 90)
-    local equipmentSign = P.label(machine, "Training Fryer", Vector3.new(0, 2.2, 0), 190, 40)
-    local customer = P.part(model, "CustomerBody", Vector3.new(1.8, 2.4, 1), origin + Vector3.new(3.5, 2.5, -5), Color3.fromRGB(68, 156, 195))
-    local head = P.part(model, "CustomerHead", Vector3.new(1.4, 1.4, 1.4), origin + Vector3.new(3.5, 4.4, -5), Color3.fromRGB(235, 189, 146))
+    -- No floating equipment labels, including on future fryers.
+    part("CustomerBody", Vector3.new(1.8, 2.4, 1), Vector3.new(3.5, 2.8, -5), Color3.fromRGB(68, 156, 195))
+    local head = part("CustomerHead", Vector3.new(1.4, 1.4, 1.4), Vector3.new(3.5, 4.7, -5), Color3.fromRGB(235, 189, 146))
     head.Shape = Enum.PartType.Ball
-    P.part(model, "CustomerLeg1", Vector3.new(0.7, 1.4, 0.8), origin + Vector3.new(3, 0.9, -5), Color3.fromRGB(35, 47, 76))
-    P.part(model, "CustomerLeg2", Vector3.new(0.7, 1.4, 0.8), origin + Vector3.new(4, 0.9, -5), Color3.fromRGB(35, 47, 76))
-    local orderSign = P.label(customer, "Put the fries in the bag!", Vector3.new(0, 4.5, 0), 200, 55)
-    return { model = model, origin = origin, spawn = CFrame.new(origin + Vector3.new(0, 4, 4)),
-        machine = machine, bag = bag, fries = fries, sign = sign, equipmentSign = equipmentSign, orderSign = orderSign }
+    for _, x in ipairs({3, 4}) do
+        part("CustomerLeg", Vector3.new(0.7, 1.4, 0.8), Vector3.new(x, 1.2, -5), Color3.fromRGB(35, 47, 76))
+    end
+    for _, x in ipairs({-14, 14}) do
+        part("DiningTable", Vector3.new(6, 0.4, 5), Vector3.new(x, 3, -11), Color3.fromRGB(198, 154, 105), Enum.Material.Wood)
+        part("TableBase", Vector3.new(1, 2.5, 1), Vector3.new(x, 1.6, -11), accent)
+        for _, z in ipairs({-15, -7}) do
+            part("DiningBench", Vector3.new(6, 1.6, 1.5), Vector3.new(x, 1.3, z), accent)
+        end
+    end
+    return { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
+        machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt }
 end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00039">
+        <Item class="ModuleScript" referent="RBX00028">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
 local P = require(script.Parent.Primitives)
 local StationBuilder = require(script.Parent.StationBuilder)
 return function(count)
+    assert(count &lt;= 6, "Expand the plot layout before adding more restaurants.")
     local previous = workspace:FindFirstChild("FriesRestaurant")
     if previous then previous:Destroy() end
     local model = Instance.new("Model")
-    model.Name = "FriesRestaurant"
-    model.Parent = workspace
-    P.part(model, "Floor", Vector3.new(82, 1, 70), Vector3.new(0, -0.5, 0), Color3.fromRGB(222, 212, 190))
-    P.part(model, "BackWall", Vector3.new(82, 18, 1), Vector3.new(0, 9, -34), Color3.fromRGB(47, 62, 77))
-    P.part(model, "LeftWall", Vector3.new(1, 10, 70), Vector3.new(-41, 5, 0), Color3.fromRGB(190, 70, 64))
-    P.part(model, "RightWall", Vector3.new(1, 10, 70), Vector3.new(41, 5, 0), Color3.fromRGB(190, 70, 64))
-    local title = P.part(model, "TitleBoard", Vector3.new(28, 4, 1), Vector3.new(0, 12, -32), Color3.fromRGB(255, 198, 62))
-    P.label(title, "PUT THE FRIES IN THE BAG\nPACK  /  SERVE  /  COLLECT", Vector3.zero, 440, 90)
+    model.Name, model.Parent = "FriesRestaurant", workspace
+    P.part(model, "Ground", Vector3.new(220, 1, 192), Vector3.new(0, -0.5, 0), Color3.fromRGB(111, 153, 102), Enum.Material.Grass)
+    P.part(model, "CentralPlaza", Vector3.new(198, 0.25, 48), Vector3.new(0, 0.1, 0), Color3.fromRGB(225, 212, 187), Enum.Material.Concrete)
+    P.part(model, "Promenade", Vector3.new(198, 0.05, 12), Vector3.new(0, 0.25, 0), Color3.fromRGB(246, 232, 206), Enum.Material.Concrete)
+    -- The title belongs to a physical wall and follows its perspective.
+    local muralWall = P.part(model, "MuralWall", Vector3.new(1.2, 14, 38), Vector3.new(-104, 7, 0), Color3.fromRGB(176, 77, 56), Enum.Material.Brick)
+    P.surfaceLabel(muralWall, "PUT THE FRIES\nIN THE BAG", Enum.NormalId.Right, Color3.fromRGB(255, 235, 181))
     local spawn = Instance.new("SpawnLocation")
-    spawn.Name, spawn.Anchored, spawn.Neutral = "RestaurantEntrance", true, true
-    spawn.Size, spawn.Position = Vector3.new(7, 0.3, 7), Vector3.new(0, 0.2, 27)
-    spawn.Color = Color3.fromRGB(87, 183, 162)
-    spawn.Duration = 0
+    spawn.Name, spawn.Anchored, spawn.Neutral = "PlazaEntrance", true, true
+    spawn.Size, spawn.Position = Vector3.new(8, 0.3, 8), Vector3.new(0, 0.35, 0)
+    spawn.Color, spawn.Duration, spawn.Transparency = Color3.fromRGB(246, 232, 206), 0, 1
     spawn.Parent = model
-    local board = P.part(model, "RushBoard", Vector3.new(9, 3, 1), Vector3.new(0, 5, 17), Color3.fromRGB(47, 62, 77))
-    local rushLabel = P.label(board, "LUNCH RUSH", Vector3.new(0, 2, 0), 340, 75)
     local stations = {}
     for index = 1, count do
         local column = (index - 1) % 3
-        local row = math.floor((index - 1) / 3)
-        stations[index] = StationBuilder(model, index, Vector3.new((column - 1) * 24, 0, -19 + row * 23))
+        local south = index &gt; 3
+        stations[index] = StationBuilder(model, index, Vector3.new((column - 1) * 64, 0, if south then 60 else -60),
+            if south then math.pi else 0)
+        P.part(model, "PlotPath" .. index, Vector3.new(12, 0.2, 12),
+            Vector3.new((column - 1) * 64, 0.2, if south then 30 else -30), Color3.fromRGB(218, 202, 174), Enum.Material.Concrete)
     end
-    Lighting.ClockTime = 14
-    Lighting.Brightness = 2
-    Lighting.Ambient = Color3.fromRGB(145, 145, 155)
-    return stations, rushLabel
+    -- Central space stays open for meeting and future, separately agreed features.
+    for _, x in ipairs({-84, -32, 32, 84}) do
+        for _, z in ipairs({-17, 17}) do
+            P.part(model, "Planter", Vector3.new(7, 1.1, 5), Vector3.new(x, 0.8, z), Color3.fromRGB(187, 149, 107), Enum.Material.Wood)
+            P.part(model, "Greenery", Vector3.new(6, 2, 4), Vector3.new(x, 2.1, z), Color3.fromRGB(64, 116, 80), Enum.Material.Grass)
+        end
+    end
+    for _, x in ipairs({-48, 48}) do
+        P.part(model, "PlazaBench", Vector3.new(8, 1.5, 2.5), Vector3.new(x, 1, 12), Color3.fromRGB(184, 123, 79), Enum.Material.Wood)
+    end
+    Lighting.ClockTime, Lighting.Brightness = 14, 2
+    Lighting.Ambient = Color3.fromRGB(155, 151, 140)
+    return stations
 end
 </ProtectedString>
           </Properties>
@@ -1216,23 +837,23 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00040">
+  <Item class="StarterPlayer" referent="RBX00029">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00041">
+    <Item class="StarterPlayerScripts" referent="RBX00030">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00042">
+      <Item class="Folder" referent="RBX00031">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="Folder" referent="RBX00043">
+        <Item class="Folder" referent="RBX00032">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00044">
+          <Item class="ModuleScript" referent="RBX00033">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1240,13 +861,13 @@ local RunService = game:GetService("RunService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Economy = require(Shared.config.Economy)
 -- Holding and tapping both use the same rate-limited Pack request on the server.
-return function(hud, send, getState, isVisible)
+return function(hud, send, getState)
     local heldInput = nil
     local holdingKey = false
     local nextPack = 0
     local function pack()
         local state = getState()
-        if not state or not state.nearStation or state.profile.bag.fries &gt;= Economy.Capacity then return end
+        if not state or not state.hasStation or not state.nearStation or state.profile.bag.fries &gt;= Economy.Capacity then return end
         local now = os.clock()
         if now &lt; nextPack then return end
         nextPack = now + 1 / Economy.ClicksPerSecond + 0.02
@@ -1261,10 +882,7 @@ return function(hud, send, getState, isVisible)
     UserInputService.InputBegan:Connect(function(input, processed)
         if processed or UserInputService:GetFocusedTextBox() then return end
         if input.KeyCode == Enum.KeyCode.F then holdingKey = true; pack()
-        elseif input.KeyCode == Enum.KeyCode.E then send("Sell")
-        elseif input.KeyCode == Enum.KeyCode.Q then
-            local state = getState()
-            send(if state and state.foldStart then "FinishFold" else "StartFold")
+        elseif input.KeyCode == Enum.KeyCode.R then hud:sellBag()
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -1273,7 +891,7 @@ return function(hud, send, getState, isVisible)
     end)
     UserInputService.WindowFocusReleased:Connect(function() heldInput = nil; holdingKey = false end)
     RunService.RenderStepped:Connect(function()
-        if heldInput and (not hud.frame.Visible or not isVisible()) then heldInput = nil end
+        if heldInput and not hud.frame.Visible then heldInput = nil end
         if heldInput or holdingKey then pack() end
     end)
 end
@@ -1281,10 +899,10 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="RBX00045">
+        <Item class="LocalScript" referent="RBX00034">
           <Properties>
             <string name="Name">Main</string>
-            <ProtectedString name="Source">-- Client composition root. It never determines money, item rolls, or sale prices.
+            <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -1299,11 +917,10 @@ local function send(name, argument) action:FireServer(name, argument) end
 local app = AppView.new(Players.LocalPlayer:WaitForChild("PlayerGui"), send)
 stateRemote.OnClientEvent:Connect(function(snapshot) state = snapshot; app:update(snapshot) end)
 noticeRemote.OnClientEvent:Connect(function(text, success) app:notice(text, success) end)
-InputController(app.views[1], send, function() return state end, function() return app.panel.Visible end)
+InputController(app.hud, send, function() return state end)
 RunService.RenderStepped:Connect(function()
     local camera = workspace.CurrentCamera
     if camera then app:resize(camera.ViewportSize) end
-    app.views[1]:animate(workspace:GetServerTimeNow())
 end)
 task.spawn(function()
     while not state do
@@ -1314,139 +931,116 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00046">
+        <Item class="Folder" referent="RBX00035">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00047">
+          <Item class="ModuleScript" referent="RBX00036">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
-local UpgradeView = require(script.Parent.UpgradeView)
-local DeliveryView = require(script.Parent.DeliveryView)
-local InventoryView = require(script.Parent.InventoryView)
-local IndexView = require(script.Parent.IndexView)
 local AppView = {}
 AppView.__index = AppView
 function AppView.new(playerGui, send)
-    local self = setmetatable({ views = {}, tabs = {} }, AppView)
+    local self = setmetatable({}, AppView)
     local gui = Instance.new("ScreenGui")
     gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "FriesInterface", false, Enum.ZIndexBehavior.Sibling
     gui.Parent = playerGui
-    local panel = Instance.new("Frame")
-    panel.Name, panel.AnchorPoint = "Panel", Vector2.new(1, 0.5)
-    panel.Position, panel.Size = UDim2.new(1, -12, 0.5, 0), UDim2.fromOffset(420, 670)
-    panel.BackgroundColor3, panel.BorderSizePixel, panel.Parent = Theme.Background, 0, gui
-    E.corner(panel, 16)
-    self.panel = panel
-    local scale = Instance.new("UIScale")
-    scale.Parent = panel
-    self.scale = scale
-    local title = E.label(panel, "PUT THE FRIES IN THE BAG", 32, Theme.Gold)
-    title.Position, title.Size = UDim2.fromOffset(16, 12), UDim2.fromOffset(386, 32)
-    title.Font, title.TextSize = Enum.Font.GothamBlack, 19
-    self.wallet = E.label(panel, "Loading saved progress...", 32)
-    self.wallet.Position, self.wallet.Size = UDim2.fromOffset(16, 46), UDim2.fromOffset(386, 32)
-    self.mode = E.label(panel, "", 23, Theme.Muted)
-    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 78), UDim2.fromOffset(386, 23), 12
-    local names = { "PLAY", "UPGRADES", "DELIVERY", "GEAR", "INDEX" }
-    for n, name in ipairs(names) do
-        local button = E.button(panel, name, function() self:select(n) end, Theme.Muted)
-        button.Position, button.Size = UDim2.fromOffset(16 + (n - 1) * 78, 110), UDim2.fromOffset(73, 34)
-        button.TextSize = 11
-        self.tabs[n] = button
-    end
-    local content = Instance.new("Frame")
-    content.Position, content.Size = UDim2.fromOffset(16, 155), UDim2.fromOffset(390, 432)
-    content.BackgroundTransparency, content.Parent = 1, panel
-    self.content = content
-    self.views = { HudView.new(content, send), UpgradeView.new(content, send), DeliveryView.new(content, send),
-        InventoryView.new(content, send), IndexView.new(content) }
-    self.noticeLabel = E.label(panel, "Fill your first bag to begin.", 62)
-    self.noticeLabel.Position, self.noticeLabel.Size = UDim2.fromOffset(16, 596), UDim2.fromOffset(386, 62)
-    local toggle = E.button(gui, "HIDE MENU", function()
-        panel.Visible = not panel.Visible
-        self.toggle.Text = if panel.Visible then "HIDE MENU" else "SHOW MENU"
-    end, Theme.Gold)
-    toggle.Position, toggle.Size = UDim2.new(0, 12, 0, 12), UDim2.fromOffset(124, 36)
-    toggle.TextSize = 13
-    self.toggle = toggle
-    self:select(1)
+    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, 76), Theme.Background, 18)
+    E.stroke(self.cashCard, Theme.Gold, 2, 0.12)
+    local coin = E.box(self.cashCard, "Coin", UDim2.fromOffset(12, 17), UDim2.fromOffset(42, 42), Theme.Gold, 21)
+    local symbol = E.label(coin, "$", 42, Theme.Ink)
+    symbol.Size, symbol.TextSize, symbol.Font = UDim2.fromScale(1, 1), 29, Enum.Font.GothamBold
+    symbol.TextXAlignment = Enum.TextXAlignment.Center
+    local caption = E.label(self.cashCard, "CASH", 18, Theme.Muted)
+    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(65, 10), UDim2.fromOffset(140, 18), 11
+    self.wallet = E.label(self.cashCard, "$0", 36, Theme.Text)
+    self.wallet.Name, self.wallet.Position, self.wallet.Size = "Cash", UDim2.fromOffset(65, 29), UDim2.fromOffset(142, 36)
+    self.wallet.Font, self.wallet.TextSize, self.wallet.TextWrapped = Enum.Font.GothamBold, 27, false
+    self.wallet.TextScaled = true
+    local cashTextSize = Instance.new("UITextSizeConstraint")
+    cashTextSize.MinTextSize, cashTextSize.MaxTextSize, cashTextSize.Parent = 10, 27, self.wallet
+    self.mode = E.label(gui, "", 20, Theme.Text)
+    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 96), UDim2.fromOffset(220, 20), 10
+    self.teleport = E.button(gui, "RETURN TO COUNTER", function()
+        if self.hasStation then send("Return") end
+    end, Theme.Background)
+    self.teleport.TextColor3 = Theme.Text
+    self.teleport.Name, self.teleport.AnchorPoint = "Teleport", Vector2.new(0.5, 0)
+    self.teleport.Size, self.teleport.TextSize = UDim2.fromOffset(212, 44), 12
+    E.stroke(self.teleport, Theme.Gold, 1.5, 0.3)
+    self.guidance = E.label(gui, "", 44, Theme.Text)
+    self.guidance.Name, self.guidance.AnchorPoint = "Guidance", Vector2.new(0.5, 0)
+    self.guidance.TextXAlignment, self.guidance.TextSize = Enum.TextXAlignment.Center, 13
+    self.guidance.BackgroundColor3, self.guidance.BackgroundTransparency = Theme.Background, 0.08
+    E.corner(self.guidance, 12)
+    self.hud = HudView.new(gui, send)
+    self:resize(Vector2.new(1280, 720))
     return self
 end
-function AppView:select(index)
-    for n, view in ipairs(self.views) do
-        view.frame.Visible = n == index
-        self.tabs[n].BackgroundColor3 = if n == index then Theme.Gold else Theme.Muted
-    end
-end
 function AppView:update(state)
-    self.wallet.Text = "$" .. state.profile.cash .. " Cash     |     " .. state.profile.tickets .. " Tickets"
-    self.mode.Text = if state.volatile then "STUDIO TEST MODE - progress resets after stopping" else "Saved progression - gameplay-earned Tickets"
-    for _, view in ipairs(self.views) do view:update(state) end
+    self.hasStation = state.hasStation
+    self.wallet.Text = E.money(state.profile.cash)
+    self.wallet.TextSize = if #self.wallet.Text &gt; 12 then 14 elseif #self.wallet.Text &gt; 9 then 19 else 27
+    self.mode.Text = if state.volatile then "STUDIO TEST / resets on stop" else ""
+    self.teleport.Active, self.teleport.Selectable = state.hasStation, state.hasStation
+    self.teleport.Text = if state.hasStation then "RETURN TO COUNTER" else "CHOOSE A RESTAURANT"
+    self.teleport.AutoButtonColor = state.hasStation
+    if not self.errorUntil or os.clock() &gt;= self.errorUntil then
+        self.guidance.Visible = not state.hasStation
+        self.guidance.Text = "Walk to a free restaurant. Press E or tap its entrance prompt to claim."
+        self.guidance.TextColor3 = Theme.Text
+    end
+    self.hud:update(state)
 end
 function AppView:notice(text, success)
-    self.noticeLabel.Text = text
-    self.noticeLabel.TextColor3 = if success then Theme.Green else Theme.Red
+    -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
+    if success then return end
+    self.errorUntil = os.clock() + 4
+    self.guidance.Visible, self.guidance.Text, self.guidance.TextColor3 = true, text, Theme.Red
 end
 function AppView:resize(viewport)
-    -- Preserve readable text on landscape phones; shorten the scroll area instead.
-    local scale = math.max(0.3, math.min(1, (viewport.X - 24) / 420))
-    local height = math.max(290, math.min(670, (viewport.Y - 65) / scale))
-    self.scale.Scale = scale
-    self.panel.Size = UDim2.fromOffset(420, height)
-    self.content.Size = UDim2.fromOffset(390, height - 238)
-    self.noticeLabel.Position = UDim2.fromOffset(16, height - 74)
+    if self.viewportX == viewport.X and self.viewportY == viewport.Y then return end
+    self.viewportX, self.viewportY = viewport.X, viewport.Y
+    local portrait = viewport.X &lt; 760 and viewport.Y &gt;= 500
+    local compact = viewport.X &lt; 760 and not portrait
+    self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
+    self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
+    self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
+    self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 122 else 16)
+    self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 174 elseif compact then 68 else 118)
+    self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
+    self.hud.scale.Scale = math.min(1, (viewport.X - 24) / 392)
 end
 return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00048">
-            <Properties>
-              <string name="Name">DeliveryView</string>
-              <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Equipment = require(Shared.config.Equipment)
-local Economy = require(Shared.config.Economy)
-local E = require(script.Parent.Elements)
-local Theme = require(script.Parent.Theme)
-local DeliveryView = {}
-DeliveryView.__index = DeliveryView
-function DeliveryView.new(parent, send)
-    local self = setmetatable({ frame = E.column(parent, "Delivery"), labels = {} }, DeliveryView)
-    E.label(self.frame, "OPEN A SUPPLY DELIVERY", 36, Theme.Gold)
-    E.label(self.frame, "Each delivery costs 3 Tickets earned in-game. A duplicate returns 1 Ticket. New items go to GEAR.", 68, Theme.Muted)
-    for _, category in ipairs(Equipment.Categories) do
-        self.labels[category] = E.label(self.frame, "", 56)
-        E.button(self.frame, "OPEN " .. string.upper(category) .. " DELIVERY  |  3 Tickets", function() send("Roll", category) end)
-        local lines = {}
-        for _, rarity in ipairs(Equipment.Rarities) do
-            local item = Equipment.Items[Equipment.Pools[category][rarity.id]]
-            table.insert(lines, rarity.weight .. "%  " .. item.name .. " (" .. item.power .. (if category == "Machine" then "/sec)" else "x value)"))
-        end
-        E.label(self.frame, table.concat(lines, "\n"), 98, Theme.Muted)
-    end
-    E.label(self.frame, "After 9 rolls without Epic/Legendary, the next roll is 90% Epic / 10% Legendary. Each delivery type has its own saved counter. Any Epic/Legendary resets that counter.", 105, Theme.Muted)
-    return self
-end
-function DeliveryView:update(state)
-    for _, category in ipairs(Equipment.Categories) do
-        local count = state.profile.pity[category]
-        self.labels[category].Text = string.upper(category) .. " DELIVERY\n" .. (if count &gt;= Economy.PityAt - 1 then "NEXT ROLL: 90% Epic / 10% Legendary"
-            else "Normal odds below | Guarantee in " .. (Economy.PityAt - count) .. " rolls")
-    end
-end
-return DeliveryView
-</ProtectedString>
-            </Properties>
-          </Item>
-          <Item class="ModuleScript" referent="RBX00049">
+          <Item class="ModuleScript" referent="RBX00037">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
 local Elements = {}
+function Elements.money(value)
+    local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
+    local result = string.reverse(grouped):gsub("^,", "")
+    return "$" .. result
+end
+function Elements.stroke(parent, color, thickness, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color, stroke.Thickness, stroke.Transparency = color, thickness, transparency or 0
+    stroke.ApplyStrokeMode, stroke.Parent = Enum.ApplyStrokeMode.Border, parent
+    return stroke
+end
+function Elements.box(parent, name, position, size, color, radius)
+    local frame = Instance.new("Frame")
+    frame.Name, frame.Position, frame.Size = name, position, size
+    frame.BackgroundColor3, frame.BorderSizePixel, frame.Parent = color, 0, parent
+    Elements.corner(frame, radius)
+    return frame
+end
 function Elements.corner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius, corner.Parent = UDim.new(0, radius or 10), parent
@@ -1473,6 +1067,7 @@ function Elements.button(parent, text, callback, color)
     button.TextSize = 15
     button.TextWrapped = true
     button.Text = text
+    button.BorderSizePixel = 0
     button.Parent = parent
     Elements.corner(button)
     if callback then button.Activated:Connect(callback) end
@@ -1518,185 +1113,123 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00050">
+          <Item class="ModuleScript" referent="RBX00038">
             <Properties>
               <string name="Name">HudView</string>
               <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Economy = require(Shared.config.Economy)
-local RushConfig = require(Shared.config.Rush)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = {}
 HudView.__index = HudView
+local function action(parent, name, x, color, key, callback)
+    local shadow = E.box(parent, name .. "Shadow", UDim2.fromOffset(x, 7), UDim2.fromOffset(190, 96), Theme.Shadow, 18)
+    shadow.BackgroundTransparency = 0.18
+    local button = E.button(parent, "", callback, color)
+    button.Name, button.Position, button.Size = name, UDim2.fromOffset(x, 0), UDim2.fromOffset(190, 96)
+    button.AutoButtonColor = false
+    button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 18)
+    E.stroke(button, Theme.Text, 1.5, 0.65)
+    local title = E.label(button, "", 34, Theme.Ink)
+    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(48, 13), UDim2.fromOffset(136, 34)
+    title.Font, title.TextSize = Enum.Font.GothamBold, 21
+    local detail = E.label(button, "", 20, Theme.Ink)
+    detail.Name, detail.Position, detail.Size, detail.TextSize = "Detail", UDim2.fromOffset(12, 50), UDim2.fromOffset(166, 20), 12
+    local shortcut = E.label(button, key, 16, Theme.Ink)
+    shortcut.Position, shortcut.Size, shortcut.TextSize = UDim2.fromOffset(168, 3), UDim2.fromOffset(18, 16), 10
+    shortcut.TextXAlignment = Enum.TextXAlignment.Center
+    return button, title, detail, shortcut
+end
 function HudView.new(parent, send)
-    local self = setmetatable({ frame = E.column(parent, "Play") }, HudView)
-    self.status = E.label(self.frame, "Loading your restaurant...", 48)
-    local _, fill = E.bar(self.frame, Theme.Gold)
-    self.fill = fill
-    self.pack = E.button(self.frame, "PACK FRIES  /  hold or tap", nil, Theme.Gold)
-    self.sell = E.button(self.frame, "SERVE BAG", function() send("Sell") end, Theme.Green)
-    self.fold = E.button(self.frame, "TRY A PERFECT FOLD  +25%", function()
-        if self.state and self.state.foldStart then send("FinishFold") else send("StartFold") end
-    end, Theme.Blue)
-    local bar = E.bar(self.frame, Theme.Card, 22)
-    local zone = Instance.new("Frame")
-    zone.Position = UDim2.fromScale(Economy.FoldWindowMin, 0)
-    zone.Size = UDim2.fromScale(Economy.FoldWindowMax - Economy.FoldWindowMin, 1)
-    zone.BackgroundColor3, zone.BorderSizePixel, zone.Parent = Theme.Green, 0, bar
-    local marker = Instance.new("Frame")
-    marker.Size = UDim2.new(0, 4, 1, 6)
-    marker.Position = UDim2.new(0, 0, 0, -3)
-    marker.BackgroundColor3, marker.BorderSizePixel, marker.Parent = Theme.Text, 0, bar
-    self.marker = marker
-    self.order = E.label(self.frame, "", 50, Theme.Muted)
-    self.rush = E.label(self.frame, "", 76, Theme.Green)
-    E.button(self.frame, "RETURN TO MY COUNTER", function() send("Return") end, Theme.Muted)
-    E.label(self.frame, "Keyboard: F pack | E serve | Q fold\nFirst 5 sales: +3 bonus Tickets. Deliveries are in the DELIVERY tab.", 65, Theme.Muted)
+    local self = setmetatable({ send = send, hovered = false }, HudView)
+    local frame = Instance.new("Frame")
+    frame.Name, frame.AnchorPoint = "Actions", Vector2.new(0.5, 1)
+    frame.Position, frame.Size = UDim2.new(0.5, 0, 1, -22), UDim2.fromOffset(392, 104)
+    frame.BackgroundTransparency, frame.Parent = 1, parent
+    self.frame = frame
+    self.scale = Instance.new("UIScale")
+    self.scale.Parent = frame
+    self.pack, self.packTitle, self.packDetail = action(frame, "Click", 0, Theme.Gold, "F", nil)
+    self.sell, self.sellTitle, self.sellDetail, self.sellShortcut = action(frame, "Sell", 202, Theme.Card, "R", function() self:sellBag() end)
+    -- Small code-built fry and bag symbols; no external texture assets.
+    for n = 1, 3 do
+        E.box(self.pack, "Fry" .. n, UDim2.fromOffset(14 + (n - 1) * 8, 15 - n % 2 * 3),
+            UDim2.fromOffset(6, 27), Theme.Ink, 2)
+    end
+    E.box(self.sell, "BagIcon", UDim2.fromOffset(15, 18), UDim2.fromOffset(24, 28), Theme.Gold, 4)
+    E.box(self.sell, "BagRim", UDim2.fromOffset(13, 16), UDim2.fromOffset(28, 5), Theme.GoldLight, 2)
+    local track
+    track, self.fill = E.bar(self.sell, Theme.Gold, 6)
+    track.Position, track.Size, track.BackgroundColor3 = UDim2.fromOffset(12, 79), UDim2.fromOffset(166, 6), Theme.Background
+    local hint = E.label(self.pack, "PACK FRIES", 14, Theme.Ink)
+    hint.Position, hint.Size, hint.TextSize = UDim2.fromOffset(12, 76), UDim2.fromOffset(166, 14), 10
+    local function hover(on)
+        self.hovered = on
+        if self.state then self:update(self.state) end
+    end
+    self.pack.MouseEnter:Connect(function() hover(true) end)
+    self.pack.MouseLeave:Connect(function() hover(false) end)
+    self.pack.SelectionGained:Connect(function() hover(true) end)
+    self.pack.SelectionLost:Connect(function() hover(false) end)
+    self.packTitle.Text, self.packDetail.Text = "LOADING", "YOUR RESTAURANT"
+    self.sellTitle.Text, self.sellDetail.Text = "0 / 20", "FRIES IN BAG"
+    self.sellTitle.TextColor3, self.sellDetail.TextColor3 = Theme.Text, Theme.Muted
+    self.sellShortcut.TextColor3 = Theme.Muted
+    self.pack.Active, self.sell.Active = false, false
+    self.pack.Selectable, self.sell.Selectable = false, false
     return self
+end
+function HudView:sellBag()
+    local state = self.state
+    if state and state.hasStation and state.nearStation and state.profile.bag.fries &gt;= Economy.Capacity then self.send("Sell") end
 end
 function HudView:update(state)
     self.state = state
-    local p, bag = state.profile, state.profile.bag
+    local bag = state.profile.bag
     local full = bag.fries &gt;= Economy.Capacity
+    local canPack = state.hasStation and state.nearStation and not full
+    local canSell = state.hasStation and state.nearStation and full
+    self.pack.Active, self.pack.Selectable = canPack, canPack
+    self.sell.Active, self.sell.Selectable = canSell, canSell
+    self.pack.BackgroundColor3 = if canPack and self.hovered then Theme.GoldLight else Theme.Gold
+    self.packTitle.Text = if not state.hasStation then "CLAIM FIRST" elseif full then "BAG FULL"
+        elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else Economy.ClicksPerSecond .. " clicks/sec"
+    self.packTitle.TextSize = if not state.hasStation then 17 else 21
+    self.packDetail.Text = if not state.hasStation then "CLAIM AT THE ENTRANCE" elseif full then "SELL TO KEEP PACKING"
+        elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then "TAP / HOLD TO PACK" else "+" .. state.stats.perClick .. " FRY PER CLICK"
+    self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. Economy.Capacity
+    self.sellDetail.Text = if not state.hasStation then "CLAIM A RESTAURANT"
+        elseif full and not state.nearStation then "RETURN TO COUNTER"
+        elseif full then "+" .. E.money(state.stats.saleValue) .. " CASH"
+        else "FRIES IN BAG"
+    self.sell.BackgroundColor3 = if canSell then Theme.Green else Theme.Card
+    self.sellTitle.TextColor3 = if canSell then Theme.Ink else Theme.Text
+    self.sellDetail.TextColor3 = if canSell then Theme.Ink else Theme.Muted
+    self.sellShortcut.TextColor3 = if canSell then Theme.Ink else Theme.Muted
+    self.fill.BackgroundColor3 = if full then Theme.Green else Theme.Gold
     self.fill.Size = UDim2.fromScale(bag.fries / Economy.Capacity, 1)
-    self.status.Text = if full then string.upper(bag.variant) .. " FRIES - READY!\nBase sale: $" .. bag.value
-        else math.floor(bag.fries) .. " / " .. Economy.Capacity .. " fries  |  " .. state.stats.perClick .. "/click\n" .. state.stats.perSecond .. " automatic fries/sec"
-    self.pack.Text = if not state.nearStation then "RETURN TO YOUR COUNTER" elseif full then "BAG FULL - SERVE IT!" else "PACK FRIES  /  hold or tap"
-    self.sell.Text = if full then "SERVE BAG  +$" .. math.floor(bag.value * (if bag.perfect then Economy.PerfectMultiplier else 1) + 0.5) else "SERVE BAG  (fill it first)"
-    self.fold.Text = if state.foldStart then "STOP IN THE GREEN ZONE!" elseif bag.perfect then "PERFECT FOLD  +25%"
-        elseif bag.foldAttempted then "FOLD COMPLETE" else "TRY A PERFECT FOLD  +25%"
-    self.order.Text = "REPEAT ORDER: " .. p.orderProgress .. " / " .. Economy.OrderFries .. " fries served\nReward: 1 Ticket  |  Lifetime bags: " .. p.sales
-    self:animate(workspace:GetServerTimeNow())
-end
-function HudView:animate(now)
-    local state = self.state
-    if not state then return end
-    local start = state.foldStart
-    local fraction = if start then math.clamp((now - start) / Economy.FoldDuration, 0, 1) else 0
-    self.marker.Position = UDim2.new(fraction, -2, 0, -3)
-    local rush = state.rush
-    if rush.active then
-        self.rush.Text = "LUNCH RUSH  " .. rush.count .. "/" .. rush.target .. " bags  |  " .. math.max(0, math.ceil(rush.endsAt - now)) .. "s\n"
-            .. (if rush.eligible then "Your contribution: " .. rush.contribution .. "/" .. RushConfig.MinimumContribution .. " minimum. Team success: +3 Tickets."
-                else "You joined mid-rush. You can participate for rewards in the next one.")
-    else
-        self.rush.Text = rush.result .. "\nNext rush in " .. math.max(0, math.ceil(rush.nextStart - now)) .. "s"
-    end
 end
 return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00051">
-            <Properties>
-              <string name="Name">IndexView</string>
-              <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Variants = require(Shared.config.Variants)
-local E = require(script.Parent.Elements)
-local Theme = require(script.Parent.Theme)
-local IndexView = {}
-IndexView.__index = IndexView
-function IndexView.new(parent)
-    local self = setmetatable({ frame = E.column(parent, "Index"), labels = {} }, IndexView)
-    E.label(self.frame, "THE FRY INDEX", 36, Theme.Gold)
-    E.label(self.frame, "A variation is rolled when a bag becomes full. Discoveries stay in your index after selling. Collect all three for a one-time +3 Tickets.", 92, Theme.Muted)
-    for _, variant in ipairs(Variants) do self.labels[variant.id] = E.label(self.frame, "", 65) end
-    self.reward = E.label(self.frame, "", 60, Theme.Green)
-    return self
-end
-function IndexView:update(state)
-    for _, variant in ipairs(Variants) do
-        self.labels[variant.id].Text = (if state.profile.discoveries[variant.id] then "DISCOVERED: " else "UNDISCOVERED: ")
-            .. variant.name .. "\n" .. variant.weight .. "% chance  |  " .. variant.multiplier .. "x sale value"
-    end
-    self.reward.Text = if state.profile.indexRewardClaimed then "Index complete! Your 3-Ticket reward has been credited." else "Keep serving to complete your collection."
-end
-return IndexView
-</ProtectedString>
-            </Properties>
-          </Item>
-          <Item class="ModuleScript" referent="RBX00052">
-            <Properties>
-              <string name="Name">InventoryView</string>
-              <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Equipment = require(Shared.config.Equipment)
-local E = require(script.Parent.Elements)
-local Theme = require(script.Parent.Theme)
-local InventoryView = {}
-InventoryView.__index = InventoryView
-function InventoryView.new(parent, send)
-    local self = setmetatable({ frame = E.column(parent, "Gear"), buttons = {} }, InventoryView)
-    E.label(self.frame, "YOUR EQUIPMENT", 36, Theme.Gold)
-    E.label(self.frame, "Equip one machine and one bag. Only equipped gear affects your stats. New deliveries never replace your current gear automatically.", 82, Theme.Muted)
-    for _, category in ipairs(Equipment.Categories) do
-        E.label(self.frame, string.upper(category), 30, Theme.Blue)
-        local ids = { Equipment.Starter[category] }
-        for _, rarity in ipairs(Equipment.Rarities) do table.insert(ids, Equipment.Pools[category][rarity.id]) end
-        for _, id in ipairs(ids) do
-            self.buttons[id] = E.button(self.frame, Equipment.Items[id].name, function() send("Equip", id) end)
-        end
-    end
-    return self
-end
-function InventoryView:update(state)
-    local p = state.profile
-    for id, button in pairs(self.buttons) do
-        local item = Equipment.Items[id]
-        local equipped = p.equipped[item.category] == id
-        local owned = p.owned[id] == true
-        button.Text = (if equipped then "EQUIPPED  " elseif owned then "EQUIP  " else "LOCKED  ") .. item.name
-            .. "  |  " .. item.power .. (if item.category == "Machine" then "/sec" else "x")
-        button.BackgroundColor3 = if equipped then Theme.Green elseif owned then Theme.Gold else Theme.Muted
-    end
-end
-return InventoryView
-</ProtectedString>
-            </Properties>
-          </Item>
-          <Item class="ModuleScript" referent="RBX00053">
+          <Item class="ModuleScript" referent="RBX00039">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">return {
-    Background = Color3.fromRGB(24, 29, 40),
-    Card = Color3.fromRGB(38, 46, 61),
-    Text = Color3.fromRGB(246, 239, 219),
-    Muted = Color3.fromRGB(172, 184, 203),
-    Gold = Color3.fromRGB(255, 198, 62),
-    Green = Color3.fromRGB(86, 219, 169),
+    Background = Color3.fromRGB(35, 43, 42),
+    Card = Color3.fromRGB(49, 61, 55),
+    Text = Color3.fromRGB(255, 248, 228),
+    Muted = Color3.fromRGB(198, 207, 191),
+    Gold = Color3.fromRGB(255, 199, 70),
+    GoldLight = Color3.fromRGB(255, 221, 127),
+    Green = Color3.fromRGB(107, 218, 153),
+    GreenLight = Color3.fromRGB(155, 239, 183),
     Red = Color3.fromRGB(244, 112, 111),
     Blue = Color3.fromRGB(92, 175, 243),
+    Ink = Color3.fromRGB(57, 44, 25),
+    Shadow = Color3.fromRGB(25, 31, 28),
 }
-</ProtectedString>
-            </Properties>
-          </Item>
-          <Item class="ModuleScript" referent="RBX00054">
-            <Properties>
-              <string name="Name">UpgradeView</string>
-              <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Economy = require(Shared.config.Economy)
-local E = require(script.Parent.Elements)
-local Theme = require(script.Parent.Theme)
-local UpgradeView = {}
-UpgradeView.__index = UpgradeView
-function UpgradeView.new(parent, send)
-    local self = setmetatable({ frame = E.column(parent, "Upgrades") }, UpgradeView)
-    E.label(self.frame, "PERMANENT TRAINING", 36, Theme.Gold)
-    E.label(self.frame, "Spend Cash to improve every shift. Your training stays when you change equipment.", 64, Theme.Muted)
-    self.click = E.label(self.frame, "", 50)
-    self.clickButton = E.button(self.frame, "", function() send("Upgrade", "Click") end)
-    self.sales = E.label(self.frame, "", 50)
-    self.salesButton = E.button(self.frame, "", function() send("Upgrade", "Sales") end)
-    E.label(self.frame, "A full bag keeps the value it had when it finished. Sales training applies to your next completed bag.", 78, Theme.Muted)
-    return self
-end
-function UpgradeView:update(state)
-    local u = state.profile.upgrades
-    self.click.Text = "SCOOPING SKILL  Level " .. u.Click .. " / " .. Economy.MaxUpgradeLevel .. "\nCurrently " .. state.stats.perClick .. " fries per click"
-    self.sales.Text = "SALES SKILL  Level " .. u.Sales .. " / " .. Economy.MaxUpgradeLevel .. "\nCurrent sales bonus: +" .. math.floor(u.Sales * Economy.SalesBonusPerLevel * 100 + 0.5) .. "%"
-    self.clickButton.Text = if u.Click &gt;= Economy.MaxUpgradeLevel then "MAX LEVEL" else "+1 FRY PER CLICK  |  $" .. state.stats.clickCost
-    self.salesButton.Text = if u.Sales &gt;= Economy.MaxUpgradeLevel then "MAX LEVEL" else "+20% BASE SALE VALUE  |  $" .. state.stats.salesCost
-end
-return UpgradeView
 </ProtectedString>
             </Properties>
           </Item>
@@ -1704,22 +1237,22 @@ return UpgradeView
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00055">
+  <Item class="StarterGui" referent="RBX00040">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00056">
+  <Item class="Lighting" referent="RBX00041">
     <Properties>
       <string name="Name">Lighting</string>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00057">
+  <Item class="Players" referent="RBX00042">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00058">
+  <Item class="SoundService" referent="RBX00043">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

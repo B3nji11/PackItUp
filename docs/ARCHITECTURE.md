@@ -1,96 +1,70 @@
-# Architecture and responsibilities
+# Core-loop architecture
 
 ## Dependency direction
 
 Client UI -> action request -> server ActionService -> domain rules -> in-memory profile.
 
-Server SnapshotService -> private state snapshot -> client views.
+Server SnapshotService -> private core-state snapshot -> permanent HUD.
 
 DataService -> ProfileStore -> Roblox DataStore.
 
-Server composition -> StationService -> world builders and equipment cosmetics.
+Server composition -> StationService -> procedural world builders.
 
-The shared domain layer depends only on configuration, utilities, and other domain rules. Its unchanged source can execute in the standalone Luau VM. Roblox services enter through server/client adapters.
+The shared domain layer depends only on configuration, utilities, and other domain rules. Roblox services enter through server/client adapters.
 
-## Module ownership
+## Responsibilities
 
-| File | Single responsibility |
+| Module | Responsibility |
 | --- | --- |
-| shared/config/Economy | Currency, packing, upgrade and fold balance |
-| shared/config/Equipment | Equipment catalogue and gacha pools |
-| shared/config/Variants | Fry variation distribution |
-| shared/config/Rush | Event timing and rewards |
-| shared/config/Runtime | Server, persistence and replication settings |
-| shared/config/Actions | Allowed remote action vocabulary |
-| shared/util/Copy | Deep-copy serializable tables |
-| shared/util/Weighted | Select an entry from positive weights |
-| shared/util/RateLimiter | Limit request frequency per player |
-| shared/domain/Profile | Profile schema, defaults and validation |
-| shared/domain/Pricing | Derived stats, prices and bounded currency credit |
-| shared/domain/Packing | Fill a bag, lock its value, and execute a sale |
-| shared/domain/Folding | One timing attempt per full bag |
-| shared/domain/Discovery | Record variants and grant index completion once |
-| shared/domain/Orders | Award sold-fries milestones and tutorial reward |
-| shared/domain/Upgrades | Purchase training and select owned equipment |
-| shared/domain/Gacha | Execute a roll with refund and guarantee state |
-| shared/domain/LunchRush | Event roster, target, contribution and resolution |
-| server/Main.server | Compose services and run player/server lifecycle |
-| server/Network | Create remotes and deliver notifications |
-| server/services/ActionService | Validate and dispatch player requests |
-| server/services/SnapshotService | Send each player's private UI state |
-| server/services/DataService | Own loaded profiles and serialize their saves |
-| server/services/StationService | Assign, free, locate and update owned stations |
+| shared/config/Economy | Capacity, base click, fryer rate, sale value, and currency bound |
+| shared/config/Runtime | Server, replication, and persistence settings |
+| shared/config/Actions | Closed core action vocabulary |
+| shared/domain/Profile | Core defaults and validation; v1 save compatibility |
+| shared/domain/Pricing | Fixed base values and bounded currency credits |
+| shared/domain/Packing | Fill a bag and execute a sale |
+| shared/util/Copy | Deep-copy saved tables |
+| shared/util/RateLimiter | Bound per-player request frequency |
+| server/Main.server | Compose services and manage player/server lifecycle |
+| server/Network | Remotes and notifications |
+| server/services/ActionService | Validate and dispatch core requests |
+| server/services/SnapshotService | Send private core state without inactive legacy fields |
+| server/services/DataService | Own loaded profiles and serialize saves |
+| server/services/StationService | Validate proximity claims, release ownership, and locate/display stations |
 | server/storage/ProfileStore | Atomic, session-locked storage transactions |
-| server/world/Primitives | Reusable world parts and labels |
-| server/world/StationBuilder | Build a station and its customer |
-| server/world/WorldBuilder | Build the shared restaurant layout |
-| server/world/EquipmentVisuals | Change gear-specific cosmetic geometry |
-| client/Main.client | Compose UI/input and subscribe to server state |
-| client/controllers/InputController | Translate keyboard/touch/mouse input into requests |
-| client/ui/Theme | UI colours |
-| client/ui/Elements | Reusable widgets |
-| client/ui/AppView | Panel layout, navigation and notifications |
-| client/ui/HudView | Packing, serving, folding and rush display |
-| client/ui/UpgradeView | Training shop display |
-| client/ui/DeliveryView | Gacha shop, odds and guarantees display |
-| client/ui/InventoryView | Owned and equipped gear display |
-| client/ui/IndexView | Discovery collection display |
+| server/world/Primitives | World parts and labels |
+| server/world/StationBuilder | Individual restaurant plot, entrance prompt, wall plaque, and basic workstation |
+| server/world/WorldBuilder | Six restaurants facing a shared central plaza and a physical title mural |
+| client/Main.client | UI/input composition and state subscriptions |
+| client/controllers/InputController | Keyboard, mouse, and touch input |
+| client/ui/AppView | Cash card, claiming guidance, errors, teleport, and responsive HUD placement |
+| client/ui/HudView | Click, Sell, bag progress, and feedback |
+| client/ui/Theme and Elements | Shared UI styling and widgets |
 
 ## Remote contract
 
-Clients send Action:FireServer(actionName, optionalStringArgument).
+Clients send Action:FireServer(actionName). No action accepts an argument.
 
-| Action | Argument | Server rule |
-| --- | --- | --- |
-| Pack | None | Alive, at own station, rate-limited; adds server-calculated fries |
-| Sell | None | Alive, at own station, full bag; awards one sale and clears bag |
-| StartFold | None | Alive, at own station, full bag, not attempted |
-| FinishFold | None | Alive, at own station, active fold; uses server receipt time |
-| Upgrade | Click or Sales | Recognized track, level below cap, sufficient Cash |
-| Roll | Machine or Bag | Recognized pool, sufficient Tickets; server RNG |
-| Equip | Catalogue item ID | Item exists and is owned |
-| Return | None | Teleport only to the player's assigned station |
-| Sync | None | Send the player's current private snapshot |
+| Action | Server rule |
+| --- | --- |
+| Pack | Alive and at own station; rate-limited; add the base click amount |
+| Sell | Alive and at own station with a full bag; credit once and clear the bag |
+| Return | Teleport to the player's assigned station |
+| Sync | Send the player's private snapshot |
 
-Only finite, bounded server-owned numbers are saved. Clients never submit prices, quantities, timestamps, cash deltas, random samples, or another player's ID. Unknown actions, oversized strings, and tables are rejected. General request limits run before dispatch; packing has an additional four-per-second limiter.
+Claiming uses the server-side ProximityPrompt.Triggered connection, not an extra action remote. Main checks loaded data, applies a rate limit, and calls StationService:claim. The service rechecks character health, entrance distance, plot availability, and existing ownership. The availability check and assignment do not yield. Prompt visibility is not trusted as authorization.
 
-Work actions require proximity. Shops and inventory can be used anywhere. These checks prevent forged rewards; they are not a claim to eliminate bots, automated timing, or Roblox character-physics exploits.
+Players reserve one of six admission slots before data loading, but receive no restaurant until claiming. Admission slots are released on failure or departure. Production waits for a claim; respawning retains the session claim.
 
-## Transactions and concurrency
+Retired feature requests and unknown names are rejected before dispatch. Clients cannot supply prices, quantities, Cash deltas, equipment, or other player IDs. General rate limits apply before dispatch; packing has a separate four-per-second limit.
 
-Packing, selling, purchases, rolls and rewards do not yield. A sale reads the existing full bag once, credits it, and replaces it with an empty bag before another action runs.
+## Transactions and persistence
 
-DataStore writes are serialized per profile. Each operation snapshots the profile, uses an ownership token, and retries the same write ID. A retry after a lost response recognizes an already-committed write, including a final save that released its lock. Different servers cannot write over a newer session's lock.
+Filling and selling do not yield. A sale reads a full bag, credits Cash and lifetime counters, and replaces it with an empty bag before another request runs.
 
-Saving retries are bounded. Autosaves renew the lease. If renewal cannot be confirmed before the safety margin, gameplay access is withdrawn and the player is disconnected. A load failure never starts a writable default profile.
+DataStore writes remain serialized per profile with ownership tokens and bounded retries. Repeating a request after a lost response recognizes an already-committed write. Autosaves renew the lease. If safe ownership cannot be maintained, the session is disconnected. Load failures do not create writable default progress.
 
-All fields participating in a transaction are saved together: currencies, ownership, equipped gear, guarantee counters, order progress, discoveries and the current bag.
+Version 1 core fields are version, cash, sales, lifetimeCash, and bag.fries. Existing profiles may also contain inactive fields from the earlier prototype; storage preserves them, but runtime rules and snapshots ignore them. No equipment selection or bonus state is created for new players. New fields or incompatible formats in future iterations require an explicit compatibility decision.
 
-## Extending the project
+## Iteration boundary
 
-- Change balance in config files; rerun tests after changing caps, probabilities or milestones.
-- Add catalogue rewards by extending both Items and the appropriate pool. The current pool has exactly one item per rarity; multiple items per rarity require another weighted selection and updated odds display.
-- Add profile fields with an explicit schema migration. The current validator rejects versions other than 1.
-- Add promotions in a new domain module; do not hide promotion rules in UI code.
-- Add world art by replacing world builders while retaining StationService's returned station fields.
-- Keep client visuals derived from snapshots; never move economy decisions into the UI.
+Follow the AGILE workflow in README.md. Current work is the owner-approved UI/UX pass on the working fill-and-sell loop. Preserve base rates and prices. Keep fryer name tags absent in future changes too. Do not add placeholder feature modules, shops, reward systems, or speculative frameworks ahead of an agreed increment.

@@ -35,7 +35,7 @@ function DataService:load(player)
         return false
     end
     self.entries[player] = { data = data, key = key, token = token, expires = expires,
-        saving = false, closing = false, runtime = {}, nextSave = os.clock() + Runtime.AutoSaveSeconds + math.random() * 10 }
+        saving = false, closing = false, nextSave = os.clock() + Runtime.AutoSaveSeconds + math.random() * 10 }
     self.loading[player] = nil
     if self.closing or not player.Parent then self:close(player); return false end
     return true
@@ -48,7 +48,7 @@ function DataService:get(player)
         player:Kick("Saving is unavailable. Please rejoin to protect your saved progress.")
         return nil
     end
-    return entry.data, entry.runtime
+    return entry.data
 end
 function DataService:save(player, release)
     local entry = self.entries[player]

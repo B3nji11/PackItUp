@@ -1,38 +1,39 @@
 # Validation record
 
-Validation date: 7 October 2026.
+Validation date: 8 October 2026.
 
-Tools: official Luau release 0.741 (luau and luau-compile), bundled Python standard library.
+Scope: the owner-approved UI/UX iteration on the working core loop. Base packing, fryer production after claiming, and $10 sales are unchanged.
 
-## Automated checks
+## Automated results
 
-Final result: **46 tests passed, 0 failed**. All **42 Luau source/test files** compiled. The place contains **39 game source files**.
+**40 tests passed, 0 failed.** All **27 Luau source/test files** compiled. The rebuilt place contains **24 game source files**. Output is recorded in TEST_RESULTS.txt.
 
-The final test output is in TEST_RESULTS.txt. The test runner:
+Coverage includes:
 
-1. Compiles every source and test file using luau-compile.
-2. Executes unchanged source module bodies in the Luau VM with a ModuleScript resolver.
-3. Runs domain tests for economic invariants and exact gacha boundaries.
-4. Runs a deterministic 10,000-action mixed progression simulation.
-5. Runs storage tests with transient errors, exhausted retries, conflicting sessions, expired locks, invalid profiles and a lost response after a committed final save.
-6. Runs server/client composition and action-routing smoke tests using lightweight engine doubles.
-7. Checks calculated UI bounds at 390x844, 844x390 and 1280x720.
+- Core filling, full-bag selling, repeated-sale rejection, exact Cash totals, and a deterministic 10,000-action simulation.
+- Save/load compatibility, lease/session locking, retries, lost-response recovery, and invalid core data.
+- No automatic plot assignment or production before claiming.
+- Server-side claim distance and health checks, one plot per player, occupied-plot/race rejection, and six admission slots including unclaimed players.
+- Session claims survive respawn and release on departure; a replacement player can claim the released plot.
+- Separate private state, owner-only work/teleport, basic fixed rates, and rejection of retired actions.
+- Six separated restaurant plots with inward-facing entrances, physical wall signage, and no fryer name labels.
+- Three permanent HUD actions, Cash formatting, hover labels, embedded bag capacity, full-bag sell state, E reserved for claiming, and R for selling.
+- Calculated HUD bounds for 320x568, 390x844, 568x320, 844x390, and 1280x720.
 
-The place builder separately verifies XML parsing, embedded source equality, and the presence of exactly one server entry script and one client entry script.
+The builder verifies XML parsing and exact source round-tripping.
 
-## Limits of these results
+## Visual layout review
 
-No Roblox Studio session was available for execution or visual inspection. No actual Roblox DataStore calls were made. Engine doubles are not the Roblox engine. The tests do not establish real rendering quality, physics correctness, production network behaviour, device usability, absence of exploits, or durability during every possible outage.
+Desktop, portrait-phone, and landscape-phone previews were generated from the actual UI modules using the test doubles and tools/preview_ui.py, then visually inspected. These checks led to improved compact spacing and shortcut contrast. The PNGs are under artifacts/ui-preview/.
 
-The Luau compiler check is a syntax/bytecode compilation check, not a complete Roblox-aware static type analysis.
+These previews use approximate fonts and a neutral background. They are not Roblox screenshots and do not validate real engine layering, world appearance, Roblox mobile controls, or interaction.
 
-Complete docs/STUDIO_TESTS.md before treating this as a release candidate.
+## Remaining Studio checks
 
-## Implementation references
+The project owner confirmed the preceding core version works. This new claiming/layout/HUD iteration has not been playtested by the agent in Roblox Studio. No real DataStore calls were made. Run docs/STUDIO_TESTS.md before accepting this iteration, especially simultaneous claims, mobile prompts, camera/walkability, and multiplayer ownership.
 
-- Roblox client/server validation: https://create.roblox.com/docs/scripting/security/client-server-boundary
-- Roblox player-data and session-locking guidance: https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing
-- Roblox DataStores: https://create.roblox.com/docs/cloud-services/data-stores
-- Official Luau CLI releases: https://github.com/luau-lang/luau/releases
+## API references checked
 
-The implementation is project-specific; it does not vendor Roblox's reference persistence code.
+- Native keyboard/touch claiming prompts: https://create.roblox.com/docs/ui/proximity-prompts
+- Prompt properties/events: https://create.roblox.com/docs/reference/engine/classes/ProximityPrompt
+- Wall-bound text: https://create.roblox.com/docs/reference/engine/classes/SurfaceGui

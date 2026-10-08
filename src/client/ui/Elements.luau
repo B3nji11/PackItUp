@@ -1,5 +1,23 @@
 local Theme = require(script.Parent.Theme)
 local Elements = {}
+function Elements.money(value)
+    local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
+    local result = string.reverse(grouped):gsub("^,", "")
+    return "$" .. result
+end
+function Elements.stroke(parent, color, thickness, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color, stroke.Thickness, stroke.Transparency = color, thickness, transparency or 0
+    stroke.ApplyStrokeMode, stroke.Parent = Enum.ApplyStrokeMode.Border, parent
+    return stroke
+end
+function Elements.box(parent, name, position, size, color, radius)
+    local frame = Instance.new("Frame")
+    frame.Name, frame.Position, frame.Size = name, position, size
+    frame.BackgroundColor3, frame.BorderSizePixel, frame.Parent = color, 0, parent
+    Elements.corner(frame, radius)
+    return frame
+end
 function Elements.corner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius, corner.Parent = UDim.new(0, radius or 10), parent
@@ -26,6 +44,7 @@ function Elements.button(parent, text, callback, color)
     button.TextSize = 15
     button.TextWrapped = true
     button.Text = text
+    button.BorderSizePixel = 0
     button.Parent = parent
     Elements.corner(button)
     if callback then button.Activated:Connect(callback) end

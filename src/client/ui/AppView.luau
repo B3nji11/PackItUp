@@ -1,80 +1,77 @@
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
-local UpgradeView = require(script.Parent.UpgradeView)
-local DeliveryView = require(script.Parent.DeliveryView)
-local InventoryView = require(script.Parent.InventoryView)
-local IndexView = require(script.Parent.IndexView)
 local AppView = {}
 AppView.__index = AppView
 function AppView.new(playerGui, send)
-    local self = setmetatable({ views = {}, tabs = {} }, AppView)
+    local self = setmetatable({}, AppView)
     local gui = Instance.new("ScreenGui")
     gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "FriesInterface", false, Enum.ZIndexBehavior.Sibling
     gui.Parent = playerGui
-    local panel = Instance.new("Frame")
-    panel.Name, panel.AnchorPoint = "Panel", Vector2.new(1, 0.5)
-    panel.Position, panel.Size = UDim2.new(1, -12, 0.5, 0), UDim2.fromOffset(420, 670)
-    panel.BackgroundColor3, panel.BorderSizePixel, panel.Parent = Theme.Background, 0, gui
-    E.corner(panel, 16)
-    self.panel = panel
-    local scale = Instance.new("UIScale")
-    scale.Parent = panel
-    self.scale = scale
-    local title = E.label(panel, "PUT THE FRIES IN THE BAG", 32, Theme.Gold)
-    title.Position, title.Size = UDim2.fromOffset(16, 12), UDim2.fromOffset(386, 32)
-    title.Font, title.TextSize = Enum.Font.GothamBlack, 19
-    self.wallet = E.label(panel, "Loading saved progress...", 32)
-    self.wallet.Position, self.wallet.Size = UDim2.fromOffset(16, 46), UDim2.fromOffset(386, 32)
-    self.mode = E.label(panel, "", 23, Theme.Muted)
-    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 78), UDim2.fromOffset(386, 23), 12
-    local names = { "PLAY", "UPGRADES", "DELIVERY", "GEAR", "INDEX" }
-    for n, name in ipairs(names) do
-        local button = E.button(panel, name, function() self:select(n) end, Theme.Muted)
-        button.Position, button.Size = UDim2.fromOffset(16 + (n - 1) * 78, 110), UDim2.fromOffset(73, 34)
-        button.TextSize = 11
-        self.tabs[n] = button
-    end
-    local content = Instance.new("Frame")
-    content.Position, content.Size = UDim2.fromOffset(16, 155), UDim2.fromOffset(390, 432)
-    content.BackgroundTransparency, content.Parent = 1, panel
-    self.content = content
-    self.views = { HudView.new(content, send), UpgradeView.new(content, send), DeliveryView.new(content, send),
-        InventoryView.new(content, send), IndexView.new(content) }
-    self.noticeLabel = E.label(panel, "Fill your first bag to begin.", 62)
-    self.noticeLabel.Position, self.noticeLabel.Size = UDim2.fromOffset(16, 596), UDim2.fromOffset(386, 62)
-    local toggle = E.button(gui, "HIDE MENU", function()
-        panel.Visible = not panel.Visible
-        self.toggle.Text = if panel.Visible then "HIDE MENU" else "SHOW MENU"
-    end, Theme.Gold)
-    toggle.Position, toggle.Size = UDim2.new(0, 12, 0, 12), UDim2.fromOffset(124, 36)
-    toggle.TextSize = 13
-    self.toggle = toggle
-    self:select(1)
+    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, 76), Theme.Background, 18)
+    E.stroke(self.cashCard, Theme.Gold, 2, 0.12)
+    local coin = E.box(self.cashCard, "Coin", UDim2.fromOffset(12, 17), UDim2.fromOffset(42, 42), Theme.Gold, 21)
+    local symbol = E.label(coin, "$", 42, Theme.Ink)
+    symbol.Size, symbol.TextSize, symbol.Font = UDim2.fromScale(1, 1), 29, Enum.Font.GothamBold
+    symbol.TextXAlignment = Enum.TextXAlignment.Center
+    local caption = E.label(self.cashCard, "CASH", 18, Theme.Muted)
+    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(65, 10), UDim2.fromOffset(140, 18), 11
+    self.wallet = E.label(self.cashCard, "$0", 36, Theme.Text)
+    self.wallet.Name, self.wallet.Position, self.wallet.Size = "Cash", UDim2.fromOffset(65, 29), UDim2.fromOffset(142, 36)
+    self.wallet.Font, self.wallet.TextSize, self.wallet.TextWrapped = Enum.Font.GothamBold, 27, false
+    self.wallet.TextScaled = true
+    local cashTextSize = Instance.new("UITextSizeConstraint")
+    cashTextSize.MinTextSize, cashTextSize.MaxTextSize, cashTextSize.Parent = 10, 27, self.wallet
+    self.mode = E.label(gui, "", 20, Theme.Text)
+    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 96), UDim2.fromOffset(220, 20), 10
+    self.teleport = E.button(gui, "RETURN TO COUNTER", function()
+        if self.hasStation then send("Return") end
+    end, Theme.Background)
+    self.teleport.TextColor3 = Theme.Text
+    self.teleport.Name, self.teleport.AnchorPoint = "Teleport", Vector2.new(0.5, 0)
+    self.teleport.Size, self.teleport.TextSize = UDim2.fromOffset(212, 44), 12
+    E.stroke(self.teleport, Theme.Gold, 1.5, 0.3)
+    self.guidance = E.label(gui, "", 44, Theme.Text)
+    self.guidance.Name, self.guidance.AnchorPoint = "Guidance", Vector2.new(0.5, 0)
+    self.guidance.TextXAlignment, self.guidance.TextSize = Enum.TextXAlignment.Center, 13
+    self.guidance.BackgroundColor3, self.guidance.BackgroundTransparency = Theme.Background, 0.08
+    E.corner(self.guidance, 12)
+    self.hud = HudView.new(gui, send)
+    self:resize(Vector2.new(1280, 720))
     return self
 end
-function AppView:select(index)
-    for n, view in ipairs(self.views) do
-        view.frame.Visible = n == index
-        self.tabs[n].BackgroundColor3 = if n == index then Theme.Gold else Theme.Muted
-    end
-end
 function AppView:update(state)
-    self.wallet.Text = "$" .. state.profile.cash .. " Cash     |     " .. state.profile.tickets .. " Tickets"
-    self.mode.Text = if state.volatile then "STUDIO TEST MODE - progress resets after stopping" else "Saved progression - gameplay-earned Tickets"
-    for _, view in ipairs(self.views) do view:update(state) end
+    self.hasStation = state.hasStation
+    self.wallet.Text = E.money(state.profile.cash)
+    self.wallet.TextSize = if #self.wallet.Text > 12 then 14 elseif #self.wallet.Text > 9 then 19 else 27
+    self.mode.Text = if state.volatile then "STUDIO TEST / resets on stop" else ""
+    self.teleport.Active, self.teleport.Selectable = state.hasStation, state.hasStation
+    self.teleport.Text = if state.hasStation then "RETURN TO COUNTER" else "CHOOSE A RESTAURANT"
+    self.teleport.AutoButtonColor = state.hasStation
+    if not self.errorUntil or os.clock() >= self.errorUntil then
+        self.guidance.Visible = not state.hasStation
+        self.guidance.Text = "Walk to a free restaurant. Press E or tap its entrance prompt to claim."
+        self.guidance.TextColor3 = Theme.Text
+    end
+    self.hud:update(state)
 end
 function AppView:notice(text, success)
-    self.noticeLabel.Text = text
-    self.noticeLabel.TextColor3 = if success then Theme.Green else Theme.Red
+    -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
+    if success then return end
+    self.errorUntil = os.clock() + 4
+    self.guidance.Visible, self.guidance.Text, self.guidance.TextColor3 = true, text, Theme.Red
 end
 function AppView:resize(viewport)
-    -- Preserve readable text on landscape phones; shorten the scroll area instead.
-    local scale = math.max(0.3, math.min(1, (viewport.X - 24) / 420))
-    local height = math.max(290, math.min(670, (viewport.Y - 65) / scale))
-    self.scale.Scale = scale
-    self.panel.Size = UDim2.fromOffset(420, height)
-    self.content.Size = UDim2.fromOffset(390, height - 238)
-    self.noticeLabel.Position = UDim2.fromOffset(16, height - 74)
+    if self.viewportX == viewport.X and self.viewportY == viewport.Y then return end
+    self.viewportX, self.viewportY = viewport.X, viewport.Y
+    local portrait = viewport.X < 760 and viewport.Y >= 500
+    local compact = viewport.X < 760 and not portrait
+    self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
+    self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
+    self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
+    self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 122 else 16)
+    self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 174 elseif compact then 68 else 118)
+    self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
+    self.hud.scale.Scale = math.min(1, (viewport.X - 24) / 392)
 end
 return AppView

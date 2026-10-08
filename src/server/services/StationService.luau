@@ -1,32 +1,41 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Equipment = require(Shared.config.Equipment)
 local Economy = require(Shared.config.Economy)
 local Runtime = require(Shared.config.Runtime)
-local Variants = require(Shared.config.Variants)
-local EquipmentVisuals = require(script.Parent.Parent.world.EquipmentVisuals)
 local StationService = {}
 StationService.__index = StationService
 function StationService.new(stations) return setmetatable({ stations = stations, assigned = {} }, StationService) end
-function StationService:assign(player)
-    for _, station in ipairs(self.stations) do
-        if not station.owner then
-            station.owner = player
-            self.assigned[player] = station
-            return true
-        end
-    end
-    return false
+local function livingRoot(player)
+    local character = player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if not player.Parent or not root or not humanoid or humanoid.Health <= 0 then return nil end
+    return root
 end
+function StationService:claim(player, index)
+    local station = self.stations[index]
+    if not station then return false, "That restaurant is unavailable." end
+    if self.assigned[player] then return false, "You already have a restaurant. Use Return to Counter." end
+    if station.owner then return false, "Someone has already claimed this restaurant." end
+    local root = livingRoot(player)
+    if not root or (root.Position - station.claimPart.Position).Magnitude > Runtime.ClaimDistance then
+        return false, "Walk to the entrance to claim this restaurant."
+    end
+    -- No yields between availability and assignment: only one claimant can win.
+    station.owner, self.assigned[player] = player, station
+    station.prompt.Enabled = false
+    station.sign.Text = player.DisplayName .. "'s\nRESTAURANT"
+    station.model:SetAttribute("OwnerUserId", player.UserId)
+    self:teleport(player)
+    return true, "Your restaurant is ready."
+end
+function StationService:hasStation(player) return self.assigned[player] ~= nil end
 function StationService:release(player)
     local station = self.assigned[player]
     if station then
         station.owner = nil
-        station.sign.Text = "AVAILABLE COUNTER"
-        station.orderSign.Text = "Put the fries in the bag!"
-        station.equipmentSign.Text = "Training Fryer"
-        station.machine.Color = Color3.fromRGB(145, 151, 161)
-        station.bag.Color = Color3.fromRGB(165, 130, 92)
-        EquipmentVisuals(station, "starter_fryer", "starter_bag")
+        station.sign.Text = "RESTAURANT " .. station.index .. "\nAVAILABLE"
+        station.model:SetAttribute("OwnerUserId", 0)
+        station.prompt.Enabled = true
         for _, fry in ipairs(station.fries) do fry.Transparency = 1 end
     end
     self.assigned[player] = nil
@@ -35,32 +44,18 @@ function StationService:teleport(player)
     local station, character = self.assigned[player], player.Character
     if station and character and character:FindFirstChild("HumanoidRootPart") then
         character:PivotTo(station.spawn)
+        return true
     end
+    return false
 end
 function StationService:near(player)
-    local station = self.assigned[player]
-    local character = player.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    return station ~= nil and root ~= nil and humanoid ~= nil and humanoid.Health > 0
-        and (root.Position - station.origin).Magnitude <= Runtime.StationDistance
+    local station, root = self.assigned[player], livingRoot(player)
+    return station ~= nil and root ~= nil and (root.Position - station.origin).Magnitude <= Runtime.StationDistance
 end
 function StationService:render(player, p)
     local station = self.assigned[player]
     if not station then return end
-    EquipmentVisuals(station, p.equipped.Machine, p.equipped.Bag)
-    local machine, bag = Equipment.Items[p.equipped.Machine], Equipment.Items[p.equipped.Bag]
-    station.machine.Color = Color3.fromRGB(table.unpack(machine.color))
-    station.bag.Color = Color3.fromRGB(table.unpack(bag.color))
-    station.equipmentSign.Text = machine.name .. "\n" .. machine.power .. " fries / sec"
-    station.sign.Text = player.DisplayName .. "'s counter\n" .. math.floor(p.bag.fries) .. " / " .. Economy.Capacity .. " fries"
-    station.orderSign.Text = if p.bag.fries >= Economy.Capacity then "Ready! Serve my fries!" else "Put the fries in the bag!"
-    local color = Variants[1].color
-    for _, variant in ipairs(Variants) do if variant.id == p.bag.variant then color = variant.color end end
     local visible = math.floor(p.bag.fries / Economy.Capacity * #station.fries)
-    for n, fry in ipairs(station.fries) do
-        fry.Transparency = if n <= visible then 0 else 1
-        fry.Color = Color3.fromRGB(table.unpack(color))
-    end
+    for n, fry in ipairs(station.fries) do fry.Transparency = if n <= visible then 0 else 1 end
 end
 return StationService

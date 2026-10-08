@@ -1,25 +1,9 @@
--- All currency and packing balance lives here. No Robux purchases.
+-- Balance for the core filling-and-selling loop.
 return table.freeze({
     Capacity = 20,
     BaseSale = 10,
     BaseClick = 1,
+    BasicFryerPerSecond = 0.5,
     ClicksPerSecond = 4,
-    UpgradeBaseCost = 30,
-    UpgradeGrowth = 1.5,
-    MaxUpgradeLevel = 20,
-    SalesBonusPerLevel = 0.2,
     MaxCurrency = 1e12,
-    RollCost = 3,
-    DuplicateRefund = 1,
-    PityAt = 10,
-    OrderFries = 100,
-    OrderReward = 1,
-    TutorialSales = 5,
-    TutorialTickets = 3,
-    IndexTickets = 3,
-    FoldLeadTime = 0.65,
-    FoldDuration = 1.5,
-    FoldWindowMin = 0.40,
-    FoldWindowMax = 0.60,
-    PerfectMultiplier = 1.25,
 })

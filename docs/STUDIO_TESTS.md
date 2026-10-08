@@ -1,53 +1,56 @@
-# Roblox Studio acceptance checks
+# UI/UX iteration: Roblox Studio acceptance checks
 
-These checks have not been executed in this environment. Automated engine doubles cannot verify rendering, actual replication timing, player controls, Roblox service permissions or real shutdown behaviour.
+The project owner confirmed the prior core version works. These checks cover the new claiming, world layout, and HUD changes. They still need a real Studio session; engine doubles and layout previews cannot verify rendering, physics, real prompts, or mobile controls.
 
-## Solo
+## Arrival and claiming
 
-1. Open the included place and press Play. Confirm the restaurant, counter assignment, customer, bag and all five UI tabs appear without Output errors.
-2. Pack using clicks, holding the button and F. Confirm each method fills the bag and production stops at 20.
-3. Attempt to sell early. Confirm no Cash is awarded. Sell a full bag, then immediately press Serve repeatedly. Confirm only one reward.
-4. Walk away, attempt to pack and sell, then Return to Counter. Confirm distance restrictions and a safe teleport.
-5. Buy each upgrade. Check its balance deduction, level and next price. Confirm a bag already full keeps its original value.
-6. Complete five sales. Confirm one normal order Ticket plus three tutorial Tickets.
-7. Roll each delivery type, equip rewards, and check the visible model and stat change. Rolls should not auto-equip.
-8. Attempt folding early, in the green zone and late, on separate bags. Confirm only the successful timing increases value.
-9. Reset the character. Confirm the UI and profile survive and the character returns to its own counter.
-10. Discover variations over play or temporarily increase Golden's weight in a test copy. Confirm index collection and its one-time reward. Restore weights before release.
+1. Reopen the rebuilt FriesGame.rbxlx and press Play. The restaurant district must appear without Output errors.
+2. Arrive in the central plaza with no restaurant assigned. All six restaurant entrances should be available, with no floating fryer labels anywhere.
+3. Confirm packing, selling, and Return to Counter are inactive before claiming. No fries should accumulate before a claim.
+4. Walk to any available entrance. Press E, tap the native prompt on a phone, or use the displayed gamepad input. Confirm ownership appears on the building and you arrive at its counter.
+5. Try to claim another restaurant. Your original claim must remain; one player cannot occupy multiple plots.
+6. In a two-player session, try to claim the same plot at nearly the same time. Only one player may own it. The other can choose a different restaurant.
+7. Confirm a distant or dead character cannot claim and that claiming is unavailable while a profile is loading.
+8. Leave the server. Confirm the plot becomes available for someone else. Rejoining starts in the plaza; plot choice is session-local, while Cash and fries persist when persistence is enabled.
+9. Reset a character after claiming. It should return to its own restaurant without losing the claim or progress.
 
-## Multiplayer
+## District layout and signage
 
-Start a local server with at least two clients using Studio's multiplayer testing controls.
+- Inspect all six restaurants, facing the central promenade in two rows of three.
+- Walk from the plaza into every entrance, around the counter, and back out. Check floor transitions, hedges, furniture, and camera clearance.
+- Confirm buildings feel separated and the central area remains open. Ask testers whether they can identify an available plot and understand where to go without instructions.
+- Confirm the title is on the physical mural wall, following the wall's perspective rather than facing the camera.
+- Confirm ownership plaques are readable nearby and no floating fryer/equipment name tags or old customer text bubbles return.
+- Verify no doors, shops, progression rewards, or other unrequested systems have been introduced.
 
-- Confirm different stations and independent wallets, inventories and bags.
-- Confirm each client's UI shows only their own private progression.
-- Observe another player's fry filling and equipment changes.
-- Run a Lunch Rush, meet the shared goal, and vary personal contributions around three bags. Check exactly one qualifying reward.
-- Join mid-rush and disconnect one starter. Check documented eligibility and the fixed target.
-- Leave and rejoin; check freed stations can be reassigned.
-- Test a six-player session for overlaps and crowding.
+## Action buttons and Cash
 
-## Real persistence
+1. The gold packing button displays the maximum rate of 4 clicks/sec. Hover/select it to see Click. Touch users must retain a visible tap/hold packing hint.
+2. Click, hold the button, and hold F. Each should fill the bag at the same existing rates. The basic fryer still adds 0.5 fries/sec after claiming, including while away.
+3. The sell button shows fries/capacity and a progress bar before full. Check empty, partially filled, and nearly full states.
+4. At 20 fries it should become green and read Sell Bag with +$10 Cash. Sell using the button and R. E must only handle claiming and never sell a bag.
+5. Confirm Cash increases by exactly $10, the bag clears, and no Sold message appears underneath the buttons. Repeat rapidly; there must be no duplicate payment.
+6. Check the Cash card, coin symbol, and comma-grouped amount. Verify large amounts fit the card.
+7. Walk away from the counter with a full bag: selling must be disabled and the return instruction should be clear. Return to Counter must target the player's own restaurant.
+8. Confirm useful errors appear briefly near the top, then clear, rather than obscuring the bottom actions.
+9. Confirm Fold, Upgrades, Delivery, Index, and Inventory remain absent, and Q does nothing.
 
-Use a separately published test experience. Set StudioUseDataStore to true and enable Studio Access to API Services for that test experience.
+## Devices, multiplayer, and latency
 
-1. Earn Cash/Tickets, purchase training, own and equip gear, and leave with a partly filled or completed bag.
-2. Rejoin after the final save completes. Check every field, including discovery and guarantee counters.
-3. Verify both autosave and exit save using Output and separate sessions.
-4. Test rapid reconnects; the second session should wait through bounded retries or decline while the previous lease is active.
-5. Stop a session abruptly and verify stale-lock recovery after expiry.
-6. Exercise the published test server separately from Studio. Studio's TEST store and the live store are intentionally distinct.
+- Emulate portrait phones, landscape phones, and desktop. Check label wrapping, shortcut contrast, touch sizes, and overlap with Roblox's movement/jump controls and top bar.
+- Test tap, hold, release, loss of focus, and F/R shortcuts. Test native claiming prompts on touch and keyboard.
+- Use at least two Studio clients to check separate ownership, Cash, bags, teleports, and visible fry filling.
+- Test six admitted players, including those still choosing plots, and a seventh player being declined without displacing anyone.
+- Test increased network latency; delayed UI updates must not permit duplicate claims, premature sales, or duplicate Cash.
 
-Do not conduct failure-injection tests against real player data.
+## Persistence regression
 
-## Device and latency
+Use a separately published test experience with StudioUseDataStore enabled. Keep live and test stores separate.
 
-- Use Studio's device emulator for portrait phones, landscape phones and desktop.
-- Confirm tabs, scrolling, folding, hold input and hide/show controls remain reachable.
-- Test multiple network-latency settings. Tune the folding lead-in/window after observing actual response timing.
-- Confirm the default Roblox movement controls do not obscure necessary game buttons.
-- Measure time to first sale, upgrade, delivery and rush reward. Prices are starting values, not a validated retention model.
+1. Earn Cash and leave with a partial bag. Rejoin, choose a restaurant, and verify progress.
+2. Repeat with a full bag. It must sell once for $10 after claiming.
+3. Verify autosave, exit save, and shutdown through Output. Old saved bonuses must still have no effect on the base rates or sale price.
 
-## Before release
+## Iteration review
 
-Set maximum players to six, review Roblox's current publication requirements, replace or polish prototype art as desired, and complete all relevant tests above.
+Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting another gameplay feature.

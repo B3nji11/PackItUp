@@ -1,63 +1,94 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Economy = require(Shared.config.Economy)
-local RushConfig = require(Shared.config.Rush)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = {}
 HudView.__index = HudView
+local function action(parent, name, x, color, key, callback)
+    local shadow = E.box(parent, name .. "Shadow", UDim2.fromOffset(x, 7), UDim2.fromOffset(190, 96), Theme.Shadow, 18)
+    shadow.BackgroundTransparency = 0.18
+    local button = E.button(parent, "", callback, color)
+    button.Name, button.Position, button.Size = name, UDim2.fromOffset(x, 0), UDim2.fromOffset(190, 96)
+    button.AutoButtonColor = false
+    button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 18)
+    E.stroke(button, Theme.Text, 1.5, 0.65)
+    local title = E.label(button, "", 34, Theme.Ink)
+    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(48, 13), UDim2.fromOffset(136, 34)
+    title.Font, title.TextSize = Enum.Font.GothamBold, 21
+    local detail = E.label(button, "", 20, Theme.Ink)
+    detail.Name, detail.Position, detail.Size, detail.TextSize = "Detail", UDim2.fromOffset(12, 50), UDim2.fromOffset(166, 20), 12
+    local shortcut = E.label(button, key, 16, Theme.Ink)
+    shortcut.Position, shortcut.Size, shortcut.TextSize = UDim2.fromOffset(168, 3), UDim2.fromOffset(18, 16), 10
+    shortcut.TextXAlignment = Enum.TextXAlignment.Center
+    return button, title, detail, shortcut
+end
 function HudView.new(parent, send)
-    local self = setmetatable({ frame = E.column(parent, "Play") }, HudView)
-    self.status = E.label(self.frame, "Loading your restaurant...", 48)
-    local _, fill = E.bar(self.frame, Theme.Gold)
-    self.fill = fill
-    self.pack = E.button(self.frame, "PACK FRIES  /  hold or tap", nil, Theme.Gold)
-    self.sell = E.button(self.frame, "SERVE BAG", function() send("Sell") end, Theme.Green)
-    self.fold = E.button(self.frame, "TRY A PERFECT FOLD  +25%", function()
-        if self.state and self.state.foldStart then send("FinishFold") else send("StartFold") end
-    end, Theme.Blue)
-    local bar = E.bar(self.frame, Theme.Card, 22)
-    local zone = Instance.new("Frame")
-    zone.Position = UDim2.fromScale(Economy.FoldWindowMin, 0)
-    zone.Size = UDim2.fromScale(Economy.FoldWindowMax - Economy.FoldWindowMin, 1)
-    zone.BackgroundColor3, zone.BorderSizePixel, zone.Parent = Theme.Green, 0, bar
-    local marker = Instance.new("Frame")
-    marker.Size = UDim2.new(0, 4, 1, 6)
-    marker.Position = UDim2.new(0, 0, 0, -3)
-    marker.BackgroundColor3, marker.BorderSizePixel, marker.Parent = Theme.Text, 0, bar
-    self.marker = marker
-    self.order = E.label(self.frame, "", 50, Theme.Muted)
-    self.rush = E.label(self.frame, "", 76, Theme.Green)
-    E.button(self.frame, "RETURN TO MY COUNTER", function() send("Return") end, Theme.Muted)
-    E.label(self.frame, "Keyboard: F pack | E serve | Q fold\nFirst 5 sales: +3 bonus Tickets. Deliveries are in the DELIVERY tab.", 65, Theme.Muted)
+    local self = setmetatable({ send = send, hovered = false }, HudView)
+    local frame = Instance.new("Frame")
+    frame.Name, frame.AnchorPoint = "Actions", Vector2.new(0.5, 1)
+    frame.Position, frame.Size = UDim2.new(0.5, 0, 1, -22), UDim2.fromOffset(392, 104)
+    frame.BackgroundTransparency, frame.Parent = 1, parent
+    self.frame = frame
+    self.scale = Instance.new("UIScale")
+    self.scale.Parent = frame
+    self.pack, self.packTitle, self.packDetail = action(frame, "Click", 0, Theme.Gold, "F", nil)
+    self.sell, self.sellTitle, self.sellDetail, self.sellShortcut = action(frame, "Sell", 202, Theme.Card, "R", function() self:sellBag() end)
+    -- Small code-built fry and bag symbols; no external texture assets.
+    for n = 1, 3 do
+        E.box(self.pack, "Fry" .. n, UDim2.fromOffset(14 + (n - 1) * 8, 15 - n % 2 * 3),
+            UDim2.fromOffset(6, 27), Theme.Ink, 2)
+    end
+    E.box(self.sell, "BagIcon", UDim2.fromOffset(15, 18), UDim2.fromOffset(24, 28), Theme.Gold, 4)
+    E.box(self.sell, "BagRim", UDim2.fromOffset(13, 16), UDim2.fromOffset(28, 5), Theme.GoldLight, 2)
+    local track
+    track, self.fill = E.bar(self.sell, Theme.Gold, 6)
+    track.Position, track.Size, track.BackgroundColor3 = UDim2.fromOffset(12, 79), UDim2.fromOffset(166, 6), Theme.Background
+    local hint = E.label(self.pack, "PACK FRIES", 14, Theme.Ink)
+    hint.Position, hint.Size, hint.TextSize = UDim2.fromOffset(12, 76), UDim2.fromOffset(166, 14), 10
+    local function hover(on)
+        self.hovered = on
+        if self.state then self:update(self.state) end
+    end
+    self.pack.MouseEnter:Connect(function() hover(true) end)
+    self.pack.MouseLeave:Connect(function() hover(false) end)
+    self.pack.SelectionGained:Connect(function() hover(true) end)
+    self.pack.SelectionLost:Connect(function() hover(false) end)
+    self.packTitle.Text, self.packDetail.Text = "LOADING", "YOUR RESTAURANT"
+    self.sellTitle.Text, self.sellDetail.Text = "0 / 20", "FRIES IN BAG"
+    self.sellTitle.TextColor3, self.sellDetail.TextColor3 = Theme.Text, Theme.Muted
+    self.sellShortcut.TextColor3 = Theme.Muted
+    self.pack.Active, self.sell.Active = false, false
+    self.pack.Selectable, self.sell.Selectable = false, false
     return self
+end
+function HudView:sellBag()
+    local state = self.state
+    if state and state.hasStation and state.nearStation and state.profile.bag.fries >= Economy.Capacity then self.send("Sell") end
 end
 function HudView:update(state)
     self.state = state
-    local p, bag = state.profile, state.profile.bag
+    local bag = state.profile.bag
     local full = bag.fries >= Economy.Capacity
+    local canPack = state.hasStation and state.nearStation and not full
+    local canSell = state.hasStation and state.nearStation and full
+    self.pack.Active, self.pack.Selectable = canPack, canPack
+    self.sell.Active, self.sell.Selectable = canSell, canSell
+    self.pack.BackgroundColor3 = if canPack and self.hovered then Theme.GoldLight else Theme.Gold
+    self.packTitle.Text = if not state.hasStation then "CLAIM FIRST" elseif full then "BAG FULL"
+        elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else Economy.ClicksPerSecond .. " clicks/sec"
+    self.packTitle.TextSize = if not state.hasStation then 17 else 21
+    self.packDetail.Text = if not state.hasStation then "CLAIM AT THE ENTRANCE" elseif full then "SELL TO KEEP PACKING"
+        elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then "TAP / HOLD TO PACK" else "+" .. state.stats.perClick .. " FRY PER CLICK"
+    self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. Economy.Capacity
+    self.sellDetail.Text = if not state.hasStation then "CLAIM A RESTAURANT"
+        elseif full and not state.nearStation then "RETURN TO COUNTER"
+        elseif full then "+" .. E.money(state.stats.saleValue) .. " CASH"
+        else "FRIES IN BAG"
+    self.sell.BackgroundColor3 = if canSell then Theme.Green else Theme.Card
+    self.sellTitle.TextColor3 = if canSell then Theme.Ink else Theme.Text
+    self.sellDetail.TextColor3 = if canSell then Theme.Ink else Theme.Muted
+    self.sellShortcut.TextColor3 = if canSell then Theme.Ink else Theme.Muted
+    self.fill.BackgroundColor3 = if full then Theme.Green else Theme.Gold
     self.fill.Size = UDim2.fromScale(bag.fries / Economy.Capacity, 1)
-    self.status.Text = if full then string.upper(bag.variant) .. " FRIES - READY!\nBase sale: $" .. bag.value
-        else math.floor(bag.fries) .. " / " .. Economy.Capacity .. " fries  |  " .. state.stats.perClick .. "/click\n" .. state.stats.perSecond .. " automatic fries/sec"
-    self.pack.Text = if not state.nearStation then "RETURN TO YOUR COUNTER" elseif full then "BAG FULL - SERVE IT!" else "PACK FRIES  /  hold or tap"
-    self.sell.Text = if full then "SERVE BAG  +$" .. math.floor(bag.value * (if bag.perfect then Economy.PerfectMultiplier else 1) + 0.5) else "SERVE BAG  (fill it first)"
-    self.fold.Text = if state.foldStart then "STOP IN THE GREEN ZONE!" elseif bag.perfect then "PERFECT FOLD  +25%"
-        elseif bag.foldAttempted then "FOLD COMPLETE" else "TRY A PERFECT FOLD  +25%"
-    self.order.Text = "REPEAT ORDER: " .. p.orderProgress .. " / " .. Economy.OrderFries .. " fries served\nReward: 1 Ticket  |  Lifetime bags: " .. p.sales
-    self:animate(workspace:GetServerTimeNow())
-end
-function HudView:animate(now)
-    local state = self.state
-    if not state then return end
-    local start = state.foldStart
-    local fraction = if start then math.clamp((now - start) / Economy.FoldDuration, 0, 1) else 0
-    self.marker.Position = UDim2.new(fraction, -2, 0, -3)
-    local rush = state.rush
-    if rush.active then
-        self.rush.Text = "LUNCH RUSH  " .. rush.count .. "/" .. rush.target .. " bags  |  " .. math.max(0, math.ceil(rush.endsAt - now)) .. "s\n"
-            .. (if rush.eligible then "Your contribution: " .. rush.contribution .. "/" .. RushConfig.MinimumContribution .. " minimum. Team success: +3 Tickets."
-                else "You joined mid-rush. You can participate for rewards in the next one.")
-    else
-        self.rush.Text = rush.result .. "\nNext rush in " .. math.max(0, math.ceil(rush.nextStart - now)) .. "s"
-    end
 end
 return HudView

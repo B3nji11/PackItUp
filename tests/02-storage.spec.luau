@@ -16,15 +16,29 @@ local function fixture()
         now = function() return clock.now end, wait = function() end, attempts = 3, leaseSeconds = 180 })
     return repository, db, clock
 end
-test("save/load round trip retains cash inventory full bag and pity", function()
+test("save/load round trip retains cash sales and a full bag", function()
     local store = fixture()
     local p = store:load("1", "A")
-    p.cash = 100; p.owned.ufo = true; p.equipped.Machine = "ufo"; p.pity.Bag = 9
-    loadModule("shared/domain/Packing").add(p, 20, function() return 0.99 end)
+    p.cash = 100; p.sales = 10; p.lifetimeCash = 100
+    loadModule("shared/domain/Packing").add(p, 20)
     eq(store:save("1", "A", p, true), true)
     local restored = store:load("1", "B")
-    eq(restored.cash, 100); eq(restored.owned.ufo, true); eq(restored.pity.Bag, 9)
-    eq(restored.bag.variant, "golden"); assert(Profile.validate(restored))
+    eq(restored.cash, 100); eq(restored.sales, 10); eq(restored.lifetimeCash, 100)
+    eq(restored.bag.fries, 20); assert(Profile.validate(restored))
+end)
+
+test("old v1 profiles preserve core progress and inactive stored fields", function()
+    local store, db = fixture()
+    local old = Profile.new()
+    old.cash = 75; old.bag.fries = 12.5
+    old.upgrades = {Click=8,Sales=4}; old.equipped = {Machine="ufo",Bag="briefcase"}
+    old.owned = {ufo=true,briefcase=true}; old.tickets = 9
+    db.records["1"] = {data=Copy(old)}
+    local p = store:load("1", "A")
+    eq(p.cash, 75); eq(p.bag.fries, 12.5)
+    eq(loadModule("shared/domain/Pricing").click(p), 1)
+    eq(store:save("1", "A", p, true), true)
+    eq(db.records["1"].data.tickets, 9); eq(db.records["1"].data.owned.ufo, true)
 end)
 test("second live session cannot acquire active lease", function()
     local store, db = fixture()
@@ -76,6 +90,6 @@ test("lease renewal does not mutate the caller or saved snapshots", function()
 end)
 test("invalid in-memory profiles cannot overwrite a valid save", function()
     local store, db = fixture(); local p = store:load("1", "A")
-    p.tickets = -100; eq(store:save("1", "A", p, false), false)
-    eq(db.records["1"].data.tickets, 0)
+    p.cash = -100; eq(store:save("1", "A", p, false), false)
+    eq(db.records["1"].data.cash, 0)
 end)
