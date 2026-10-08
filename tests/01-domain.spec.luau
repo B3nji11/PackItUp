@@ -25,6 +25,13 @@ end)
 test("basic fryer click and sale values do not depend on old progression", function()
     local old = {upgrades={Click=20,Sales=20}, equipped={Machine="ufo",Bag="briefcase"}}
     eq(Pricing.click(old), 1); eq(Pricing.automatic(old), 0.5); eq(Pricing.sale(old), 10)
+    eq(Pricing.perFry(old), 0.5)
+end)
+
+test("bag sale value is capacity times money per fry", function()
+    eq(Pricing.sale(), math.floor(Economy.Capacity * Economy.MoneyPerFryCents / 100))
+    eq(Pricing.sale(), Economy.Capacity * Pricing.perFry())
+    eq(Pricing.sale() % 1, 0)
 end)
 
 test("click and fryer filling clamp at one full bag", function()
@@ -97,7 +104,7 @@ test("10000 core actions preserve valid profiles and exact cash totals", functio
             if ok then sales += 1 end
         else Packing.add(p, if n % 2 == 0 then Pricing.click() else Pricing.automatic() * 0.2) end
         assert(Profile.validate(p))
-        eq(p.cash, sales * Economy.BaseSale); eq(p.sales, sales)
+        eq(p.cash, sales * Pricing.sale()); eq(p.sales, sales)
     end
     assert(sales > 0)
 end)

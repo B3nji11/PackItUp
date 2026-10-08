@@ -32,7 +32,8 @@ return table.freeze({ Pack = true, Sell = true, Return = true, Sync = true })
             <ProtectedString name="Source">-- Balance for the core filling-and-selling loop.
 return table.freeze({
     Capacity = 20,
-    BaseSale = 10,
+    -- Money per fry, in cents. A bag sells for Capacity x this value ($0.50 x 20 = $10).
+    MoneyPerFryCents = 50,
     BaseClick = 1,
     BasicFryerPerSecond = 0.5,
     ClicksPerSecond = 4,
@@ -98,7 +99,9 @@ return Packing
 local Pricing = {}
 function Pricing.click() return Economy.BaseClick end
 function Pricing.automatic() return Economy.BasicFryerPerSecond end
-function Pricing.sale() return Economy.BaseSale end
+function Pricing.perFry() return Economy.MoneyPerFryCents / 100 end
+-- Sale value scales with the fries in a full bag. Integer cents keep Cash whole and exact.
+function Pricing.sale() return math.floor(Economy.Capacity * Economy.MoneyPerFryCents / 100) end
 function Pricing.credit(p, currency, amount)
     p[currency] = math.min(Economy.MaxCurrency, p[currency] + amount)
 end
@@ -539,6 +542,7 @@ function StationService:claim(player, index)
     station.owner, self.assigned[player] = player, station
     station.prompt.Enabled = false
     station.sign.Text = player.DisplayName .. "'s\nRESTAURANT"
+    station.model:SetAttribute("OwnerUsername", player.Name)
     station.model:SetAttribute("OwnerUserId", player.UserId)
     self:teleport(player)
     return true, "Your restaurant is ready."
@@ -549,6 +553,7 @@ function StationService:release(player)
     if station then
         station.owner = nil
         station.sign.Text = "RESTAURANT " .. station.index .. "\nAVAILABLE"
+        station.model:SetAttribute("OwnerUsername", nil)
         station.model:SetAttribute("OwnerUserId", 0)
         station.prompt.Enabled = true
         for _, fry in ipairs(station.fries) do fry.Transparency = 1 end
@@ -726,25 +731,28 @@ return function(parent, index, origin, yaw)
     end
     local cream, coral = Color3.fromRGB(255, 247, 226), Color3.fromRGB(245, 112, 113)
     local accent = if index % 2 == 0 then Color3.fromRGB(81, 193, 181) else coral
+    local wallHeight, wallBottom = 18, 0.5
+    local wallCenter = wallBottom + wallHeight / 2
+    local ceilingBottom = wallBottom + wallHeight
     part("Plot", Vector3.new(52, 0.4, 52), Vector3.new(0, 0.05, 0), Color3.fromRGB(141, 217, 111))
     part("RestaurantFloor", Vector3.new(42, 0.5, 34), Vector3.new(0, 0.35, -3), cream)
     part("EntrancePath", Vector3.new(12, 0.25, 12), Vector3.new(0, 0.25, 20), Color3.fromRGB(190, 137, 88))
-    part("BackWall", Vector3.new(42, 12, 0.8), Vector3.new(0, 6.5, -20), cream)
-    part("LeftWall", Vector3.new(0.8, 12, 34), Vector3.new(-21, 6.5, -3), cream)
-    part("RightWall", Vector3.new(0.8, 12, 34), Vector3.new(21, 6.5, -3), cream)
+    part("BackWall", Vector3.new(42, wallHeight, 0.8), Vector3.new(0, wallCenter, -20), cream)
+    part("LeftWall", Vector3.new(0.8, wallHeight, 34), Vector3.new(-21, wallCenter, -3), cream)
+    part("RightWall", Vector3.new(0.8, wallHeight, 34), Vector3.new(21, wallCenter, -3), cream)
     -- A high ceiling meets the walls while leaving the frontage open for entry.
-    part("Ceiling", Vector3.new(44, 1, 36), Vector3.new(0, 13, -3), cream)
-    part("RoofCap", Vector3.new(44.5, 0.4, 36.5), Vector3.new(0, 13.7, -3), accent)
-    part("Fascia", Vector3.new(43, 3.25, 1.2), Vector3.new(0, 10.875, 14), accent)
+    part("Ceiling", Vector3.new(44, 1, 36), Vector3.new(0, ceilingBottom + 0.5, -3), cream)
+    part("RoofCap", Vector3.new(44.5, 0.4, 36.5), Vector3.new(0, ceilingBottom + 1.2, -3), accent)
+    part("Fascia", Vector3.new(43, 3.25, 1.2), Vector3.new(0, ceilingBottom - 1.625, 14), accent)
     for _, x in ipairs({-20, 20}) do
-        part("FrontPost", Vector3.new(1, 12, 1), Vector3.new(x, 6.5, 14), accent)
+        part("FrontPost", Vector3.new(1, wallHeight, 1), Vector3.new(x, wallCenter, 14), accent)
         part("Hedge", Vector3.new(1.5, 2, 50), Vector3.new(x / 20 * 25, 1.3, 0), Color3.fromRGB(73, 178, 51))
     end
     for n = 1, 10 do
-        part("AwningStripe" .. n, Vector3.new(4.2, 0.3, 4), Vector3.new(-23.1 + n * 4.2, 11.8, 13),
+        part("AwningStripe" .. n, Vector3.new(4.2, 0.3, 4), Vector3.new(-23.1 + n * 4.2, ceilingBottom - 0.7, 13),
             if n % 2 == 0 then cream else accent)
     end
-    local plaque = part("RestaurantPlaque", Vector3.new(15, 2, 0.2), Vector3.new(0, 10.5, 14.7), accent)
+    local plaque = part("RestaurantPlaque", Vector3.new(15, 2, 0.2), Vector3.new(0, ceilingBottom - 2, 14.7), accent)
     local sign = P.surfaceLabel(plaque, "RESTAURANT " .. index .. "\nAVAILABLE", Enum.NormalId.Back, cream)
     local claimPart = part("ClaimPoint", Vector3.new(0.5, 0.5, 0.5), Vector3.new(0, 3, 18), accent)
     claimPart.Transparency, claimPart.CanCollide = 1, false
@@ -754,6 +762,27 @@ return function(parent, index, origin, yaw)
     prompt.HoldDuration, prompt.MaxActivationDistance = 0, Runtime.ClaimDistance
     prompt.RequiresLineOfSight, prompt.ClickablePrompt, prompt.Enabled = false, true, true
     prompt.Parent = claimPart
+
+    -- Four broad downward lights cover the work area, dining tables, and entrance.
+    -- Unshadowed local lighting keeps the cartoon interior soft and limits rendering cost.
+    local fixtureIndex = 0
+    for _, x in ipairs({-10, 10}) do
+        for _, z in ipairs({-11, 6}) do
+            fixtureIndex += 1
+            local trim = part("LightTrim" .. fixtureIndex, Vector3.new(6.8, 0.3, 3.8),
+                Vector3.new(x, ceilingBottom - 0.15, z), Color3.fromRGB(189, 212, 230))
+            local panel = part("LightPanel" .. fixtureIndex, Vector3.new(6, 0.15, 3),
+                Vector3.new(x, ceilingBottom - 0.375, z), Color3.fromRGB(255, 251, 235))
+            for _, piece in ipairs({trim, panel}) do
+                piece.CanCollide, piece.CanTouch, piece.CanQuery, piece.CastShadow = false, false, false, false
+            end
+            local light = Instance.new("SurfaceLight")
+            light.Name, light.Face = "InteriorLight", Enum.NormalId.Bottom
+            light.Color = Color3.fromRGB(255, 244, 225)
+            light.Brightness, light.Range, light.Angle = 2, 28, 140
+            light.Shadows, light.Enabled, light.Parent = false, true, panel
+        end
+    end
 
     part("Counter", Vector3.new(16, 3, 3), Vector3.new(0, 2, -1), accent)
     part("Worktop", Vector3.new(16.5, 0.3, 3.5), Vector3.new(0, 3.65, -1), cream)
@@ -880,11 +909,50 @@ end
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="Folder" referent="RBX00032">
+        <Item class="LocalScript" referent="RBX00032">
+          <Properties>
+            <string name="Name">Main</string>
+            <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local AppView = require(script.Parent.ui.AppView)
+local RestaurantMarkers = require(script.Parent.ui.RestaurantMarkers)
+local InputController = require(script.Parent.controllers.InputController)
+local remotes = ReplicatedStorage:WaitForChild("FriesRemotes")
+local action = remotes:WaitForChild("Action")
+local stateRemote = remotes:WaitForChild("State")
+local noticeRemote = remotes:WaitForChild("Notice")
+local state = nil
+local function send(name, argument) action:FireServer(name, argument) end
+local app = AppView.new(Players.LocalPlayer:WaitForChild("PlayerGui"), send)
+local markers = RestaurantMarkers.new(Players.LocalPlayer.PlayerGui, Players.LocalPlayer.UserId)
+stateRemote.OnClientEvent:Connect(function(snapshot)
+    state = snapshot
+    app:update(snapshot)
+    markers:update(snapshot.hasStation)
+end)
+noticeRemote.OnClientEvent:Connect(function(text, success) app:notice(text, success) end)
+InputController(app.hud, send, function() return state end)
+RunService.RenderStepped:Connect(function(dt)
+    markers.guides:step(Players.LocalPlayer.Character, dt)
+    local camera = workspace.CurrentCamera
+    if camera then app:resize(camera.ViewportSize) end
+end)
+task.spawn(function()
+    while not state do
+        send("Sync")
+        task.wait(2)
+    end
+end)
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="Folder" referent="RBX00033">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00033">
+          <Item class="ModuleScript" referent="RBX00034">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -929,38 +997,6 @@ end
 </ProtectedString>
             </Properties>
           </Item>
-        </Item>
-        <Item class="LocalScript" referent="RBX00034">
-          <Properties>
-            <string name="Name">Main</string>
-            <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local AppView = require(script.Parent.ui.AppView)
-local InputController = require(script.Parent.controllers.InputController)
-local remotes = ReplicatedStorage:WaitForChild("FriesRemotes")
-local action = remotes:WaitForChild("Action")
-local stateRemote = remotes:WaitForChild("State")
-local noticeRemote = remotes:WaitForChild("Notice")
-local state = nil
-local function send(name, argument) action:FireServer(name, argument) end
-local app = AppView.new(Players.LocalPlayer:WaitForChild("PlayerGui"), send)
-stateRemote.OnClientEvent:Connect(function(snapshot) state = snapshot; app:update(snapshot) end)
-noticeRemote.OnClientEvent:Connect(function(text, success) app:notice(text, success) end)
-InputController(app.hud, send, function() return state end)
-RunService.RenderStepped:Connect(function()
-    local camera = workspace.CurrentCamera
-    if camera then app:resize(camera.ViewportSize) end
-end)
-task.spawn(function()
-    while not state do
-        send("Sync")
-        task.wait(2)
-    end
-end)
-</ProtectedString>
-          </Properties>
         </Item>
         <Item class="Folder" referent="RBX00035">
           <Properties>
@@ -1022,7 +1058,7 @@ function AppView:update(state)
     self.teleport.AutoButtonColor = state.hasStation
     if not self.errorUntil or os.clock() &gt;= self.errorUntil then
         self.guidance.Visible = not state.hasStation
-        self.guidance.Text = "Walk to a free restaurant. Press E or tap its entrance prompt to claim."
+        self.guidance.Text = "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)
@@ -1255,6 +1291,240 @@ return HudView
           </Item>
           <Item class="ModuleScript" referent="RBX00039">
             <Properties>
+              <string name="Name">RestaurantGuides</string>
+              <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
+local RestaurantGuides = {}
+RestaurantGuides.__index = RestaurantGuides
+local FLOW_CYCLES_PER_SECOND = 0.8
+-- Reuse fade values rather than allocating a new sequence for every chevron each frame.
+local fades = {}
+for i = 0, 20 do fades[i] = NumberSequence.new(1 - 0.9 * i / 20) end
+
+local function beam(parent, name, start, finish)
+    local line = Instance.new("Beam")
+    line.Name, line.Attachment0, line.Attachment1 = name, start, finish
+    line.Width0, line.Width1, line.Segments = 0.22, 0.22, 1
+    line.FaceCamera, line.LightInfluence, line.LightEmission = true, 0, 0.5
+    line.Color, line.Transparency = ColorSequence.new(Theme.Gold), NumberSequence.new(0.1)
+    line.Enabled, line.Parent = false, parent
+    return line
+end
+
+local function chevron(parent, index)
+    local points = {}
+    for _, name in ipairs({"Left", "Tip", "Right"}) do
+        local point = Instance.new("Attachment")
+        point.Name, point.Parent = "Chevron" .. index .. name, parent
+        points[name] = point
+    end
+    points.leftArm = beam(parent, "Chevron" .. index .. "LeftArm", points.Left, points.Tip)
+    points.rightArm = beam(parent, "Chevron" .. index .. "RightArm", points.Right, points.Tip)
+    return points
+end
+
+function RestaurantGuides.new()
+    local folder = Instance.new("Folder")
+    folder.Name, folder.Parent = "RestaurantGuides", workspace
+    return setmetatable({ folder = folder, entries = {}, phase = 0 }, RestaurantGuides)
+end
+
+function RestaurantGuides:setTarget(index, entrance)
+    local entry = self.entries[index]
+    if entry and entry.entrance ~= entrance then
+        entry.finish:Destroy()
+        entry.base:Destroy()
+        self.entries[index], entry = nil, nil
+    end
+    if not entrance or entry then return end
+    local finish = Instance.new("Attachment")
+    finish.Name, finish.Position, finish.Parent = "RestaurantGuideEnd", Vector3.new(0, 1, 0), entrance
+    local base = Instance.new("Part")
+    base.Name, base.Size = "ChevronGuide" .. index, Vector3.new(0.1, 0.1, 0.1)
+    base.Anchored, base.Transparency = true, 1
+    base.CanCollide, base.CanTouch, base.CanQuery, base.CastShadow = false, false, false, false
+    base.Parent = self.folder
+    self.entries[index] = { entrance = entrance, finish = finish, base = base, chevrons = {} }
+end
+
+function RestaurantGuides:step(character, dt)
+    self.phase = (self.phase + math.max(dt or 0, 0) * FLOW_CYCLES_PER_SECOND) % 1
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local head = character and character:FindFirstChild("Head")
+    if not humanoid or humanoid.Health &lt;= 0 or not next(self.entries) then head = nil end
+    if self.head ~= head then
+        if self.origin then self.origin:Destroy() end
+        self.head, self.origin = head, nil
+        if head then
+            local origin = Instance.new("Attachment")
+            origin.Name, origin.Position = "RestaurantGuideStart", Vector3.new(0, head.Size.Y / 2 + 1.5, 0)
+            origin.Parent, self.origin = head, origin
+        end
+    end
+    for _, entry in pairs(self.entries) do
+        local count = 0
+        if self.origin and entry.entrance.Parent then
+            local finish = entry.finish.WorldPosition
+            local delta = finish - self.origin.WorldPosition
+            local length = delta.Magnitude
+            if length &gt; 1 then
+                entry.base.Position = self.origin.WorldPosition
+                local direction = delta.Unit
+                local camera = workspace.CurrentCamera
+                local look = if camera and camera.CFrame then camera.CFrame.LookVector else Vector3.new(0, -1, 0)
+                local side = direction:Cross(look)
+                if side.Magnitude &lt; 0.001 then side = direction:Cross(Vector3.new(0, 1, 0)) end
+                side = if side.Magnitude &lt; 0.001 then Vector3.new(1, 0, 0) else side.Unit
+                count = math.clamp(math.floor(length / 6), 1, 24)
+                local depth = math.min(1.8, length / 3)
+                -- Reuse a bounded set of open &gt; shapes, with clear gaps and no connecting shaft.
+                for i = 1, count do
+                    local mark = entry.chevrons[i]
+                    if not mark then mark = chevron(entry.base, i); entry.chevrons[i] = mark end
+                    local distance = ((i - 0.5 + self.phase) % count) * length / count
+                    local center = direction * distance
+                    -- Fade and shrink at the ends so the looping pattern never jumps visibly
+                    -- or extends beyond the player's head and the restaurant endpoint.
+                    local edge = math.min(distance, length - distance)
+                    local halfDepth = math.min(depth / 2, edge)
+                    local rear = center - direction * halfDepth
+                    mark.Tip.Position = center + direction * halfDepth
+                    mark.Left.Position = rear + side * halfDepth
+                    mark.Right.Position = rear - side * halfDepth
+                    local fade = fades[math.floor(math.min(edge / depth, 1) * 20 + 0.5)]
+                    mark.leftArm.Transparency, mark.rightArm.Transparency = fade, fade
+                end
+            end
+        end
+        for i, mark in ipairs(entry.chevrons) do
+            mark.leftArm.Enabled, mark.rightArm.Enabled = i &lt;= count, i &lt;= count
+        end
+    end
+end
+
+return RestaurantGuides
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00040">
+            <Properties>
+              <string name="Name">RestaurantMarkers</string>
+              <ProtectedString name="Source">local Players = game:GetService("Players")
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local Runtime = require(Shared.config.Runtime)
+local E = require(script.Parent.Elements)
+local Theme = require(script.Parent.Theme)
+local RestaurantGuides = require(script.Parent.RestaurantGuides)
+local RestaurantMarkers = {}
+RestaurantMarkers.__index = RestaurantMarkers
+
+function RestaurantMarkers.new(playerGui, userId)
+    return setmetatable({ playerGui = playerGui, userId = userId, entries = {}, guides = RestaurantGuides.new() }, RestaurantMarkers)
+end
+
+function RestaurantMarkers:create(index, station)
+    local gui = Instance.new("BillboardGui")
+    gui.Name, gui.Size = "RestaurantMarker" .. index, UDim2.fromOffset(220, 104)
+    gui.ResetOnSpawn, gui.AlwaysOnTop, gui.LightInfluence = false, true, 0
+    gui.MaxDistance, gui.Enabled = 240, false
+    gui.Parent = self.playerGui
+
+    local available = E.box(gui, "Available", UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), Theme.Background, 0)
+    available.BackgroundTransparency = 1
+    local caption = E.box(available, "Caption", UDim2.fromOffset(40, 0), UDim2.fromOffset(140, 28), Theme.Background, 10)
+    E.stroke(caption, Theme.Gold, 1.5)
+    local label = E.label(caption, "AVAILABLE", 28, Theme.Gold)
+    label.Font, label.TextSize, label.TextXAlignment = Enum.Font.GothamBold, 13, Enum.TextXAlignment.Center
+
+    local owner = E.box(gui, "Owner", UDim2.fromOffset(0, 14), UDim2.fromOffset(220, 76), Theme.Background, 16)
+    E.stroke(owner, Theme.Gold, 2)
+    local portrait = E.box(owner, "Portrait", UDim2.fromOffset(8, 8), UDim2.fromOffset(60, 60), Theme.Card, 30)
+    local fallback = E.label(portrait, "?", 60, Theme.Gold)
+    fallback.Name, fallback.TextSize, fallback.TextXAlignment = "Fallback", 30, Enum.TextXAlignment.Center
+    local avatar = Instance.new("ImageLabel")
+    avatar.Name, avatar.Size, avatar.BackgroundTransparency = "Avatar", UDim2.fromScale(1, 1), 1
+    avatar.Image, avatar.Visible, avatar.Parent = "", false, portrait
+    E.corner(avatar, 30)
+    local title = E.label(owner, "RESTAURANT " .. index, 18, Theme.Muted)
+    title.Position, title.Size, title.TextSize = UDim2.fromOffset(78, 14), UDim2.fromOffset(132, 18), 10
+    local username = E.label(owner, "", 28, Theme.Text)
+    username.Name, username.Position, username.Size = "Username", UDim2.fromOffset(78, 33), UDim2.fromOffset(132, 28)
+    username.Font, username.TextScaled, username.TextWrapped = Enum.Font.GothamBold, true, false
+    local limit = Instance.new("UITextSizeConstraint")
+    limit.MinTextSize, limit.MaxTextSize, limit.Parent = 9, 15, username
+    return { station = station, gui = gui, available = available, owner = owner,
+        username = username, avatar = avatar, fallback = fallback, ownerId = 0, generation = 0, attempts = 0 }
+end
+
+function RestaurantMarkers:loadPortrait(entry)
+    if entry.ownerId &lt;= 0 or entry.pending or entry.avatar.Visible or entry.attempts &gt;= 3
+        or os.clock() &lt; (entry.nextAttempt or 0) then return end
+    entry.pending, entry.attempts = true, entry.attempts + 1
+    local ownerId, generation = entry.ownerId, entry.generation
+    -- Thumbnail requests yield and can fail; they must never delay claiming or the HUD.
+    task.spawn(function()
+        local ok, content, ready = pcall(function()
+            return Players:GetUserThumbnailAsync(ownerId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+        end)
+        if not entry.gui.Parent or entry.generation ~= generation then return end
+        entry.pending, entry.nextAttempt = false, os.clock() + 5
+        if ok and ready and type(content) == "string" and content ~= "" then
+            entry.avatar.Image, entry.avatar.Visible = content, true
+            entry.fallback.Visible = false
+        end
+    end)
+end
+
+function RestaurantMarkers:update(hasStation)
+    local world = workspace:FindFirstChild("FriesRestaurant")
+    local ownsRestaurant = hasStation
+    -- Replicated ownership also hides guidance while the private claim snapshot is in flight.
+    for index = 1, Runtime.StationCount do
+        local station = world and world:FindFirstChild("Station" .. index)
+        if station and station:GetAttribute("OwnerUserId") == self.userId then ownsRestaurant = true end
+    end
+    for index = 1, Runtime.StationCount do
+        local station = world and world:FindFirstChild("Station" .. index)
+        local entry = self.entries[index]
+        if entry and entry.station ~= station then
+            entry.gui:Destroy()
+            self.entries[index], entry = nil, nil
+        end
+        local entrance = station and station:FindFirstChild("ClaimPoint")
+        local roof = station and station:FindFirstChild("RoofCap")
+        local target = nil
+        if entrance and roof then
+            if not entry then entry = self:create(index, station); self.entries[index] = entry end
+            local ownerId = station:GetAttribute("OwnerUserId") or 0
+            if entry.ownerId ~= ownerId then
+                entry.ownerId, entry.generation = ownerId, entry.generation + 1
+                entry.pending, entry.attempts, entry.nextAttempt = false, 0, 0
+                entry.avatar.Image, entry.avatar.Visible, entry.fallback.Visible = "", false, true
+            end
+            local claimed = ownerId ~= 0
+            entry.owner.Visible, entry.available.Visible = claimed, not claimed and not ownsRestaurant
+            if not claimed and not ownsRestaurant then target = entrance end
+            entry.gui.Enabled = claimed or not ownsRestaurant
+            entry.gui.Adornee = if claimed then roof else entrance
+            entry.gui.StudsOffsetWorldSpace = Vector3.new(0, if claimed then 4 else 3, 0)
+            if claimed then
+                local username = station:GetAttribute("OwnerUsername") or "Player"
+                entry.username.Text = "@" .. username
+                entry.fallback.Text = string.upper(string.sub(username, 1, 1))
+                self:loadPortrait(entry)
+            end
+        elseif entry then
+            entry.gui.Enabled = false
+        end
+        self.guides:setTarget(index, target)
+    end
+end
+
+return RestaurantMarkers
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00041">
+            <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">return {
     Background = Color3.fromRGB(35, 43, 42),
@@ -1277,23 +1547,23 @@ return HudView
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00040">
+  <Item class="StarterGui" referent="RBX00042">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00041">
+  <Item class="Lighting" referent="RBX00043">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00042">
+  <Item class="Players" referent="RBX00044">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00043">
+  <Item class="SoundService" referent="RBX00045">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

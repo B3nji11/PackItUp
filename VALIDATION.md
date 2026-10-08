@@ -6,7 +6,7 @@ Scope: the owner-approved UI/UX iteration on the working core loop, including th
 
 ## Automated results
 
-**41 tests passed, 0 failed.** All **27 Luau source/test files** compiled. The rebuilt place contains **24 game source files**. Output is recorded in TEST_RESULTS.txt.
+**48 tests passed, 0 failed.** All **29 Luau source/test files** compiled. The rebuilt place contains **26 game source files**. Output is recorded in TEST_RESULTS.txt.
 
 Coverage includes:
 
@@ -18,8 +18,11 @@ Coverage includes:
 - Separate private state, owner-only work/teleport, basic fixed rates, and rejection of retired actions.
 - Six separated restaurant plots with inward-facing entrances, physical wall signage, and no fryer name labels.
 - Ceiling coverage/headroom and wall joins across all six restaurants; solid perimeter alignment, corner overlap, and clearance outside every plot.
+- Taller restaurant headroom, interior fixture mounting/clearance, downward light faces, and conservative range/cone coverage of floor corners and working surfaces in both restaurant orientations.
 - Three permanent HUD actions, middle-left Cash placement/formatting, fries-per-click hover labels, embedded bag capacity, full-bag sell state, E reserved for claiming, and R for selling.
 - Calculated HUD bounds for 320x568, 390x844, 568x320, 844x390, and 1280x720.
+- Per-player availability arrows, account usernames, owner card release/reclaim, stale thumbnail responses, and bounded thumbnail retries with an initial fallback.
+- Player-head guide attachment, moving chevrons, forward direction and gaps, bounded geometry reuse, frame-rate-independent directional animation and faded loops, non-colliding geometry, claim cleanup, death/respawn rebinding, missing characters, and zero-length guide suppression.
 
 The builder verifies XML parsing, exact source round-tripping, and the saved Soft LightingStyle setting.
 
@@ -39,7 +42,9 @@ The subsequent world art pass replaces textured materials with SmoothPlastic, re
 
 ## Remaining Studio checks
 
-The latest pass changes the plaza and walkways to brown, adds cream ceilings with colored roof caps, raises side walls to meet them, and encloses the map with solid hedge walls. Automated geometry checks cover containment and ceiling coverage, but ceiling camera behavior, interior brightness, and boundary collisions/jumping still require Studio playtesting.
+The restaurant-marker pass adds local availability guides from above the player's head to free entrances, plus public owner cards using replicated session ownership. Guides use pairs of short beams to form separated open chevrons (> > >), with no connecting shaft. They follow the character and face the camera each render frame. Each route reuses at most 24 chevrons. The chevrons advance toward the restaurant using render-frame elapsed time, fading and shrinking at the endpoints to loop without extending outside the route. Animation direction, equal elapsed time at 30/60 FPS, and loop closure are checked automatically; actual motion still needs Studio review. Saved profiles are unchanged. Thumbnail calls and attachments are mocked in automated tests; real Roblox avatar loading, beam appearance, billboard placement/overlap, late joins, and respawn rendering require Studio review.
+
+The latest pass raises restaurant walls from 12 to 18 studs, moves ceilings/roof caps/awnings/signs up with them, and adds four broad warm-white SurfaceLights per restaurant. The fixtures do not collide or cast additional local shadows. Automated geometry checks cover headroom and conservative lighting range/cones, but actual interior brightness, graphics-quality differences, camera behavior, and rendering performance still require Studio playtesting. The brown paths and perimeter remain in place.
 
 The project owner confirmed the preceding core version works. This new claiming/layout/HUD iteration has not been playtested by the agent in Roblox Studio. No real DataStore calls were made. Run docs/STUDIO_TESTS.md before accepting this iteration, especially simultaneous claims, mobile prompts, camera/walkability, and multiplayer ownership.
 
@@ -51,3 +56,6 @@ The project owner confirmed the preceding core version works. This new claiming/
 - Surface materials: https://create.roblox.com/docs/parts/materials
 - Soft lighting and environment settings: https://create.roblox.com/docs/reference/engine/classes/Lighting
 - Editor-only LightingStyle setting: https://create.roblox.com/docs/effects/light-sources
+- World-space restaurant markers: https://create.roblox.com/docs/reference/engine/classes/BillboardGui
+- Avatar headshots: https://create.roblox.com/docs/reference/engine/classes/Players#GetUserThumbnailAsync
+- Player-to-entrance guides: https://create.roblox.com/docs/reference/engine/classes/Beam

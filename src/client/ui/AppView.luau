@@ -51,7 +51,7 @@ function AppView:update(state)
     self.teleport.AutoButtonColor = state.hasStation
     if not self.errorUntil or os.clock() >= self.errorUntil then
         self.guidance.Visible = not state.hasStation
-        self.guidance.Text = "Walk to a free restaurant. Press E or tap its entrance prompt to claim."
+        self.guidance.Text = "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)

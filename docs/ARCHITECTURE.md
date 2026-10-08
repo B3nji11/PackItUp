@@ -16,7 +16,7 @@ The shared domain layer depends only on configuration, utilities, and other doma
 
 | Module | Responsibility |
 | --- | --- |
-| shared/config/Economy | Capacity, base click, fryer rate, sale value, and currency bound |
+| shared/config/Economy | Capacity, base click, fryer rate, money per fry, and currency bound |
 | shared/config/Runtime | Server, replication, and persistence settings |
 | shared/config/Actions | Closed core action vocabulary |
 | shared/domain/Profile | Core defaults and validation; v1 save compatibility |

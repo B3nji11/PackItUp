@@ -24,6 +24,7 @@ function StationService:claim(player, index)
     station.owner, self.assigned[player] = player, station
     station.prompt.Enabled = false
     station.sign.Text = player.DisplayName .. "'s\nRESTAURANT"
+    station.model:SetAttribute("OwnerUsername", player.Name)
     station.model:SetAttribute("OwnerUserId", player.UserId)
     self:teleport(player)
     return true, "Your restaurant is ready."
@@ -34,6 +35,7 @@ function StationService:release(player)
     if station then
         station.owner = nil
         station.sign.Text = "RESTAURANT " .. station.index .. "\nAVAILABLE"
+        station.model:SetAttribute("OwnerUsername", nil)
         station.model:SetAttribute("OwnerUserId", 0)
         station.prompt.Enabled = true
         for _, fry in ipairs(station.fries) do fry.Transparency = 1 end

@@ -15,11 +15,24 @@ The project owner confirmed the prior core version works. These checks cover the
 8. Leave the server. Confirm the plot becomes available for someone else. Rejoining starts in the plaza; plot choice is session-local, while Cash and fries persist when persistence is enabled.
 9. Reset a character after claiming. It should return to its own restaurant without losing the claim or progress.
 
+## Restaurant arrows and owner cards
+
+- Join without a plot: spaced gold chevrons (> > >) should extend from above your head toward each free entrance, with no connecting shaft and AVAILABLE labels at the destinations. Walk, turn, and jump toward both rows; the starting point must follow your head smoothly. Stand still and confirm the chevrons keep flowing toward the restaurants, fading at both endpoints as they loop. Check desktop and mobile readability and animation speed at low/high frame rates.
+- Claim a plot: all availability arrows disappear for you, while another unclaimed player still sees arrows for the remaining free plots.
+- Everyone should see the owner's avatar headshot and account @username above each claimed restaurant roof. Test an account whose display name differs from its username and one with a long username.
+- Leave and let another player claim that restaurant. The old owner card must clear, the arrow should return for unclaimed viewers, and the next card must show only the new owner.
+- Check late joiners and respawns: markers should reflect current ownership without duplicates. Confirm there are no fryer name tags.
+- Reset before claiming: arrows should hide during death and reattach above the new character's head. Stand directly at an endpoint and check for oversized/flickering chevrons. Another client should only see its own guides, not yours.
+- If an avatar thumbnail is unavailable (including simulated Studio users), its initial and username remain visible; claiming, the action buttons, and Cash must continue working.
+- Check portrait/landscape views for marker overlap and excessive obstruction; these world-space billboards need actual Studio visual review.
+
 ## District layout and signage
 
 - Inspect all six restaurants, facing the central promenade in two rows of three.
 - Walk from the plaza into every entrance, around the counter, and back out. Check floor transitions, hedges, furniture, and camera clearance.
 - Check all six ceilings from inside and outside: walls should meet the ceiling, entrances must stay open, and the camera should remain usable when packing, walking, zooming, and returning to the counter. Check interior brightness on desktop and mobile.
+- Confirm the taller walls, roofs, signs, and awnings line up in both rows. Check that owner cards remain visible above the raised roofs.
+- Inspect the four ceiling lights per restaurant. Counters, fryer screens, bags, dining tables, and floor corners should be readable without harsh bright spots or washed-out colors. Compare low/high graphics settings and watch performance with all six restaurants visible; automated range checks cannot confirm rendered brightness.
 - Walk the entire outer boundary, including its four corners. Confirm it blocks walking off the map, has no gaps, and leaves space outside the restaurant plots. Check normal jumping against the boundary.
 - Confirm buildings feel separated and the central area remains open. Ask testers whether they can identify an available plot and understand where to go without instructions.
 - Confirm the title is on the physical mural wall, following the wall's perspective rather than facing the camera.

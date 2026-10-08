@@ -17,10 +17,15 @@ end
 local vectorMeta = {}
 vectorMeta.__index = function(v, key)
     if key == "Magnitude" then return math.sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z) end
+    if key == "Cross" then return function(a,b)
+        return Vector3.new(a.Y*b.Z-a.Z*b.Y, a.Z*b.X-a.X*b.Z, a.X*b.Y-a.Y*b.X)
+    end end
+    if key == "Unit" then return Vector3.new(v.X/v.Magnitude, v.Y/v.Magnitude, v.Z/v.Magnitude) end
 end
 Vector3 = { new = function(x,y,z) return setmetatable({X=x,Y=y,Z=z}, vectorMeta) end }
 vectorMeta.__add = function(a,b) return Vector3.new(a.X+b.X,a.Y+b.Y,a.Z+b.Z) end
 vectorMeta.__sub = function(a,b) return Vector3.new(a.X-b.X,a.Y-b.Y,a.Z-b.Z) end
+vectorMeta.__mul = function(a,b) return Vector3.new(a.X*b,a.Y*b,a.Z*b) end
 Vector3.zero = Vector3.new(0,0,0)
 Vector2 = { new = function(x,y) return {X=x,Y=y} end }
 local cfMeta = {}
@@ -34,6 +39,8 @@ cfMeta.__mul = function(a,b)
     return setmetatable({Position=a:PointToWorldSpace(b.Position), yaw=a.yaw+b.yaw}, cfMeta)
 end
 Color3 = { fromRGB = function(r,g,b) return {R=r/255,G=g/255,B=b/255} end }
+ColorSequence = {new=function(value) return {Value=value} end}
+NumberSequence = {new=function(value) return {Value=value} end}
 UDim = { new = function(scale, offset) return {Scale=scale,Offset=offset} end }
 UDim2 = { new = function(xs,xo,ys,yo) return {X=UDim.new(xs or 0,xo or 0),Y=UDim.new(ys or 0,yo or 0)} end }
 UDim2.fromScale = function(x,y) return UDim2.new(x,0,y,0) end
@@ -52,6 +59,9 @@ local function makeInstance(class)
     local object = {}
     setmetatable(object, {
         __index = function(self,key)
+            if class == "Attachment" and key == "WorldPosition" then
+                return values.Parent.Position + (values.Position or Vector3.zero)
+            end
             if instanceMethods[key] then return instanceMethods[key] end
             if values[key] ~= nil then return values[key] end
             if eventNames[key] then values[key]=signal(); return values[key] end
@@ -115,6 +125,10 @@ function players:GetPlayers() return activePlayers end
 function players:GetPlayerByUserId(id)
     for _, player in ipairs(activePlayers) do if player.UserId == id then return player end end
 end
+function players:GetUserThumbnailAsync(id, kind, size)
+    eq(kind, Enum.ThumbnailType.HeadShot); eq(size, Enum.ThumbnailSize.Size150x150)
+    return "rbxasset://headshot-" .. id, true
+end
 local runService = makeInstance("RunService")
 function runService:IsStudio() return true end
 local http = {}
@@ -143,6 +157,8 @@ local function newPlayer(id)
     player.Parent = players
     player.Character = makeInstance("Model")
     local root = makeInstance("Part"); root.Name = "HumanoidRootPart"; root.Position=Vector3.zero; root.Parent=player.Character
+    local head = makeInstance("Part"); head.Name = "Head"; head.Size=Vector3.new(2,1,1)
+    head.Position=Vector3.new(0,2,0); head.Parent=player.Character
     local humanoid = makeInstance("Humanoid"); humanoid.Health=100; humanoid.Parent=player.Character
     local gui = makeInstance("PlayerGui"); gui.Name="PlayerGui"; gui.Parent=player
     function player:Kick(message) self.kickMessage=message end
@@ -268,11 +284,49 @@ test("ceilings cover restaurants and the solid perimeter encloses all plots", fu
         near(low(roof, "Y"), high(station.BackWall, "Y"))
         near(low(roof, "Y"), high(station.LeftWall, "Y"))
         near(low(roof, "Y"), high(station.RightWall, "Y"))
-        assert(low(roof, "Y") - high(floor, "Y") >= 10)
+        assert(low(roof, "Y") - high(floor, "Y") >= 17)
         assert(low(station.Plot, "X") > high(boundary.West, "X"))
         assert(high(station.Plot, "X") < low(boundary.East, "X"))
         assert(low(station.Plot, "Z") > high(boundary.North, "Z"))
         assert(high(station.Plot, "Z") < low(boundary.South, "Z"))
+    end
+end)
+
+test("interior fixtures fit below the taller ceiling and reach the floor and worktop", function()
+    for i=1,6 do
+        local station = workspace.FriesRestaurant["Station"..i]
+        local floor, ceiling = station.RestaurantFloor, station.Ceiling
+        local floorTop = floor.Position.Y + floor.Size.Y/2
+        local ceilingBottom = ceiling.Position.Y - ceiling.Size.Y/2
+        local samples = {station.Worktop.Position, station.Bag.Position, station.Machine.Position}
+        for _, x in ipairs({-floor.Size.X/2, floor.Size.X/2}) do
+            for _, z in ipairs({-floor.Size.Z/2, floor.Size.Z/2}) do
+                table.insert(samples, Vector3.new(floor.Position.X+x, floorTop, floor.Position.Z+z))
+            end
+        end
+        for n=1,4 do
+            local panel = station["LightPanel"..n]
+            assert(panel.Position.Y + panel.Size.Y/2 <= ceilingBottom)
+            assert(panel.Position.Y - panel.Size.Y/2 > station.Machine.Position.Y + station.Machine.Size.Y/2)
+            assert(not panel.CanCollide and not panel.CanQuery)
+            eq(panel.InteriorLight.ClassName, "SurfaceLight")
+            eq(panel.InteriorLight.Face, Enum.NormalId.Bottom)
+            assert(panel.InteriorLight.Enabled and panel.InteriorLight.Brightness > 0)
+        end
+        for _, point in ipairs(samples) do
+            local reachable = false
+            for n=1,4 do
+                local panel = station["LightPanel"..n]
+                local light = panel.InteriorLight
+                local origin = panel.Position - Vector3.new(0, panel.Size.Y/2, 0)
+                local delta = point - origin
+                -- Conservative cone/range check from the face center; rendering needs Studio.
+                if delta.Magnitude <= light.Range and -delta.Y/delta.Magnitude >= math.cos(math.rad(light.Angle/2)) then
+                    reachable = true
+                end
+            end
+            assert(reachable, "Interior sample is outside every ceiling light's range/cone")
+        end
     end
 end)
 
@@ -356,6 +410,175 @@ test("legacy progression stays out of snapshots and cannot change basic stats", 
     eq(state.profile.upgrades, nil); eq(state.profile.tickets, nil); eq(state.profile.equipped, nil)
     eq(state.stats.perClick, 1); eq(state.stats.perSecond, 0.5); eq(state.stats.saleValue, 10)
     state.profile.bag.fries=20; eq(p.bag.fries, 0)
+end)
+
+test("available restaurant arrows are personal and owner cards use account usernames", function()
+    local Markers = loadModule("client/ui/RestaurantMarkers")
+    local choosing = Markers.new(makeInstance("PlayerGui"), 999)
+    choosing:update(false); drain()
+    for i=1,6 do
+        eq(choosing.entries[i].available.Visible, i ~= 1 and i ~= 5)
+        eq(choosing.guides.entries[i] ~= nil, i ~= 1 and i ~= 5)
+    end
+    local claimed = choosing.entries[1]
+    eq(claimed.owner.Visible, true)
+    eq(claimed.username.Text, "@" .. first.Name)
+    eq(claimed.avatar.Image, "rbxasset://headshot-101")
+    eq(claimed.gui.Adornee, workspace.FriesRestaurant.Station1.RoofCap)
+    local owned = Markers.new(makeInstance("PlayerGui"), first.UserId)
+    owned:update(false); drain() -- Ownership can arrive before the private snapshot.
+    eq(next(owned.guides.entries), nil)
+    for i=1,6 do eq(owned.entries[i].available.Visible, false) end
+    choosing:update(true)
+    eq(next(choosing.guides.entries), nil)
+    for i=1,6 do eq(choosing.entries[i].available.Visible, false) end
+    choosing:update(false)
+    eq(choosing.entries[2].available.Visible, true)
+    eq(choosing.entries[2].gui.Adornee, workspace.FriesRestaurant.Station2.ClaimPoint)
+end)
+
+test("restaurant guides extend above the moving player's head toward the entrance", function()
+    local guides = loadModule("client/ui/RestaurantGuides").new()
+    local viewer = newPlayer(9001)
+    local entrance = workspace.FriesRestaurant.Station2.ClaimPoint
+    guides:setTarget(2, entrance)
+    guides:step(viewer.Character)
+    local entry = guides.entries[2]
+    eq(guides.origin.Parent, viewer.Character.Head)
+    assert(guides.origin.WorldPosition.Y > viewer.Character.Head.Position.Y + viewer.Character.Head.Size.Y/2)
+    eq(entry.finish.Parent, entrance)
+    assert(#entry.chevrons >= 3)
+    local direction = (entry.finish.WorldPosition-guides.origin.WorldPosition).Unit
+    local function along(point) return point.X*direction.X + point.Y*direction.Y + point.Z*direction.Z end
+    local previousTip = 0
+    for _, mark in ipairs(entry.chevrons) do
+        assert(mark.leftArm.Enabled and mark.rightArm.Enabled)
+        eq(mark.leftArm.Attachment0, mark.Left); eq(mark.leftArm.Attachment1, mark.Tip)
+        eq(mark.rightArm.Attachment0, mark.Right); eq(mark.rightArm.Attachment1, mark.Tip)
+        assert(along(mark.Left.Position) > previousTip) -- Spacing between > shapes.
+        assert(along(mark.Tip.Position) > along(mark.Left.Position)) -- Points toward the restaurant.
+        previousTip = along(mark.Tip.Position)
+    end
+    assert(not entry.base.CanCollide and not entry.base.CanTouch and not entry.base.CanQuery)
+    local before = entry.base.Position
+    viewer.Character.Head.Position = Vector3.new(25, 5, 10)
+    guides:step(viewer.Character)
+    assert((before-entry.base.Position).Magnitude > 0.1)
+    near((guides.origin.WorldPosition-entry.base.Position).Magnitude, 0)
+    viewer.Character.Head.Position = Vector3.new(1000, 5, 10)
+    guides:step(viewer.Character)
+    eq(#entry.chevrons, 24)
+    guides:step(viewer.Character); eq(#entry.chevrons, 24) -- Reuse the bounded pool.
+    local oldOrigin = guides.origin
+    guides:setTarget(2, nil); guides:step(viewer.Character)
+    eq(entry.base.Parent, nil); eq(entry.finish.Parent, nil); eq(oldOrigin.Parent, nil)
+end)
+
+test("chevrons flow toward restaurants at the same speed across frame rates and loop cleanly", function()
+    local Guides = loadModule("client/ui/RestaurantGuides")
+    local viewer = newPlayer(9010)
+    local slow, fast = Guides.new(), Guides.new()
+    local entrance = workspace.FriesRestaurant.Station2.ClaimPoint
+    slow:setTarget(2, entrance); fast:setTarget(2, entrance)
+    slow:step(viewer.Character, 0); fast:step(viewer.Character, 0)
+    local first = slow.entries[2].chevrons[1]
+    local before = first.Tip.WorldPosition
+    local destination = slow.entries[2].finish.WorldPosition
+    for _=1,15 do slow:step(viewer.Character, 1/30) end
+    for _=1,30 do fast:step(viewer.Character, 1/60) end
+    assert((destination-first.Tip.WorldPosition).Magnitude < (destination-before).Magnitude)
+    near((first.Tip.Position-fast.entries[2].chevrons[1].Tip.Position).Magnitude, 0)
+    slow:step(viewer.Character, 0.125) -- Half a pattern step puts the last chevron at the origin.
+    local entry = slow.entries[2]
+    local last = entry.chevrons[#entry.chevrons]
+    near(last.leftArm.Transparency.Value, 1)
+    near(last.Tip.Position.Magnitude, 0)
+    local count = #entry.chevrons
+    slow:step(viewer.Character, 0.625) -- One complete cycle reproduces the initial pattern.
+    near((first.Tip.WorldPosition-before).Magnitude, 0)
+    eq(#entry.chevrons, count)
+    slow:setTarget(2, nil); fast:setTarget(2, nil)
+    slow:step(nil, 1/60); fast:step(nil, 1/60)
+end)
+
+test("restaurant guides handle death respawn missing characters and very short distances", function()
+    local guides = loadModule("client/ui/RestaurantGuides").new()
+    local viewer = newPlayer(9002)
+    guides:setTarget(2, workspace.FriesRestaurant.Station2.ClaimPoint)
+    local entry = guides.entries[2]
+    guides:step(nil); eq(#entry.chevrons, 0)
+    guides:step(viewer.Character)
+    local oldOrigin = guides.origin
+    viewer.Character.Humanoid.Health = 0
+    guides:step(viewer.Character)
+    for _, mark in ipairs(entry.chevrons) do
+        eq(mark.leftArm.Enabled, false); eq(mark.rightArm.Enabled, false)
+    end; eq(oldOrigin.Parent, nil)
+    local replacement = newPlayer(9003)
+    guides:step(replacement.Character)
+    eq(guides.origin.Parent, replacement.Character.Head)
+    eq(entry.chevrons[1].leftArm.Enabled, true)
+    replacement.Character.Head.Position = entry.finish.WorldPosition - guides.origin.Position
+    guides:step(replacement.Character)
+    for _, mark in ipairs(entry.chevrons) do
+        eq(mark.leftArm.Enabled, false); eq(mark.rightArm.Enabled, false)
+    end
+    guides:setTarget(2, nil); guides:step(nil)
+end)
+
+test("restaurant markers clear on release and ignore late portraits from the previous owner", function()
+    local markers = loadModule("client/ui/RestaurantMarkers").new(makeInstance("PlayerGui"), 999)
+    markers:update(false); drain()
+    local station = workspace.FriesRestaurant.Station2
+    local owner = newPlayer(303)
+    owner.DisplayName = "A different display name"
+    players.PlayerAdded:Fire(owner); drain()
+    owner.Character.HumanoidRootPart.Position = station.ClaimPoint.Position
+    serverTime += 1; station.ClaimPoint.ClaimRestaurant.Triggered:Fire(owner)
+    markers:update(false)
+    local entry = markers.entries[2]
+    local oldPortrait = table.remove(scheduled)
+    eq(entry.username.Text, "@Tester303")
+    eq(entry.available.Visible, false); eq(entry.owner.Visible, true)
+    eq(markers.guides.entries[2], nil)
+    players.PlayerRemoving:Fire(owner)
+    markers:update(false)
+    eq(entry.owner.Visible, false); eq(entry.available.Visible, true)
+    assert(markers.guides.entries[2])
+    eq(station:GetAttribute("OwnerUsername"), nil)
+    eq(entry.avatar.Image, "")
+    -- Complete the replacement's request before the old owner's delayed response.
+    local replacement = newPlayer(404)
+    players.PlayerAdded:Fire(replacement); drain()
+    replacement.Character.HumanoidRootPart.Position = station.ClaimPoint.Position
+    serverTime += 1; station.ClaimPoint.ClaimRestaurant.Triggered:Fire(replacement)
+    markers:update(false)
+    eq(entry.username.Text, "@Tester404")
+    drain()
+    oldPortrait.fn(table.unpack(oldPortrait.args))
+    eq(entry.avatar.Image, "rbxasset://headshot-404")
+    players.PlayerRemoving:Fire(replacement)
+    markers:update(false)
+    eq(entry.avatar.Visible, false); eq(entry.available.Visible, true)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
+end)
+
+test("unavailable avatars retain a username fallback with bounded background retries", function()
+    local original = players.GetUserThumbnailAsync
+    players.GetUserThumbnailAsync = function() error("Thumbnail service unavailable") end
+    local markers = loadModule("client/ui/RestaurantMarkers").new(makeInstance("PlayerGui"), 999)
+    markers:update(false); drain()
+    local entry = markers.entries[1]
+    eq(entry.avatar.Visible, false); eq(entry.fallback.Visible, true)
+    eq(entry.username.Text, "@" .. first.Name)
+    markers:update(false); eq(entry.attempts, 1)
+    for _=1,4 do
+        entry.nextAttempt = 0
+        markers:update(false); drain()
+    end
+    eq(entry.attempts, 3)
+    eq(entry.owner.Visible, true)
+    players.GetUserThumbnailAsync = original
 end)
 
 test("client has exactly click sell and teleport with no feature panels", function()

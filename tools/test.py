@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def bundle():
     lines = [
-        "local game, workspace, Instance, Enum, Color3, Vector3, Vector2, CFrame, UDim, UDim2, Random, task",
+        "local game, workspace, Instance, Enum, Color3, ColorSequence, NumberSequence, Vector3, Vector2, CFrame, UDim, UDim2, Random, task",
         "local nodes, factories, loaded = {}, {}, {}",
         "local function node(path)",
         "  if nodes[path] then return nodes[path] end",

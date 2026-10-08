@@ -1,4 +1,4 @@
-Compilation passed for 27 Luau files.
+Compilation passed for 29 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -28,12 +28,19 @@ PASS unclaimed players cannot pack sell or return to an arbitrary restaurant
 PASS claiming enforces distance life ownership and one restaurant per player
 PASS plots are separated and entrances face the central plaza
 PASS ceilings cover restaurants and the solid perimeter encloses all plots
+PASS interior fixtures fit below the taller ceiling and reach the floor and worktop
 PASS admission reserves six player spaces even before restaurants are claimed
 PASS remote fill sell repeat loop awards cash once per full bag
 PASS server rejects work away from the counter and teleport returns its owner
 PASS basic fryer fills online and stops at capacity
 PASS removed actions and malformed core arguments are rejected before dispatch
 PASS legacy progression stays out of snapshots and cannot change basic stats
+PASS available restaurant arrows are personal and owner cards use account usernames
+PASS restaurant guides extend above the moving player's head toward the entrance
+PASS chevrons flow toward restaurants at the same speed across frame rates and loop cleanly
+PASS restaurant guides handle death respawn missing characters and very short distances
+PASS restaurant markers clear on release and ignore late portraits from the previous owner
+PASS unavailable avatars retain a username fallback with bounded background retries
 PASS client has exactly click sell and teleport with no feature panels
 PASS permanent core controls fit portrait landscape and desktop
 PASS button and keyboard selling require a full bag at the counter
@@ -41,4 +48,4 @@ PASS click packs while full bags and distance block further client packing
 PASS HUD highlights fries per click capacity and full-bag feedback inside the buttons
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
-RESULT: 41 passed, 0 failed
+RESULT: 48 passed, 0 failed

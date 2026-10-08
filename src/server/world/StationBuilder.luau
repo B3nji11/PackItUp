@@ -13,25 +13,28 @@ return function(parent, index, origin, yaw)
     end
     local cream, coral = Color3.fromRGB(255, 247, 226), Color3.fromRGB(245, 112, 113)
     local accent = if index % 2 == 0 then Color3.fromRGB(81, 193, 181) else coral
+    local wallHeight, wallBottom = 18, 0.5
+    local wallCenter = wallBottom + wallHeight / 2
+    local ceilingBottom = wallBottom + wallHeight
     part("Plot", Vector3.new(52, 0.4, 52), Vector3.new(0, 0.05, 0), Color3.fromRGB(141, 217, 111))
     part("RestaurantFloor", Vector3.new(42, 0.5, 34), Vector3.new(0, 0.35, -3), cream)
     part("EntrancePath", Vector3.new(12, 0.25, 12), Vector3.new(0, 0.25, 20), Color3.fromRGB(190, 137, 88))
-    part("BackWall", Vector3.new(42, 12, 0.8), Vector3.new(0, 6.5, -20), cream)
-    part("LeftWall", Vector3.new(0.8, 12, 34), Vector3.new(-21, 6.5, -3), cream)
-    part("RightWall", Vector3.new(0.8, 12, 34), Vector3.new(21, 6.5, -3), cream)
+    part("BackWall", Vector3.new(42, wallHeight, 0.8), Vector3.new(0, wallCenter, -20), cream)
+    part("LeftWall", Vector3.new(0.8, wallHeight, 34), Vector3.new(-21, wallCenter, -3), cream)
+    part("RightWall", Vector3.new(0.8, wallHeight, 34), Vector3.new(21, wallCenter, -3), cream)
     -- A high ceiling meets the walls while leaving the frontage open for entry.
-    part("Ceiling", Vector3.new(44, 1, 36), Vector3.new(0, 13, -3), cream)
-    part("RoofCap", Vector3.new(44.5, 0.4, 36.5), Vector3.new(0, 13.7, -3), accent)
-    part("Fascia", Vector3.new(43, 3.25, 1.2), Vector3.new(0, 10.875, 14), accent)
+    part("Ceiling", Vector3.new(44, 1, 36), Vector3.new(0, ceilingBottom + 0.5, -3), cream)
+    part("RoofCap", Vector3.new(44.5, 0.4, 36.5), Vector3.new(0, ceilingBottom + 1.2, -3), accent)
+    part("Fascia", Vector3.new(43, 3.25, 1.2), Vector3.new(0, ceilingBottom - 1.625, 14), accent)
     for _, x in ipairs({-20, 20}) do
-        part("FrontPost", Vector3.new(1, 12, 1), Vector3.new(x, 6.5, 14), accent)
+        part("FrontPost", Vector3.new(1, wallHeight, 1), Vector3.new(x, wallCenter, 14), accent)
         part("Hedge", Vector3.new(1.5, 2, 50), Vector3.new(x / 20 * 25, 1.3, 0), Color3.fromRGB(73, 178, 51))
     end
     for n = 1, 10 do
-        part("AwningStripe" .. n, Vector3.new(4.2, 0.3, 4), Vector3.new(-23.1 + n * 4.2, 11.8, 13),
+        part("AwningStripe" .. n, Vector3.new(4.2, 0.3, 4), Vector3.new(-23.1 + n * 4.2, ceilingBottom - 0.7, 13),
             if n % 2 == 0 then cream else accent)
     end
-    local plaque = part("RestaurantPlaque", Vector3.new(15, 2, 0.2), Vector3.new(0, 10.5, 14.7), accent)
+    local plaque = part("RestaurantPlaque", Vector3.new(15, 2, 0.2), Vector3.new(0, ceilingBottom - 2, 14.7), accent)
     local sign = P.surfaceLabel(plaque, "RESTAURANT " .. index .. "\nAVAILABLE", Enum.NormalId.Back, cream)
     local claimPart = part("ClaimPoint", Vector3.new(0.5, 0.5, 0.5), Vector3.new(0, 3, 18), accent)
     claimPart.Transparency, claimPart.CanCollide = 1, false
@@ -41,6 +44,27 @@ return function(parent, index, origin, yaw)
     prompt.HoldDuration, prompt.MaxActivationDistance = 0, Runtime.ClaimDistance
     prompt.RequiresLineOfSight, prompt.ClickablePrompt, prompt.Enabled = false, true, true
     prompt.Parent = claimPart
+
+    -- Four broad downward lights cover the work area, dining tables, and entrance.
+    -- Unshadowed local lighting keeps the cartoon interior soft and limits rendering cost.
+    local fixtureIndex = 0
+    for _, x in ipairs({-10, 10}) do
+        for _, z in ipairs({-11, 6}) do
+            fixtureIndex += 1
+            local trim = part("LightTrim" .. fixtureIndex, Vector3.new(6.8, 0.3, 3.8),
+                Vector3.new(x, ceilingBottom - 0.15, z), Color3.fromRGB(189, 212, 230))
+            local panel = part("LightPanel" .. fixtureIndex, Vector3.new(6, 0.15, 3),
+                Vector3.new(x, ceilingBottom - 0.375, z), Color3.fromRGB(255, 251, 235))
+            for _, piece in ipairs({trim, panel}) do
+                piece.CanCollide, piece.CanTouch, piece.CanQuery, piece.CastShadow = false, false, false, false
+            end
+            local light = Instance.new("SurfaceLight")
+            light.Name, light.Face = "InteriorLight", Enum.NormalId.Bottom
+            light.Color = Color3.fromRGB(255, 244, 225)
+            light.Brightness, light.Range, light.Angle = 2, 28, 140
+            light.Shadows, light.Enabled, light.Parent = false, true, panel
+        end
+    end
 
     part("Counter", Vector3.new(16, 3, 3), Vector3.new(0, 2, -1), accent)
     part("Worktop", Vector3.new(16.5, 0.3, 3.5), Vector3.new(0, 3.65, -1), cream)

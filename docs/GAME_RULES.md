@@ -13,7 +13,7 @@ Each player arrives in a central plaza and chooses a free restaurant entrance us
 
 ## Selling
 
-- A full bag sells for $10.
+- A full bag sells for bag capacity x money per fry: 20 fries x $0.50 = $10. Money per fry is stored in cents and the sale is rounded down to whole Cash.
 - Empty and partial bags cannot be sold.
 - Selling requires the player to be alive and near their own counter.
 - A successful sale credits Cash and lifetime counters, then clears the bag in one non-yielding operation.

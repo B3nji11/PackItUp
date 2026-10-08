@@ -14,32 +14,112 @@ Develop in small, reviewable iterations. Prove the basic functionality works bef
 4. Review the playable result with the project owner and use their feedback to choose the next increment.
 5. Keep the game playable after every iteration. Fix core-loop failures before expanding scope.
 
-**Current iteration: UI/UX polish.** The project owner confirmed the core version works on 8 October 2026 and requested this design pass. Players choose a restaurant from six plots around a shared plaza. Polish claiming, signage, action buttons, and the Cash display while keeping the 20-fries / $10 loop unchanged. Do not restore the removed progression systems.
+**Current iteration: UI/UX polish.** The project owner confirmed the core version works on 8 October 2026 and requested this design pass. Players choose a restaurant from six plots around a shared plaza. Polish claiming, signage, action buttons, and the Cash display while keeping the 20-fry bag at $0.50 per fry ($10 per full bag) unchanged. Do not restore the removed progression systems; the agreed progression design is in **Planned expansion** below and starts only after this iteration is accepted.
 
 **Definition of done for this iteration:**
 
 - Players enter the central plaza without an assigned restaurant, walk to an available entrance, and press E (or tap the proximity prompt) to claim it.
+- Spaced gold chevrons (`> > >`) extend from above the local player's head toward each free restaurant entrance, with clear gaps, no connecting line, and an AVAILABLE label at the destination. The chevrons flow toward the restaurants, fade at the endpoints as they loop, follow the player while choosing, and disappear on claiming. Claimed restaurants show the owner's Roblox avatar headshot and @username above the roof for everyone; leaving removes the card and restores availability for unclaimed players. These are restaurant markers, not equipment labels.
 - Claiming requires a loaded profile, a living nearby character, an unoccupied plot, and no existing claim. One player owns one restaurant per session; leaving frees it.
 - Six spacious restaurant plots face a central promenade. Ownership is shown on the building; the title is wall art. Never add floating fryer/equipment name tags, now or in future iterations.
 - The world uses smooth, untextured surfaces, bright cartoon colors, rounded plaza bushes, and soft lighting. Check the result in Studio before accepting this visual pass.
-- Brown central paths connect to brown restaurant walkways. Every restaurant has a high ceiling with a colored roof trim, and a continuous solid hedge boundary encloses the playing area.
+- Brown central paths connect to brown restaurant walkways. Every restaurant has 18-stud walls, a high cream ceiling with colored roof trim, and four warm-white ceiling lights covering the work and dining areas. A continuous solid hedge boundary encloses the playing area.
 - Packing highlights fries per click (currently +1 fry/click) and changes to Click on hover/focus, with the yield retained below. The internal click-rate limit is not shown to players. Selling shows bag capacity/progress until full, then Sell Bag and its Cash value.
 - Cash has a visible card at the middle left, with a coin symbol and grouped amount. On short landscape screens it lifts enough to clear the action buttons. Successful sales update the card and reset the bag without a bottom message.
 - Clicking, holding the button, or holding F adds fries at the player's counter.
 - After claiming, the basic fryer retains its existing online rate of 0.5 fries per second.
 - A bag stops filling at 20 fries.
 - An empty or partial bag cannot be sold, including through keyboard or direct remote requests.
-- Selling a full bag awards $10 exactly once and resets the bag for the next cycle.
+- Selling a full bag awards bag capacity x money per fry (20 x $0.50 = $10) exactly once and resets the bag for the next cycle.
 - Players' Cash and bags remain independent; teleport returns each player to their own counter.
 - Automated checks pass, Studio desktop/mobile and two-player checks pass, and the project owner reviews the result.
 
 Automated checks alone do not finish the iteration. The new claiming/layout/HUD changes still need Studio playtesting and owner review. **Do not add the next feature until this core loop has been validated and the next increment has been agreed.**
 
-Folding, Upgrades, Delivery, Index, and Inventory have been removed from the running game and source modules. Their connected bonus systems—Tickets, random fry variants, discovery rewards, order rewards, and Lunch Rush—are also outside this iteration. They are possible future backlog items, not a commitment to implement them. There are no placeholder menus or active background rewards for these systems.
+Folding, Upgrades, Delivery, Index, and Inventory have been removed from the running game and source modules. Their connected bonus systems—Tickets, random fry variants, discovery rewards, order rewards, and Lunch Rush—are also outside this iteration. They are possible future backlog items, not a commitment to implement them. The exception is the upgrade, gacha, and inventory design agreed in **Planned expansion** below, which replaces the old Upgrades and Inventory and is planned for later increments. There are no placeholder menus or active background rewards for these systems.
 
 **Future visual refinement:** replace the current simple fry and bag symbols with more recognizable fries and bag artwork in an agreed later iteration. Keep the current symbols for now.
 
 **World art direction:** aim for a bright, smooth cartoon feel inspired by Pet Simulator. Use SmoothPlastic for code-built surfaces rather than grainy grass, concrete, brick, wood, or metal textures. Favor clear color blocks, warm brown paths, coral/mint restaurants with cream ceilings, and soft lighting with restrained reflections. Solid perimeter hedges frame the district. Detailed rounded restaurant/fryer models remain a later art iteration. No manual Studio asset creation is needed for this pass.
+
+## Planned expansion: progression (backlog)
+
+Agreed with the project owner on 8 October 2026 as the direction for progression. **This is backlog, not the current iteration.** Start it only after the UI/UX polish iteration is accepted, and build it in the small increments listed below. Numbers here are starting points for tuning, not commitments.
+
+### Agreed decisions
+
+- **Money per fry, not money per bag.** A bag sells for *bag capacity x money per fry*. This is already live: $0.50 per fry x 20 fries = $10 per bag. Without it, a bigger bag would mean more clicks for the same Cash.
+- **Two systems with separate jobs.** The upgrade shop raises *base* values with Cash. The gacha gives *percentage multipliers* on top.
+- **The gacha gives pets**, which need an inventory system.
+- **Free to play first.** Robux purchases come in a later, separately agreed increment.
+- **The basic fryer's automatic rate stays fixed** at 0.5 fries per second. It is not an upgradeable stat.
+
+### The three progression stats
+
+| Stat | Current base | What it gives the player |
+| --- | --- | --- |
+| Fries per click | 1 | Faster active play. This is the main way active play scales, because the click rate is capped. |
+| Money per fry | $0.50 | More income from everything: clicking, holding, and the fryer. |
+| Bag capacity | 20 | Fewer trips to sell, and the fryer keeps filling longer while the player is away (a full bag stops production). |
+
+Effective value = (base + upgrade levels) x (1 + total equipped pet bonus for that stat). Pet bonuses for the same stat add together; upgrades and pets multiply. Sale values are rounded down to whole Cash; money per fry is stored in cents to keep sums exact.
+
+### Upgrade system (Cash)
+
+A shop with one upgrade track per stat. It is predictable and always available, with cost rising each level: cost = base cost x growth^level.
+
+| Upgrade | Per level | Starting cost formula |
+| --- | --- | --- |
+| Fries per click | +1 fry per click | 25 x 1.18^level |
+| Money per fry | +$0.05 per fry | 40 x 1.20^level |
+| Bag capacity | +5 fries | 50 x 1.25^level |
+
+The first upgrade costs about 2-3 bags. The server validates every purchase; clients only request an upgrade by name.
+
+### Gacha system (pets)
+
+- **Currency: Fry Tokens (working name).** A second currency earned by playing: for example 1 token per bag sold, plus bonus tokens at milestones. Pulls are paced by play, not by Cash inflation, and the gacha never competes with the upgrade shop for Cash.
+- **Reward: Fry Buddies (working name).** Collectible companions that follow the player around the plaza. Each one gives one percentage bonus to one stat (fries per click, money per fry, or bag capacity).
+- **Rarity table (starting point):**
+
+| Rarity | Chance | Example bonus |
+| --- | --- | --- |
+| Common | 60% | +5% |
+| Uncommon | 25% | +10% |
+| Rare | 10% | +20% |
+| Epic | 4% | +40% |
+| Legendary | 1% | +75%, or two stats |
+
+- **Pity:** a guaranteed Epic or better within 50 pulls. The pity counter is saved per player.
+- **Odds are shown in game** from the start. Roblox requires this once pulls can be bought with Robux, and it builds trust before then.
+- All rolls are resolved on the server. Clients send a roll request only; they never choose or report results.
+- **Later:** merging duplicates (for example 5 of the same pet into a Golden version with double the bonus), more machines, and Robux purchases.
+
+### Inventory system (pets)
+
+- Each owned pet is saved with a unique ID, pet type, and rarity (and later a Golden flag).
+- Players equip a limited number of pets (start with 3 slots). Only equipped pets give bonuses and follow the player.
+- Inventory has a capacity limit (for example 50 pets), with a way to delete unwanted pets to make space.
+- An inventory screen shows owned pets, their bonuses, and which are equipped.
+
+### Delivery increments
+
+Each increment follows the AGILE workflow above: agreed acceptance criteria, tests, a Studio playtest, and owner review before the next one.
+
+1. **Upgrade shop.** Three Cash upgrades, saved upgrade levels, and the shop UI.
+2. **Tokens and one gacha machine.** Token earning, about 10 pets, server-side rolls with pity, odds display, and a basic inventory list.
+3. **Equipping.** Equip slots, pet bonuses applied to stats, and pets following the player.
+4. **Merging and inventory management.** Duplicates to Golden, deleting pets, and inventory limits.
+5. **Robux** (later, separately agreed). Paid token packs or pulls, with odds disclosed.
+
+Each saved field added here (upgrade levels, tokens, pets, pity) needs an explicit profile-compatibility decision, as described in docs/ARCHITECTURE.md. Inactive fields from the earlier prototype must not be reused by accident.
+
+### Open questions
+
+- Final names for the token currency and pets.
+- Token earning rate and milestone rewards.
+- Whether upgrade tracks have level caps.
+- Whether a rebirth/prestige layer is added later.
 
 ## Open and play
 
@@ -70,7 +150,7 @@ If the restaurant is still absent after pressing Play, check Studio's Output win
 
 - Six player-chosen restaurant plots with identical basic fryers and bags, separate entrances, and a shared central plaza.
 - Click/hold input and basic online automatic filling.
-- One 20-fries bag at a time, sold for a fixed $10.
+- One 20-fry bag at a time, sold at $0.50 money per fry ($10 for a full bag).
 - Cash display, fry progress, feedback, and return-to-counter teleport.
 - Server-side validation, input rate limits, and bounded Cash.
 - Existing profile validation, session locking, retries, autosaves, disconnect saves, and shutdown saves.
