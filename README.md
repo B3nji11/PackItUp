@@ -14,9 +14,11 @@ Develop in small, reviewable iterations. Prove the basic functionality works bef
 4. Review the playable result with the project owner and use their feedback to choose the next increment.
 5. Keep the game playable after every iteration. Fix core-loop failures before expanding scope.
 
-**Current iteration: UI/UX polish.** The project owner confirmed the core version works on 8 October 2026 and requested this design pass. Players choose a restaurant from six plots around a shared plaza. Polish claiming, signage, action buttons, and the Cash display while keeping the 20-fry bag at $0.50 per fry ($10 per full bag) unchanged. Do not restore the removed progression systems; the agreed progression design is in **Planned expansion** below and starts only after this iteration is accepted.
+**Current iteration: Increment 1 — upgrade shop.** Agreed with the project owner on 8 October 2026. Players spend Cash on three upgrade tracks: fries per click, money per fry, and bag capacity. The acceptance criteria are in **Planned expansion > Increment 1 acceptance criteria** below. Tokens, gacha, pets, inventory, and Robux are not part of this iteration.
 
-**Definition of done for this iteration:**
+**Completed iteration: UI/UX polish.** Accepted by the project owner on 8 October 2026, after the world lighting was dimmed.
+
+**Baseline rules from the completed iterations (still in force):**
 
 - Players enter the central plaza without an assigned restaurant, walk to an available entrance, and press E (or tap the proximity prompt) to claim it.
 - Spaced gold chevrons (`> > >`) extend from above the local player's head toward each free restaurant entrance, with clear gaps, no connecting line, and an AVAILABLE label at the destination. The chevrons flow toward the restaurants, fade at the endpoints as they loop, follow the player while choosing, and disappear on claiming. Claimed restaurants show the owner's Roblox avatar headshot and @username above the roof for everyone; leaving removes the card and restores availability for unclaimed players. These are restaurant markers, not equipment labels.
@@ -24,17 +26,17 @@ Develop in small, reviewable iterations. Prove the basic functionality works bef
 - Six spacious restaurant plots face a central promenade. Ownership is shown on the building; the title is wall art. Never add floating fryer/equipment name tags, now or in future iterations.
 - The world uses smooth, untextured surfaces, bright cartoon colors, rounded plaza bushes, and soft lighting. Check the result in Studio before accepting this visual pass.
 - Brown central paths connect to brown restaurant walkways. Every restaurant has 18-stud walls, a high cream ceiling with colored roof trim, and four warm-white ceiling lights covering the work and dining areas. A continuous solid hedge boundary encloses the playing area.
-- Packing highlights fries per click (currently +1 fry/click) and changes to Click on hover/focus, with the yield retained below. The internal click-rate limit is not shown to players. Selling shows bag capacity/progress until full, then Sell Bag and its Cash value.
+- Packing highlights fries per click (+1 fry/click before upgrades) and changes to Click on hover/focus, with the yield retained below. The internal click-rate limit is not shown to players. Selling shows bag capacity/progress until full, then Sell Bag and its Cash value.
 - Cash has a visible card at the middle left, with a coin symbol and grouped amount. On short landscape screens it lifts enough to clear the action buttons. Successful sales update the card and reset the bag without a bottom message.
 - Clicking, holding the button, or holding F adds fries at the player's counter.
 - After claiming, the basic fryer retains its existing online rate of 0.5 fries per second.
-- A bag stops filling at 20 fries.
+- A bag stops filling at its capacity (20 fries before upgrades).
 - An empty or partial bag cannot be sold, including through keyboard or direct remote requests.
-- Selling a full bag awards bag capacity x money per fry (20 x $0.50 = $10) exactly once and resets the bag for the next cycle.
+- Selling a full bag awards bag capacity x money per fry, rounded down (20 x $0.50 = $10 before upgrades), exactly once and resets the bag for the next cycle.
 - Players' Cash and bags remain independent; teleport returns each player to their own counter.
 - Automated checks pass, Studio desktop/mobile and two-player checks pass, and the project owner reviews the result.
 
-Automated checks alone do not finish the iteration. The new claiming/layout/HUD changes still need Studio playtesting and owner review. **Do not add the next feature until this core loop has been validated and the next increment has been agreed.**
+Automated checks alone do not finish an iteration. The upgrade shop needs Studio playtesting and owner review. **Do not start Increment 2 (tokens and gacha) until the upgrade shop has been accepted.**
 
 Folding, Upgrades, Delivery, Index, and Inventory have been removed from the running game and source modules. Their connected bonus systems—Tickets, random fry variants, discovery rewards, order rewards, and Lunch Rush—are also outside this iteration. They are possible future backlog items, not a commitment to implement them. The exception is the upgrade, gacha, and inventory design agreed in **Planned expansion** below, which replaces the old Upgrades and Inventory and is planned for later increments. There are no placeholder menus or active background rewards for these systems.
 
@@ -112,6 +114,19 @@ Each increment follows the AGILE workflow above: agreed acceptance criteria, tes
 4. **Merging and inventory management.** Duplicates to Golden, deleting pets, and inventory limits.
 5. **Robux** (later, separately agreed). Paid token packs or pulls, with odds disclosed.
 
+### Increment 1 acceptance criteria: upgrade shop (agreed 8 October 2026)
+
+- An **UPGRADES** button on the HUD opens a shop panel on desktop and mobile. Each of the three tracks shows its level, current value -> next value, and cost.
+  - Fries per click = 1 + level. Money per fry = $0.50 + $0.05 per level. Bag capacity = 20 + 5 per level.
+  - Costs are whole Cash, rounded: 25 x 1.18^level, 40 x 1.20^level, 50 x 1.25^level. No level caps in this increment.
+- A full bag sells for capacity x money per fry, rounded down. The packing and sell buttons show the upgraded values. The basic fryer stays at 0.5 fries per second.
+- Unaffordable upgrades are greyed out. A purchase updates the Cash card and the shop immediately.
+- The client sends only the upgrade name. The server checks the claim, the upgrade name, and the Cash, then deducts the cost and raises the level exactly once. Purchases are rate-limited.
+- Buying capacity with a full bag makes it partial again; no fries are lost and filling resumes.
+- Upgrade levels save and load. **Save format:** the profile stays at version 1 and gains a new `upgradeLevels` field; a missing field means level 0. There are no live players yet, so no migration is needed. The old prototype's `upgrades` field is never read, so leftover test saves cannot grant levels.
+- Done when automated tests (costs, effects, purchases, rejected requests, saving, HUD layout), Studio desktop/mobile and two-player checks pass, and the owner reviews the result.
+- Not included: tokens, gacha, pets, inventory, Robux, buying several levels at once.
+
 Each saved field added here (upgrade levels, tokens, pets, pity) needs an explicit profile-compatibility decision, as described in docs/ARCHITECTURE.md. Inactive fields from the earlier prototype must not be reused by accident.
 
 ### Open questions
@@ -127,10 +142,11 @@ Each saved field added here (upgrade levels, tokens, pets, pity) needs an explic
 2. Press **Play**. The restaurant appears when the server starts.
 3. Walk to a free restaurant entrance and press **E**, or tap the entrance prompt on touch devices. Claiming puts you at its counter.
 4. Hold or tap the gold packing button at the bottom centre. It displays **+1 fry/click** and changes to **CLICK** on hover or selection, with the fries-per-click value shown underneath. Its packing hint stays visible for touch users.
-5. The adjacent button shows **fries / capacity** and a progress bar. When full, it turns green and reads **SELL BAG +$10**. Selling requires proximity to your own counter.
-6. Use **RETURN TO COUNTER** at the top to return to your claimed restaurant. It is disabled before you claim.
+5. The adjacent button shows **fries / capacity** and a progress bar. When full, it turns green and reads **SELL BAG +$10** (more after upgrades). Selling requires proximity to your own counter.
+6. After claiming, press **UPGRADES** below the Cash card (top right on short landscape screens) to open the shop. Buy a level with its Cash button; unaffordable upgrades are greyed out.
+7. Use **RETURN TO COUNTER** at the top to return to your claimed restaurant. It is disabled before you claim.
 
-Desktop shortcuts: **E** to claim, **F** to pack, and **R** to sell. E is reserved for proximity claiming so it cannot accidentally sell a bag. Touch users have permanent on-screen buttons. There is no menu, folding shortcut, or equipment selection.
+Desktop shortcuts: **E** to claim, **F** to pack, and **R** to sell. E is reserved for proximity claiming so it cannot accidentally sell a bag. Touch users have permanent on-screen buttons. The upgrade shop is the only menu; there is no folding shortcut or equipment selection.
 
 Studio uses explicitly labelled **memory-only test mode** by default. Stopping the test resets this mode's progress. This lets an unpublished place run without DataStore permissions.
 
@@ -150,7 +166,8 @@ If the restaurant is still absent after pressing Play, check Studio's Output win
 
 - Six player-chosen restaurant plots with identical basic fryers and bags, separate entrances, and a shared central plaza.
 - Click/hold input and basic online automatic filling.
-- One 20-fry bag at a time, sold at $0.50 money per fry ($10 for a full bag).
+- One bag at a time, sold at capacity x money per fry (20 fries x $0.50 = $10 before upgrades).
+- An upgrade shop with three Cash tracks: fries per click, money per fry, and bag capacity.
 - Cash display, fry progress, feedback, and return-to-counter teleport.
 - Server-side validation, input rate limits, and bounded Cash.
 - Existing profile validation, session locking, retries, autosaves, disconnect saves, and shutdown saves.

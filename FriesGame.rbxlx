@@ -21,18 +21,19 @@
         <Item class="ModuleScript" referent="RBX00004">
           <Properties>
             <string name="Name">Actions</string>
-            <ProtectedString name="Source">-- Only these core actions are accepted; none takes a client argument.
-return table.freeze({ Pack = true, Sell = true, Return = true, Sync = true })
+            <ProtectedString name="Source">-- Only these actions are accepted. "none" takes no client argument; "upgrade" takes
+-- exactly one upgrade track name, which the server validates.
+return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "none", Upgrade = "upgrade" })
 </ProtectedString>
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="RBX00005">
           <Properties>
             <string name="Name">Economy</string>
-            <ProtectedString name="Source">-- Balance for the core filling-and-selling loop.
+            <ProtectedString name="Source">-- Base balance for the core filling-and-selling loop, before upgrades.
 return table.freeze({
-    Capacity = 20,
-    -- Money per fry, in cents. A bag sells for Capacity x this value ($0.50 x 20 = $10).
+    BaseCapacity = 20,
+    -- Money per fry, in cents. A bag sells for capacity x this value ($0.50 x 20 = $10).
     MoneyPerFryCents = 50,
     BaseClick = 1,
     BasicFryerPerSecond = 0.5,
@@ -61,27 +62,46 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
+        <Item class="ModuleScript" referent="RBX00007">
+          <Properties>
+            <string name="Name">Upgrades</string>
+            <ProtectedString name="Source">-- Cash upgrade tracks, in shop order. Cost = round(BaseCost x Growth ^ level).
+-- Each level adds Step to the track's base value in Economy. There are no level caps;
+-- MaxLevel only bounds saved data, far beyond any affordable level.
+local Tracks = {
+    FriesPerClick = table.freeze({ Name = "Fries per click", BaseCost = 25, Growth = 1.18, Step = 1 }),
+    MoneyPerFry = table.freeze({ Name = "Money per fry", BaseCost = 40, Growth = 1.20, Step = 5 }), -- cents
+    BagCapacity = table.freeze({ Name = "Bag capacity", BaseCost = 50, Growth = 1.25, Step = 5 }),
+}
+return table.freeze({
+    Order = table.freeze({ "FriesPerClick", "MoneyPerFry", "BagCapacity" }),
+    Tracks = table.freeze(Tracks),
+    MaxLevel = 10000,
+})
+</ProtectedString>
+          </Properties>
+        </Item>
       </Item>
-      <Item class="Folder" referent="RBX00007">
+      <Item class="Folder" referent="RBX00008">
         <Properties>
           <string name="Name">domain</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00008">
+        <Item class="ModuleScript" referent="RBX00009">
           <Properties>
             <string name="Name">Packing</string>
-            <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
-local Pricing = require(script.Parent.Pricing)
+            <ProtectedString name="Source">local Pricing = require(script.Parent.Pricing)
 local Profile = require(script.Parent.Profile)
 local Packing = {}
 function Packing.add(p, amount)
+    local capacity = Pricing.capacity(p)
     if type(amount) ~= "number" or amount ~= amount or amount == math.huge or amount &lt;= 0
-        or p.bag.fries &gt;= Economy.Capacity then return false end
-    p.bag.fries = math.min(Economy.Capacity, p.bag.fries + amount)
-    return p.bag.fries == Economy.Capacity
+        or p.bag.fries &gt;= capacity then return false end
+    p.bag.fries = math.min(capacity, p.bag.fries + amount)
+    return p.bag.fries == capacity
 end
 function Packing.sell(p)
-    if p.bag.fries &lt; Economy.Capacity then return false, "Fill your bag first." end
-    local value = Pricing.sale()
+    if p.bag.fries &lt; Pricing.capacity(p) then return false, "Fill your bag first." end
+    local value = Pricing.sale(p)
     Pricing.credit(p, "cash", value)
     Pricing.credit(p, "lifetimeCash", value)
     Pricing.credit(p, "sales", 1)
@@ -92,16 +112,27 @@ return Packing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00009">
+        <Item class="ModuleScript" referent="RBX00010">
           <Properties>
             <string name="Name">Pricing</string>
-            <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
+            <ProtectedString name="Source">-- Effective stats from base values plus Cash upgrade levels. Old prototype fields
+-- (such as `upgrades`) are never read; only `upgradeLevels` counts.
+local Economy = require(script.Parent.Parent.config.Economy)
+local Upgrades = require(script.Parent.Parent.config.Upgrades)
 local Pricing = {}
-function Pricing.click() return Economy.BaseClick end
+function Pricing.level(p, id)
+    local levels = type(p) == "table" and p.upgradeLevels
+    local level = type(levels) == "table" and levels[id]
+    return if type(level) == "number" then level else 0
+end
+local function stepped(p, id, base) return base + Pricing.level(p, id) * Upgrades.Tracks[id].Step end
+function Pricing.click(p) return stepped(p, "FriesPerClick", Economy.BaseClick) end
+function Pricing.perFryCents(p) return stepped(p, "MoneyPerFry", Economy.MoneyPerFryCents) end
+function Pricing.perFry(p) return Pricing.perFryCents(p) / 100 end
+function Pricing.capacity(p) return stepped(p, "BagCapacity", Economy.BaseCapacity) end
 function Pricing.automatic() return Economy.BasicFryerPerSecond end
-function Pricing.perFry() return Economy.MoneyPerFryCents / 100 end
 -- Sale value scales with the fries in a full bag. Integer cents keep Cash whole and exact.
-function Pricing.sale() return math.floor(Economy.Capacity * Economy.MoneyPerFryCents / 100) end
+function Pricing.sale(p) return (Pricing.capacity(p) * Pricing.perFryCents(p)) // 100 end
 function Pricing.credit(p, currency, amount)
     p[currency] = math.min(Economy.MaxCurrency, p[currency] + amount)
 end
@@ -109,38 +140,96 @@ return Pricing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00010">
+        <Item class="ModuleScript" referent="RBX00011">
           <Properties>
             <string name="Name">Profile</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
+local Upgrades = require(script.Parent.Parent.config.Upgrades)
+local Pricing = require(script.Parent.Pricing)
 local Profile = {}
 function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
-    return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag() }
+    return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(), upgradeLevels = {} }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value &gt;= low and value &lt;= high
         and (not integer or value % 1 == 0)
 end
--- Keep the v1 core fields compatible with existing saves. Extra fields from the
--- earlier prototype remain in storage, but are neither used nor sent to clients.
+-- Version 1 core fields, plus optional upgradeLevels (a missing field or track means level 0).
+-- Extra fields from the earlier prototype, such as `upgrades`, stay in storage but are
+-- never used or sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end
     for _, key in ipairs({ "cash", "sales", "lifetimeCash" }) do
         if not numberIn(p[key], 0, Economy.MaxCurrency, true) then return false end
     end
-    return type(p.bag) == "table" and numberIn(p.bag.fries, 0, Economy.Capacity, false)
+    if p.upgradeLevels ~= nil then
+        if type(p.upgradeLevels) ~= "table" then return false end
+        for id, level in pairs(p.upgradeLevels) do
+            if type(id) ~= "string" or not Upgrades.Tracks[id] or not numberIn(level, 0, Upgrades.MaxLevel, true) then
+                return false
+            end
+        end
+    end
+    return type(p.bag) == "table" and numberIn(p.bag.fries, 0, Pricing.capacity(p), false)
 end
 return Profile
 </ProtectedString>
           </Properties>
         </Item>
+        <Item class="ModuleScript" referent="RBX00012">
+          <Properties>
+            <string name="Name">Upgrades</string>
+            <ProtectedString name="Source">-- Cash upgrade purchases. Pure rules: no Instances, messages, or DataStores.
+local Config = require(script.Parent.Parent.config.Upgrades)
+local Pricing = require(script.Parent.Pricing)
+local Upgrades = {}
+function Upgrades.isTrack(id) return type(id) == "string" and Config.Tracks[id] ~= nil end
+function Upgrades.cost(id, level)
+    local track = Config.Tracks[id]
+    return math.floor(track.BaseCost * track.Growth ^ level + 0.5)
+end
+function Upgrades.nextCost(p, id) return Upgrades.cost(id, Pricing.level(p, id)) end
+-- The current effective value of a track for display (fries, dollars per fry, or capacity).
+function Upgrades.value(p, id)
+    if id == "FriesPerClick" then return Pricing.click(p)
+    elseif id == "MoneyPerFry" then return Pricing.perFry(p) end
+    return Pricing.capacity(p)
+end
+-- Deducts the cost and raises the level in one non-yielding step.
+function Upgrades.buy(p, id)
+    if not Upgrades.isTrack(id) then return false, "That upgrade is unavailable." end
+    local level = Pricing.level(p, id)
+    if level &gt;= Config.MaxLevel then return false, "That upgrade is maxed out." end
+    local cost = Upgrades.cost(id, level)
+    if p.cash &lt; cost then return false, "Not enough Cash for this upgrade." end
+    p.cash -= cost
+    if type(p.upgradeLevels) ~= "table" then p.upgradeLevels = {} end
+    p.upgradeLevels[id] = level + 1
+    return true, cost
+end
+-- Server-computed shop rows for the client to display, in shop order.
+function Upgrades.snapshot(p)
+    local rows = {}
+    for _, id in ipairs(Config.Order) do
+        local level = Pricing.level(p, id)
+        local nextProfile = { upgradeLevels = { [id] = level + 1 } }
+        table.insert(rows, { id = id, name = Config.Tracks[id].Name, level = level,
+            cost = Upgrades.cost(id, level), value = Upgrades.value(p, id),
+            nextValue = Upgrades.value(nextProfile, id) })
+    end
+    return rows
+end
+return Upgrades
+</ProtectedString>
+          </Properties>
+        </Item>
       </Item>
-      <Item class="Folder" referent="RBX00011">
+      <Item class="Folder" referent="RBX00013">
         <Properties>
           <string name="Name">util</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00012">
+        <Item class="ModuleScript" referent="RBX00014">
           <Properties>
             <string name="Name">Copy</string>
             <ProtectedString name="Source">local function copy(value)
@@ -153,7 +242,7 @@ return copy
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00013">
+        <Item class="ModuleScript" referent="RBX00015">
           <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
@@ -179,15 +268,15 @@ return RateLimiter
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00014">
+  <Item class="ServerScriptService" referent="RBX00016">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00015">
+    <Item class="Folder" referent="RBX00017">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00016">
+      <Item class="Script" referent="RBX00018">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -302,7 +391,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00017">
+      <Item class="ModuleScript" referent="RBX00019">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -328,11 +417,11 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00018">
+      <Item class="Folder" referent="RBX00020">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00019">
+        <Item class="ModuleScript" referent="RBX00021">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -341,6 +430,7 @@ local AllowedActions = require(Shared.config.Actions)
 local RateLimiter = require(Shared.util.RateLimiter)
 local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
+local Upgrades = require(Shared.domain.Upgrades)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -353,10 +443,17 @@ function ActionService:remove(player)
     self.clickLimit:remove(player)
     self.cooldowns[player] = nil
 end
+local function validArgument(action, argument)
+    local kind = AllowedActions[action]
+    if kind == "none" then return argument == nil end
+    -- Upgrade takes only a known track name; never prices, levels, or Cash amounts.
+    if kind == "upgrade" then return Upgrades.isTrack(argument) end
+    return false
+end
 function ActionService:handle(player, action, argument)
     local now = workspace:GetServerTimeNow()
     if not self.generalLimit:allow(player, now) then return end
-    if type(action) ~= "string" or #action &gt; 24 or not AllowedActions[action] or argument ~= nil then return end
+    if type(action) ~= "string" or #action &gt; 24 or not validArgument(action, argument) then return end
     local p = self.data:get(player)
     if not p then return end
     if action ~= "Sync" and not self.stations:hasStation(player) then
@@ -368,10 +465,10 @@ function ActionService:handle(player, action, argument)
         return
     end
     if action == "Pack" then
-        if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click()) end
+        if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
-    local delay = if action == "Sell" then 0.2 else 1
+    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 else 1
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now &lt; (cooldowns[action] or 0) then return end
@@ -380,6 +477,10 @@ function ActionService:handle(player, action, argument)
     elseif action == "Sell" then
         local ok, result = Packing.sell(p)
         if not ok then self.network:notice(player, result, false) end
+    elseif action == "Upgrade" then
+        -- Purchase and level change happen in one non-yielding step.
+        local ok, result = Upgrades.buy(p, argument)
+        if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
     end
     self.snapshots:send(player)
 end
@@ -387,7 +488,7 @@ return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00020">
+        <Item class="ModuleScript" referent="RBX00022">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -490,11 +591,12 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00021">
+        <Item class="ModuleScript" referent="RBX00023">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Pricing = require(Shared.domain.Pricing)
+local Upgrades = require(Shared.domain.Upgrades)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
 function SnapshotService.new(data, stations, network)
@@ -506,18 +608,20 @@ function SnapshotService:send(player)
     self.network.State:FireClient(player, {
         profile = { cash = p.cash, sales = p.sales, bag = { fries = p.bag.fries } },
         hasStation = self.stations:hasStation(player), nearStation = self.stations:near(player), volatile = self.data.volatile,
-        stats = { perClick = Pricing.click(), perSecond = Pricing.automatic(), saleValue = Pricing.sale() },
+        stats = { perClick = Pricing.click(p), perSecond = Pricing.automatic(), perFry = Pricing.perFry(p),
+            capacity = Pricing.capacity(p), saleValue = Pricing.sale(p) },
+        shop = Upgrades.snapshot(p),
     })
 end
 return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00022">
+        <Item class="ModuleScript" referent="RBX00024">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Economy = require(Shared.config.Economy)
+local Pricing = require(Shared.domain.Pricing)
 local Runtime = require(Shared.config.Runtime)
 local StationService = {}
 StationService.__index = StationService
@@ -575,7 +679,7 @@ end
 function StationService:render(player, p)
     local station = self.assigned[player]
     if not station then return end
-    local visible = math.floor(p.bag.fries / Economy.Capacity * #station.fries)
+    local visible = math.floor(p.bag.fries / Pricing.capacity(p) * #station.fries)
     for n, fry in ipairs(station.fries) do fry.Transparency = if n &lt;= visible then 0 else 1 end
 end
 return StationService
@@ -583,11 +687,11 @@ return StationService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00023">
+      <Item class="Folder" referent="RBX00025">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00024">
+        <Item class="ModuleScript" referent="RBX00026">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -672,11 +776,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00025">
+      <Item class="Folder" referent="RBX00027">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00026">
+        <Item class="ModuleScript" referent="RBX00028">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -713,7 +817,7 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00027">
+        <Item class="ModuleScript" referent="RBX00029">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -779,7 +883,7 @@ return function(parent, index, origin, yaw)
             local light = Instance.new("SurfaceLight")
             light.Name, light.Face = "InteriorLight", Enum.NormalId.Bottom
             light.Color = Color3.fromRGB(255, 244, 225)
-            light.Brightness, light.Range, light.Angle = 2, 28, 140
+            light.Brightness, light.Range, light.Angle = 1.2, 28, 140
             light.Shadows, light.Enabled, light.Parent = false, true, panel
         end
     end
@@ -818,7 +922,7 @@ end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00028">
+        <Item class="ModuleScript" referent="RBX00030">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
@@ -882,13 +986,14 @@ return function(count)
         P.part(model, "PlazaBench", Vector3.new(8, 1.5, 2.5), Vector3.new(x, 1, 12), Color3.fromRGB(250, 183, 101))
     end
     -- Broad, soft lighting keeps the solid cartoon colors readable indoors and out.
+    -- Dimmed on owner review (8 Oct 2026): the earlier values washed out the colors.
     -- LightingStyle is saved by the place builder/Rojo; runtime writes stop startup.
-    Lighting.ClockTime, Lighting.Brightness = 13.5, 2
-    Lighting.Ambient = Color3.fromRGB(166, 178, 196)
-    Lighting.OutdoorAmbient = Color3.fromRGB(178, 191, 208)
+    Lighting.ClockTime, Lighting.Brightness = 13.5, 1.5
+    Lighting.Ambient = Color3.fromRGB(136, 146, 162)
+    Lighting.OutdoorAmbient = Color3.fromRGB(148, 159, 176)
     Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0.3, 0.12
     Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 1
-    Lighting.ExposureCompensation = 0
+    Lighting.ExposureCompensation = -0.25
     return stations
 end
 </ProtectedString>
@@ -897,19 +1002,19 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00029">
+  <Item class="StarterPlayer" referent="RBX00031">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00030">
+    <Item class="StarterPlayerScripts" referent="RBX00032">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00031">
+      <Item class="Folder" referent="RBX00033">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="LocalScript" referent="RBX00032">
+        <Item class="LocalScript" referent="RBX00034">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -948,11 +1053,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00033">
+        <Item class="Folder" referent="RBX00035">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00034">
+          <Item class="ModuleScript" referent="RBX00036">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -966,7 +1071,7 @@ return function(hud, send, getState)
     local nextPack = 0
     local function pack()
         local state = getState()
-        if not state or not state.hasStation or not state.nearStation or state.profile.bag.fries &gt;= Economy.Capacity then return end
+        if not state or not state.hasStation or not state.nearStation or state.profile.bag.fries &gt;= state.stats.capacity then return end
         local now = os.clock()
         if now &lt; nextPack then return end
         nextPack = now + 1 / Economy.ClicksPerSecond + 0.02
@@ -998,16 +1103,17 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="Folder" referent="RBX00035">
+        <Item class="Folder" referent="RBX00037">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00036">
+          <Item class="ModuleScript" referent="RBX00038">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
+local ShopView = require(script.Parent.ShopView)
 local AppView = {}
 AppView.__index = AppView
 function AppView.new(playerGui, send)
@@ -1045,6 +1151,7 @@ function AppView.new(playerGui, send)
     self.guidance.BackgroundColor3, self.guidance.BackgroundTransparency = Theme.Background, 0.08
     E.corner(self.guidance, 12)
     self.hud = HudView.new(gui, send)
+    self.shop = ShopView.new(gui, send)
     self:resize(Vector2.new(1280, 720))
     return self
 end
@@ -1062,6 +1169,7 @@ function AppView:update(state)
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)
+    self.shop:update(state)
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -1078,7 +1186,9 @@ function AppView:resize(viewport)
     local height = viewport.Y - 60
     local actionTop = height - 22 - 104 * hudScale
     -- Centre Cash on the left; lift it only when a short screen needs room for actions.
-    local cashOffset = math.min(0, actionTop - 12 - 38 - height / 2)
+    -- Outside compact layouts, the UPGRADES button sits below Cash and needs room too.
+    local below = if compact then 0 else ShopView.ButtonGap + ShopView.ButtonHeight
+    local cashOffset = math.min(0, actionTop - 12 - below - 38 - height / 2)
     self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
     self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
     self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
@@ -1087,12 +1197,13 @@ function AppView:resize(viewport)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
     self.hud.scale.Scale = hudScale
+    self.shop:resize(viewport, compact, if compact then 172 else 218, cashOffset)
 end
 return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00037">
+          <Item class="ModuleScript" referent="RBX00039">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1187,12 +1298,10 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00038">
+          <Item class="ModuleScript" referent="RBX00040">
             <Properties>
               <string name="Name">HudView</string>
-              <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Economy = require(Shared.config.Economy)
-local Theme = require(script.Parent.Theme)
+              <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = {}
 HudView.__index = HudView
@@ -1207,6 +1316,10 @@ local function action(parent, name, x, color, key, callback)
     local title = E.label(button, "", 34, Theme.Ink)
     title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(48, 13), UDim2.fromOffset(136, 34)
     title.Font, title.TextSize = Enum.Font.GothamBold, 21
+    -- Longer titles after upgrades ("+12 fries/click") shrink to one line instead of wrapping.
+    title.TextWrapped, title.TextScaled = false, true
+    local fit = Instance.new("UITextSizeConstraint")
+    fit.Name, fit.MinTextSize, fit.MaxTextSize, fit.Parent = "Fit", 10, 21, title
     local detail = E.label(button, "", 20, Theme.Ink)
     detail.Name, detail.Position, detail.Size, detail.TextSize = "Detail", UDim2.fromOffset(12, 50), UDim2.fromOffset(166, 20), 12
     local shortcut = E.label(button, key, 16, Theme.Ink)
@@ -1255,12 +1368,13 @@ function HudView.new(parent, send)
 end
 function HudView:sellBag()
     local state = self.state
-    if state and state.hasStation and state.nearStation and state.profile.bag.fries &gt;= Economy.Capacity then self.send("Sell") end
+    if state and state.hasStation and state.nearStation and state.profile.bag.fries &gt;= state.stats.capacity then self.send("Sell") end
 end
 function HudView:update(state)
     self.state = state
     local bag = state.profile.bag
-    local full = bag.fries &gt;= Economy.Capacity
+    local capacity = state.stats.capacity
+    local full = bag.fries &gt;= capacity
     local canPack = state.hasStation and state.nearStation and not full
     local canSell = state.hasStation and state.nearStation and full
     local perClick = state.stats.perClick
@@ -1271,9 +1385,10 @@ function HudView:update(state)
     self.packTitle.Text = if not state.hasStation then "CLAIM FIRST" elseif full then "BAG FULL"
         elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else yieldText
     self.packTitle.TextSize = if not state.hasStation then 17 else 21
+    self.packTitle.Fit.MaxTextSize = self.packTitle.TextSize
     self.packDetail.Text = if not state.hasStation then "CLAIM AT THE ENTRANCE" elseif full then "SELL TO KEEP PACKING"
         elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then string.upper(yieldText) else "TAP / HOLD TO PACK"
-    self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. Economy.Capacity
+    self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. capacity
     self.sellDetail.Text = if not state.hasStation then "CLAIM A RESTAURANT"
         elseif full and not state.nearStation then "RETURN TO COUNTER"
         elseif full then "+" .. E.money(state.stats.saleValue) .. " CASH"
@@ -1283,13 +1398,13 @@ function HudView:update(state)
     self.sellDetail.TextColor3 = if canSell then Theme.Ink else Theme.Muted
     self.sellShortcut.TextColor3 = if canSell then Theme.Ink else Theme.Muted
     self.fill.BackgroundColor3 = if full then Theme.Green else Theme.Gold
-    self.fill.Size = UDim2.fromScale(bag.fries / Economy.Capacity, 1)
+    self.fill.Size = UDim2.fromScale(bag.fries / capacity, 1)
 end
 return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00039">
+          <Item class="ModuleScript" referent="RBX00041">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1405,7 +1520,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00040">
+          <Item class="ModuleScript" referent="RBX00042">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -1523,7 +1638,112 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00041">
+          <Item class="ModuleScript" referent="RBX00043">
+            <Properties>
+              <string name="Name">ShopView</string>
+              <ProtectedString name="Source">-- Upgrade shop: an UPGRADES button and a panel with one row per Cash upgrade track.
+-- Rows display server-computed levels, values, and costs; the server decides purchases.
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local Upgrades = require(Shared.config.Upgrades)
+local Theme = require(script.Parent.Theme)
+local E = require(script.Parent.Elements)
+local ShopView = {}
+ShopView.__index = ShopView
+local PanelWidth, PanelHeight = 360, 322
+local function describe(row)
+    if row.id == "MoneyPerFry" then
+        return string.format("$%.2f → $%.2f per fry", row.value, row.nextValue)
+    elseif row.id == "FriesPerClick" then
+        return row.value .. " → " .. row.nextValue .. " fries/click"
+    end
+    return row.value .. " → " .. row.nextValue .. " fries per bag"
+end
+function ShopView.new(gui, send)
+    local self = setmetatable({ send = send, rows = {}, data = {}, hasStation = false }, ShopView)
+    self.button = E.button(gui, "UPGRADES", function() self:toggle() end, Theme.Background)
+    self.button.Name, self.button.TextSize, self.button.TextColor3 = "UpgradesButton", 13, Theme.Gold
+    self.button.Size = UDim2.fromOffset(218, 44)
+    E.stroke(self.button, Theme.Gold, 1.5, 0.3)
+
+    local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
+    panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
+    E.stroke(panel, Theme.Gold, 2, 0.12)
+    self.panel = panel
+    self.scale = Instance.new("UIScale")
+    self.scale.Parent = panel
+    local title = E.label(panel, "UPGRADES", 28, Theme.Text)
+    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(250, 28)
+    title.Font, title.TextSize = Enum.Font.GothamBold, 21
+    local caption = E.label(panel, "Spend Cash to boost your restaurant", 16, Theme.Muted)
+    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(20, 42), UDim2.fromOffset(260, 16), 11
+    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
+    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
+    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
+
+    for index, id in ipairs(Upgrades.Order) do
+        local row = E.box(panel, id, UDim2.fromOffset(16, 70 + (index - 1) * 82), UDim2.fromOffset(PanelWidth - 32, 74), Theme.Card, 14)
+        local name = E.label(row, Upgrades.Tracks[id].Name, 22, Theme.Text)
+        name.Name, name.Position, name.Size = "TrackName", UDim2.fromOffset(14, 8), UDim2.fromOffset(190, 22)
+        name.Font, name.TextSize = Enum.Font.GothamBold, 15
+        local level = E.label(row, "LEVEL 0", 16, Theme.Muted)
+        level.Name, level.Position, level.Size, level.TextSize = "Level", UDim2.fromOffset(14, 30), UDim2.fromOffset(190, 16), 11
+        local value = E.label(row, "", 18, Theme.GoldLight)
+        value.Name, value.Position, value.Size, value.TextSize = "Value", UDim2.fromOffset(14, 48), UDim2.fromOffset(196, 18), 12
+        value.TextWrapped = false
+        local buy = E.button(row, "", function() self:buy(id) end, Theme.Gold)
+        buy.Name, buy.Position, buy.Size = "Buy", UDim2.fromOffset(PanelWidth - 32 - 112, 15), UDim2.fromOffset(100, 44)
+        buy.AutoButtonColor, buy.TextColor3 = false, Theme.Ink
+        self.rows[id] = { level = level, value = value, buy = buy }
+    end
+    return self
+end
+function ShopView:setOpen(open)
+    self.panel.Visible = open and self.hasStation
+end
+function ShopView:toggle()
+    if self.hasStation then self:setOpen(not self.panel.Visible) end
+end
+function ShopView:buy(id)
+    local data = self.data[id]
+    if self.hasStation and data and data.affordable then self.send("Upgrade", id) end
+end
+function ShopView:update(state)
+    self.hasStation = state.hasStation
+    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
+    self.button.TextColor3 = if state.hasStation then Theme.Gold else Theme.Muted
+    if not state.hasStation then self.panel.Visible = false end
+    for _, row in ipairs(state.shop or {}) do
+        local view = self.rows[row.id]
+        if view then
+            local affordable = state.hasStation and state.profile.cash &gt;= row.cost
+            self.data[row.id] = { affordable = affordable }
+            view.level.Text = "LEVEL " .. row.level
+            view.value.Text = describe(row)
+            view.buy.Text = E.money(row.cost)
+            view.buy.TextSize = if #view.buy.Text &gt; 9 then 12 else 16
+            view.buy.Active, view.buy.Selectable = affordable, affordable
+            view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Background
+            view.buy.TextColor3 = if affordable then Theme.Ink else Theme.Muted
+        end
+    end
+end
+-- `compact` short landscape screens put the button top right; otherwise it sits below Cash.
+function ShopView:resize(viewport, compact, cashWidth, cashOffset)
+    if compact then
+        self.button.AnchorPoint = Vector2.new(1, 0)
+        self.button.Position, self.button.Size = UDim2.new(1, -16, 0, 16), UDim2.fromOffset(112, 44)
+    else
+        self.button.AnchorPoint = Vector2.new(0, 0)
+        self.button.Position, self.button.Size = UDim2.new(0, 16, 0.5, cashOffset + 38 + 10), UDim2.fromOffset(cashWidth, 44)
+    end
+    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+end
+ShopView.ButtonGap, ShopView.ButtonHeight = 10, 44
+return ShopView
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00044">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">return {
@@ -1547,23 +1767,23 @@ return RestaurantMarkers
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00042">
+  <Item class="StarterGui" referent="RBX00045">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00043">
+  <Item class="Lighting" referent="RBX00046">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00044">
+  <Item class="Players" referent="RBX00047">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00045">
+  <Item class="SoundService" referent="RBX00048">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

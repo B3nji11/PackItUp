@@ -203,13 +203,14 @@ test("joining leaves all restaurants available and production waits for claiming
 end)
 
 test("unclaimed players cannot pack sell or return to an arbitrary restaurant", function()
-    for _, action in ipairs({"Pack", "Sell", "Return"}) do
-        serverTime += 1; remote.OnServerEvent:Fire(first, action)
+    for _, action in ipairs({"Pack", "Sell", "Return", "Upgrade"}) do
+        serverTime += 1; remote.OnServerEvent:Fire(first, action, if action == "Upgrade" then "FriesPerClick" else nil)
         eq(replicated.FriesRemotes.Notice.lastArgs[2], false)
     end
     eq(first.Character.HumanoidRootPart.Position.Magnitude, 0)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
     eq(replicated.FriesRemotes.State.lastArgs[1].profile.bag.fries, 0)
+    eq(replicated.FriesRemotes.State.lastArgs[1].shop[1].level, 0)
 end)
 
 test("claiming enforces distance life ownership and one restaurant per player", function()
@@ -391,6 +392,9 @@ test("removed actions and malformed core arguments are rejected before dispatch"
         serverTime += 1; actions:handle(first, name, "ufo")
         serverTime += 1; actions:handle(first, name)
     end
+    for _, forged in ipairs({{id="FriesPerClick"}, 25, "Click", "upgrades", string.rep("x", 30)}) do
+        serverTime += 1; actions:handle(first, "Upgrade", forged)
+    end
     for _, name in ipairs({"Pack", "Sell", "Return", "Sync"}) do
         serverTime += 1; actions:handle(first, name, {cash=999})
         serverTime += 1; actions:handle(first, name, "forged")
@@ -409,6 +413,7 @@ test("legacy progression stays out of snapshots and cannot change basic stats", 
     snapshots:send(first)
     eq(state.profile.upgrades, nil); eq(state.profile.tickets, nil); eq(state.profile.equipped, nil)
     eq(state.stats.perClick, 1); eq(state.stats.perSecond, 0.5); eq(state.stats.saleValue, 10)
+    eq(state.stats.capacity, 20); for _, row in ipairs(state.shop) do eq(row.level, 0) end
     state.profile.bag.fries=20; eq(p.bag.fries, 0)
 end)
 
@@ -581,18 +586,19 @@ test("unavailable avatars retain a username fallback with bounded background ret
     players.GetUserThumbnailAsync = original
 end)
 
-test("client has exactly click sell and teleport with no feature panels", function()
+test("client has click sell teleport and the upgrade shop with no other feature panels", function()
     players.LocalPlayer=first
     loadModule("client/Main")
     local gui = first.PlayerGui:FindFirstChild("FriesInterface")
-    assert(gui and gui.Actions.Click and gui.Actions.Sell and gui.Teleport)
+    assert(gui and gui.Actions.Click and gui.Actions.Sell and gui.Teleport and gui.UpgradesButton)
+    eq(gui.UpgradeShop.Visible, false)
     eq(gui:FindFirstChild("Panel"), nil); eq(gui:FindFirstChild("Navigation"), nil)
     local count = 0
     local function visit(node)
         if node.ClassName == "TextButton" then count += 1 end
         for _, child in ipairs(node._children or {}) do visit(child) end
     end
-    visit(gui); eq(count, 3)
+    visit(gui); eq(count, 8) -- Click, Sell, Teleport, Upgrades, Close, and three Buy buttons
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Core loop ready", true)
     runService.RenderStepped:Fire(); drain()
@@ -625,6 +631,24 @@ test("permanent core controls fit portrait landscape and desktop", function()
         eq(gui.Actions.AnchorPoint.X, 0.5); eq(gui.Actions.AnchorPoint.Y, 1)
         eq(gui.Teleport.Position.X.Scale, 0.5)
         assert(gui.Actions.Visible and gui.Teleport.Visible)
+        -- The UPGRADES button stays on screen and clear of every other control.
+        local height = viewport.Y - 60
+        local function rect(object, scale)
+            local w, h = object.Size.X.Offset * (scale or 1), object.Size.Y.Offset * (scale or 1)
+            local anchor = object.AnchorPoint or Vector2.new(0, 0)
+            local x = object.Position.X.Scale * viewport.X + object.Position.X.Offset - anchor.X * w
+            local y = object.Position.Y.Scale * height + object.Position.Y.Offset - anchor.Y * h
+            return { x, y, x + w, y + h }
+        end
+        local function apart(a, b) return a[3] <= b[1] or b[3] <= a[1] or a[4] <= b[2] or b[4] <= a[2] end
+        local upgrades = rect(gui.UpgradesButton)
+        assert(upgrades[1] >= 0 and upgrades[2] >= 0 and upgrades[3] <= viewport.X and upgrades[4] <= height)
+        assert(upgrades[4] + 12 <= top + 0.001 or apart(upgrades, rect(gui.Actions, scale)))
+        for _, other in ipairs({gui.Teleport, gui.Guidance, cash}) do assert(apart(upgrades, rect(other)), other.Name) end
+        assert(gui.UpgradesButton.Size.Y.Offset >= 36)
+        local panelScale = gui.UpgradeShop:FindFirstChildOfClass("UIScale").Scale
+        assert(gui.UpgradeShop.Size.X.Offset * panelScale <= viewport.X - 32 + 0.001)
+        assert(gui.UpgradeShop.Size.Y.Offset * panelScale <= height - 24 + 0.001)
     end
 end)
 
@@ -684,6 +708,90 @@ test("HUD highlights fries per click capacity and full-bag feedback inside the b
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Sold! +$10", true)
     eq(gui.Guidance.Visible, false)
+end)
+
+test("server upgrade purchases check claim cash and cooldown and apply each level once", function()
+    local State, Notice = replicated.FriesRemotes.State, replicated.FriesRemotes.Notice
+    local function sync() serverTime += 1; remote.OnServerEvent:Fire(first, "Sync"); return State.lastArgs[1] end
+    local function fill(capacity)
+        local state = sync()
+        while state.profile.bag.fries < capacity do
+            serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack"); state = sync()
+        end
+        return state
+    end
+    local function sellRound(capacity) fill(capacity); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
+    local s = sync()
+    eq(s.profile.cash, 20); eq(s.profile.bag.fries, 20)
+    eq(#s.shop, 3); eq(s.shop[1].id, "FriesPerClick"); eq(s.shop[1].cost, 25); eq(s.stats.capacity, 20)
+    Notice.lastArgs = nil
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "FriesPerClick")
+    eq(Notice.lastArgs[2], false); s = State.lastArgs[1]; eq(s.profile.cash, 20); eq(s.shop[1].level, 0)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "FriesPerClick")
+    s = State.lastArgs[1]; eq(s.profile.cash, 5); eq(s.shop[1].level, 1); eq(s.stats.perClick, 2); eq(s.shop[1].cost, 30)
+    -- Forged arguments are dropped before dispatch.
+    for _, forged in ipairs({ {id="FriesPerClick"}, 25, "Click", "upgrades" }) do
+        serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", forged)
+    end
+    for _ = 1, 5 do sellRound(20) end
+    s = sync(); eq(s.profile.cash, 55)
+    -- A second request inside the purchase cooldown is ignored.
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "MoneyPerFry")
+    remote.OnServerEvent:Fire(first, "Upgrade", "MoneyPerFry")
+    s = sync(); eq(s.profile.cash, 15); eq(s.shop[2].level, 1); near(s.stats.perFry, 0.55); eq(s.stats.saleValue, 11)
+    for _ = 1, 3 do sellRound(20) end
+    s = fill(20); eq(s.profile.cash, 48); eq(s.profile.bag.fries, 20)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") -- 59 Cash
+    s = fill(20)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "BagCapacity")
+    s = State.lastArgs[1]; eq(s.profile.cash, 9); eq(s.stats.capacity, 25); eq(s.profile.bag.fries, 20)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
+    eq(Notice.lastArgs[1], "Fill your bag first."); eq(sync().profile.cash, 9)
+    s = fill(25); eq(s.profile.bag.fries, 25)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
+    s = State.lastArgs[1]; eq(s.profile.cash, 22); eq(s.profile.bag.fries, 0) -- 25 x $0.55 = $13.75 -> $13
+    -- The other player's Cash and levels are untouched.
+    serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
+    eq(State.lastArgs[1].shop[1].level, 0); eq(State.lastArgs[1].stats.capacity, 20)
+end)
+
+test("upgrade shop shows server rows greys unaffordable upgrades and sends only track names", function()
+    local gui = first.PlayerGui.FriesInterface
+    local shop = gui.UpgradeShop
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
+    local state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    eq(shop.Visible, false)
+    gui.UpgradesButton.Activated:Fire(); eq(shop.Visible, true)
+    eq(shop.FriesPerClick.Level.Text, "LEVEL 1"); eq(shop.FriesPerClick.Value.Text, "2 → 3 fries/click")
+    eq(shop.MoneyPerFry.Value.Text, "$0.55 → $0.60 per fry"); eq(shop.BagCapacity.Value.Text, "25 → 30 fries per bag")
+    eq(shop.FriesPerClick.Buy.Text, "$30"); eq(shop.MoneyPerFry.Buy.Text, "$48"); eq(shop.BagCapacity.Buy.Text, "$63")
+    eq(gui.Actions.Sell.Title.Text, "0 / 25"); eq(gui.Actions.Click.Title.Text, "+2 fries/click")
+    -- $22 affords nothing: every Buy button is inactive and sends nothing.
+    for _, id in ipairs({"FriesPerClick", "MoneyPerFry", "BagCapacity"}) do
+        eq(shop[id].Buy.Active, false)
+        remote.lastServerArgs = nil; shop[id].Buy.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    end
+    state.profile.cash = 30
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    eq(shop.FriesPerClick.Buy.Active, true); eq(shop.MoneyPerFry.Buy.Active, false)
+    remote.lastServerArgs = nil; shop.FriesPerClick.Buy.Activated:Fire()
+    eq(remote.lastServerArgs[1], "Upgrade"); eq(remote.lastServerArgs[2], "FriesPerClick"); eq(remote.lastServerArgs[3], nil)
+    shop.Close.Activated:Fire(); eq(shop.Visible, false)
+    state.profile.bag.fries = 25
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    eq(gui.Actions.Sell.Title.Text, "SELL BAG"); eq(gui.Actions.Sell.Detail.Text, "+$13 CASH")
+    -- Unclaimed players cannot open the shop.
+    state.hasStation = false
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    gui.UpgradesButton.Activated:Fire(); eq(shop.Visible, false); eq(gui.UpgradesButton.Active, false)
+    state.hasStation = true
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    gui.UpgradesButton.Activated:Fire(); eq(shop.Visible, true)
+    state.hasStation = false
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state); eq(shop.Visible, false)
+    replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
 end)
 
 test("respawn keeps a claimed restaurant and return targets the same plot", function()

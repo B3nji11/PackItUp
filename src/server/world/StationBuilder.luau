@@ -61,7 +61,7 @@ return function(parent, index, origin, yaw)
             local light = Instance.new("SurfaceLight")
             light.Name, light.Face = "InteriorLight", Enum.NormalId.Bottom
             light.Color = Color3.fromRGB(255, 244, 225)
-            light.Brightness, light.Range, light.Angle = 2, 28, 140
+            light.Brightness, light.Range, light.Angle = 0.8, 28, 140
             light.Shadows, light.Enabled, light.Parent = false, true, panel
         end
     end

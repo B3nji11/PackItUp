@@ -4,6 +4,7 @@ local AllowedActions = require(Shared.config.Actions)
 local RateLimiter = require(Shared.util.RateLimiter)
 local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
+local Upgrades = require(Shared.domain.Upgrades)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -16,10 +17,17 @@ function ActionService:remove(player)
     self.clickLimit:remove(player)
     self.cooldowns[player] = nil
 end
+local function validArgument(action, argument)
+    local kind = AllowedActions[action]
+    if kind == "none" then return argument == nil end
+    -- Upgrade takes only a known track name; never prices, levels, or Cash amounts.
+    if kind == "upgrade" then return Upgrades.isTrack(argument) end
+    return false
+end
 function ActionService:handle(player, action, argument)
     local now = workspace:GetServerTimeNow()
     if not self.generalLimit:allow(player, now) then return end
-    if type(action) ~= "string" or #action > 24 or not AllowedActions[action] or argument ~= nil then return end
+    if type(action) ~= "string" or #action > 24 or not validArgument(action, argument) then return end
     local p = self.data:get(player)
     if not p then return end
     if action ~= "Sync" and not self.stations:hasStation(player) then
@@ -31,10 +39,10 @@ function ActionService:handle(player, action, argument)
         return
     end
     if action == "Pack" then
-        if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click()) end
+        if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
-    local delay = if action == "Sell" then 0.2 else 1
+    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 else 1
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now < (cooldowns[action] or 0) then return end
@@ -43,6 +51,10 @@ function ActionService:handle(player, action, argument)
     elseif action == "Sell" then
         local ok, result = Packing.sell(p)
         if not ok then self.network:notice(player, result, false) end
+    elseif action == "Upgrade" then
+        -- Purchase and level change happen in one non-yielding step.
+        local ok, result = Upgrades.buy(p, argument)
+        if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
     end
     self.snapshots:send(player)
 end

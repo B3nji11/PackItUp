@@ -55,11 +55,18 @@ do
         end
         return data
     end
-    for _, example in ipairs({{1280,720,true,12,"desktop"},{390,844,false,0,"phone"},{568,320,true,20,"landscape"}}) do
+    local Upgrades=loadModule("shared/domain/Upgrades")
+    local Pricing=loadModule("shared/domain/Pricing")
+    local sampleProfile={cash=1250,upgradeLevels={FriesPerClick=1,BagCapacity=2}}
+    for _, example in ipairs({{1280,720,true,12,"desktop"},{390,844,false,0,"phone"},{568,320,true,30,"landscape"},
+        {1280,720,true,12,"desktop-shop",true},{390,844,true,12,"phone-shop",true},{568,320,true,12,"landscape-shop",true}}) do
         local app=loadModule("client/ui/AppView").new(makeInstance("PlayerGui"),function() end)
         app:resize(Vector2.new(example[1],example[2]))
         app:update({hasStation=example[3],nearStation=example[3],volatile=true,
-            profile={cash=1250,bag={fries=example[4]}},stats={perClick=1,perSecond=0.5,saleValue=10}})
+            profile={cash=1250,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),
+            stats={perClick=Pricing.click(sampleProfile),perSecond=0.5,perFry=Pricing.perFry(sampleProfile),
+                capacity=Pricing.capacity(sampleProfile),saleValue=Pricing.sale(sampleProfile)}})
+        if example[6] then app.shop:toggle() end
         print("UI_PREVIEW:"..encode({name=example[5],width=example[1],height=example[2],ui=capture(app.hud.frame.Parent)}))
     end
 end
@@ -75,7 +82,9 @@ def render(sample, output):
         tone = int(18 * y / h)
         draw.line((0,y,w,y), fill=(113-tone,137-tone,116-tone))
     def font(size, bold=False):
-        return ImageFont.truetype('C:/Windows/Fonts/' + ('arialbd.ttf' if bold else 'arial.ttf'), max(7, int(size)))
+        windows = 'C:/Windows/Fonts/' + ('arialbd.ttf' if bold else 'arial.ttf')
+        linux = '/usr/share/fonts/truetype/dejavu/' + ('DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf')
+        return ImageFont.truetype(windows if Path(windows).exists() else linux, max(7, int(size)))
     draw.text((10, 5), 'LAYOUT PREVIEW - approximate fonts; not a Studio screenshot', font=font(10), fill=(245,242,225))
     def node(item, box, inherited=1):
         if not item.get('visible', True): return

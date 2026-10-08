@@ -1,5 +1,6 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Pricing = require(Shared.domain.Pricing)
+local Upgrades = require(Shared.domain.Upgrades)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
 function SnapshotService.new(data, stations, network)
@@ -11,7 +12,9 @@ function SnapshotService:send(player)
     self.network.State:FireClient(player, {
         profile = { cash = p.cash, sales = p.sales, bag = { fries = p.bag.fries } },
         hasStation = self.stations:hasStation(player), nearStation = self.stations:near(player), volatile = self.data.volatile,
-        stats = { perClick = Pricing.click(), perSecond = Pricing.automatic(), saleValue = Pricing.sale() },
+        stats = { perClick = Pricing.click(p), perSecond = Pricing.automatic(), perFry = Pricing.perFry(p),
+            capacity = Pricing.capacity(p), saleValue = Pricing.sale(p) },
+        shop = Upgrades.snapshot(p),
     })
 end
 return SnapshotService

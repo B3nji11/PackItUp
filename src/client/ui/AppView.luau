@@ -1,6 +1,7 @@
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
+local ShopView = require(script.Parent.ShopView)
 local AppView = {}
 AppView.__index = AppView
 function AppView.new(playerGui, send)
@@ -38,6 +39,7 @@ function AppView.new(playerGui, send)
     self.guidance.BackgroundColor3, self.guidance.BackgroundTransparency = Theme.Background, 0.08
     E.corner(self.guidance, 12)
     self.hud = HudView.new(gui, send)
+    self.shop = ShopView.new(gui, send)
     self:resize(Vector2.new(1280, 720))
     return self
 end
@@ -55,6 +57,7 @@ function AppView:update(state)
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)
+    self.shop:update(state)
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -71,7 +74,9 @@ function AppView:resize(viewport)
     local height = viewport.Y - 60
     local actionTop = height - 22 - 104 * hudScale
     -- Centre Cash on the left; lift it only when a short screen needs room for actions.
-    local cashOffset = math.min(0, actionTop - 12 - 38 - height / 2)
+    -- Outside compact layouts, the UPGRADES button sits below Cash and needs room too.
+    local below = if compact then 0 else ShopView.ButtonGap + ShopView.ButtonHeight
+    local cashOffset = math.min(0, actionTop - 12 - below - 38 - height / 2)
     self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
     self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
     self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
@@ -80,5 +85,6 @@ function AppView:resize(viewport)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
     self.hud.scale.Scale = hudScale
+    self.shop:resize(viewport, compact, if compact then 172 else 218, cashOffset)
 end
 return AppView

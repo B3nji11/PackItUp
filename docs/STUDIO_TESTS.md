@@ -1,6 +1,22 @@
-# UI/UX iteration: Roblox Studio acceptance checks
+# Roblox Studio acceptance checks
 
-The project owner confirmed the prior core version works. These checks cover the new claiming, world layout, and HUD changes. They still need a real Studio session; engine doubles and layout previews cannot verify rendering, physics, real prompts, or mobile controls.
+Current iteration: **Increment 1, upgrade shop**. Run its checks first. The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+
+## Upgrade shop (Increment 1)
+
+These checks need a real Studio session. Automated tests cover the rules, saving, and calculated layout, but not rendering, touch input, or real latency.
+
+1. Before claiming, the UPGRADES button below the Cash card is greyed out and does not open the shop.
+2. Claim a restaurant. Press UPGRADES: the panel opens in the centre with three rows (Fries per click, Money per fry, Bag capacity). Each shows LEVEL 0, its current -> next value, and a cost of $25, $40, and $50. X closes it.
+3. With less than $25, every Buy button is greyed out and clicking it does nothing.
+4. Earn $25 and buy Fries per click. Cash drops by exactly $25, the row shows LEVEL 1 and $30, and the packing button reads +2 fries/click. Each click now adds 2 fries.
+5. Buy Money per fry. A full 20-fry bag now reads SELL BAG +$11.
+6. Fill the bag completely, then buy Bag capacity. The bag shows 20 / 25 and keeps filling; no fries disappear. A 25-fry bag at $0.55 per fry sells for $13.
+7. Tap Buy repeatedly and quickly, including with high simulated latency. Each accepted tap buys one level at most, and Cash never goes negative or double-charges.
+8. Check the button and panel on desktop, a portrait phone, and a short landscape phone (where UPGRADES moves to the top right). Text must fit, Buy buttons must be easy to tap, and nothing may overlap the action buttons, Cash card, Return to Counter, or Roblox's own controls.
+9. With two players, confirm each player's levels, Cash, and stats stay separate.
+10. With persistence enabled in a test experience: buy upgrades, leave, and rejoin. Levels, Cash, and the bag are restored. An old test save from the earlier prototype must load at level 0 on all three tracks.
+11. Confirm no tokens, gacha, pets, inventory, or Robux options have appeared.
 
 ## Arrival and claiming
 
@@ -37,7 +53,7 @@ The project owner confirmed the prior core version works. These checks cover the
 - Confirm buildings feel separated and the central area remains open. Ask testers whether they can identify an available plot and understand where to go without instructions.
 - Confirm the title is on the physical mural wall, following the wall's perspective rather than facing the camera.
 - Confirm ownership plaques are readable nearby and no floating fryer/equipment name tags or old customer text bubbles return.
-- Verify no doors, shops, progression rewards, or other unrequested systems have been introduced.
+- Verify no doors, progression rewards beyond the upgrade shop, or other unrequested systems have been introduced.
 
 ## Smooth cartoon world
 
@@ -52,12 +68,12 @@ The project owner confirmed the prior core version works. These checks cover the
 1. The gold packing button highlights +1 fry/click. Hover/select it to see Click with the yield underneath. The maximum click rate should not appear. Touch users must retain a visible tap/hold packing hint.
 2. Click, hold the button, and hold F. Each should fill the bag at the same existing rates. The basic fryer still adds 0.5 fries/sec after claiming, including while away.
 3. The sell button shows fries/capacity and a progress bar before full. Check empty, partially filled, and nearly full states.
-4. At 20 fries it should become green and read Sell Bag with +$10 Cash. Sell using the button and R. E must only handle claiming and never sell a bag.
-5. Confirm Cash increases by exactly $10, the bag clears, and no Sold message appears underneath the buttons. Repeat rapidly; there must be no duplicate payment.
+4. At full capacity (20 fries before upgrades) it should become green and read Sell Bag with its Cash value (+$10 before upgrades). Sell using the button and R. E must only handle claiming and never sell a bag.
+5. Confirm Cash increases by exactly the shown value, the bag clears, and no Sold message appears underneath the buttons. Repeat rapidly; there must be no duplicate payment.
 6. Check the middle-left Cash card, coin symbol, and comma-grouped amount, including clearance from the bottom actions on short screens. Verify large amounts fit the card.
 7. Walk away from the counter with a full bag: selling must be disabled and the return instruction should be clear. Return to Counter must target the player's own restaurant.
 8. Confirm useful errors appear briefly near the top, then clear, rather than obscuring the bottom actions.
-9. Confirm Fold, Upgrades, Delivery, Index, and Inventory remain absent, and Q does nothing.
+9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade shop is the only menu.
 
 ## Devices, multiplayer, and latency
 
@@ -72,9 +88,9 @@ The project owner confirmed the prior core version works. These checks cover the
 Use a separately published test experience with StudioUseDataStore enabled. Keep live and test stores separate.
 
 1. Earn Cash and leave with a partial bag. Rejoin, choose a restaurant, and verify progress.
-2. Repeat with a full bag. It must sell once for $10 after claiming.
-3. Verify autosave, exit save, and shutdown through Output. Old saved bonuses must still have no effect on the base rates or sale price.
+2. Repeat with a full bag. It must sell once for its full value (capacity x money per fry) after claiming.
+3. Verify autosave, exit save, and shutdown through Output. Old saved prototype bonuses must still have no effect; only upgradeLevels changes stats.
 
 ## Iteration review
 
-Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting another gameplay feature.
+Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting Increment 2.

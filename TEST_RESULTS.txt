@@ -1,7 +1,8 @@
-Compilation passed for 29 Luau files.
+Compilation passed for 33 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
+PASS bag sale value is capacity times money per fry
 PASS click and fryer filling clamp at one full bag
 PASS invalid additions cannot corrupt a bag
 PASS empty and partial bags cannot be sold
@@ -41,11 +42,22 @@ PASS chevrons flow toward restaurants at the same speed across frame rates and l
 PASS restaurant guides handle death respawn missing characters and very short distances
 PASS restaurant markers clear on release and ignore late portraits from the previous owner
 PASS unavailable avatars retain a username fallback with bounded background retries
-PASS client has exactly click sell and teleport with no feature panels
+PASS client has click sell teleport and the upgrade shop with no other feature panels
 PASS permanent core controls fit portrait landscape and desktop
 PASS button and keyboard selling require a full bag at the counter
 PASS click packs while full bags and distance block further client packing
 PASS HUD highlights fries per click capacity and full-bag feedback inside the buttons
+PASS server upgrade purchases check claim cash and cooldown and apply each level once
+PASS upgrade shop shows server rows greys unaffordable upgrades and sends only track names
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
-RESULT: 48 passed, 0 failed
+PASS upgrade costs follow the agreed curves and round to whole Cash
+PASS upgrade levels raise fries per click money per fry and bag capacity
+PASS buying deducts the cost once and raises one level
+PASS exactly enough Cash buys an upgrade and unknown tracks are rejected
+PASS old prototype upgrade data never grants levels
+PASS buying capacity with a full bag makes it partial without losing fries
+PASS shop snapshot rows show level value next value and cost in shop order
+PASS saved upgrade levels are validated
+PASS upgrade levels save and load with cash and the bag
+RESULT: 60 passed, 0 failed

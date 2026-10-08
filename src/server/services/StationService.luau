@@ -1,5 +1,5 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Economy = require(Shared.config.Economy)
+local Pricing = require(Shared.domain.Pricing)
 local Runtime = require(Shared.config.Runtime)
 local StationService = {}
 StationService.__index = StationService
@@ -57,7 +57,7 @@ end
 function StationService:render(player, p)
     local station = self.assigned[player]
     if not station then return end
-    local visible = math.floor(p.bag.fries / Economy.Capacity * #station.fries)
+    local visible = math.floor(p.bag.fries / Pricing.capacity(p) * #station.fries)
     for n, fry in ipairs(station.fries) do fry.Transparency = if n <= visible then 0 else 1 end
 end
 return StationService

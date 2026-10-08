@@ -1,5 +1,3 @@
-local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
-local Economy = require(Shared.config.Economy)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = {}
@@ -15,6 +13,10 @@ local function action(parent, name, x, color, key, callback)
     local title = E.label(button, "", 34, Theme.Ink)
     title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(48, 13), UDim2.fromOffset(136, 34)
     title.Font, title.TextSize = Enum.Font.GothamBold, 21
+    -- Longer titles after upgrades ("+12 fries/click") shrink to one line instead of wrapping.
+    title.TextWrapped, title.TextScaled = false, true
+    local fit = Instance.new("UITextSizeConstraint")
+    fit.Name, fit.MinTextSize, fit.MaxTextSize, fit.Parent = "Fit", 10, 21, title
     local detail = E.label(button, "", 20, Theme.Ink)
     detail.Name, detail.Position, detail.Size, detail.TextSize = "Detail", UDim2.fromOffset(12, 50), UDim2.fromOffset(166, 20), 12
     local shortcut = E.label(button, key, 16, Theme.Ink)
@@ -63,12 +65,13 @@ function HudView.new(parent, send)
 end
 function HudView:sellBag()
     local state = self.state
-    if state and state.hasStation and state.nearStation and state.profile.bag.fries >= Economy.Capacity then self.send("Sell") end
+    if state and state.hasStation and state.nearStation and state.profile.bag.fries >= state.stats.capacity then self.send("Sell") end
 end
 function HudView:update(state)
     self.state = state
     local bag = state.profile.bag
-    local full = bag.fries >= Economy.Capacity
+    local capacity = state.stats.capacity
+    local full = bag.fries >= capacity
     local canPack = state.hasStation and state.nearStation and not full
     local canSell = state.hasStation and state.nearStation and full
     local perClick = state.stats.perClick
@@ -79,9 +82,10 @@ function HudView:update(state)
     self.packTitle.Text = if not state.hasStation then "CLAIM FIRST" elseif full then "BAG FULL"
         elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else yieldText
     self.packTitle.TextSize = if not state.hasStation then 17 else 21
+    self.packTitle.Fit.MaxTextSize = self.packTitle.TextSize
     self.packDetail.Text = if not state.hasStation then "CLAIM AT THE ENTRANCE" elseif full then "SELL TO KEEP PACKING"
         elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then string.upper(yieldText) else "TAP / HOLD TO PACK"
-    self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. Economy.Capacity
+    self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. capacity
     self.sellDetail.Text = if not state.hasStation then "CLAIM A RESTAURANT"
         elseif full and not state.nearStation then "RETURN TO COUNTER"
         elseif full then "+" .. E.money(state.stats.saleValue) .. " CASH"
@@ -91,6 +95,6 @@ function HudView:update(state)
     self.sellDetail.TextColor3 = if canSell then Theme.Ink else Theme.Muted
     self.sellShortcut.TextColor3 = if canSell then Theme.Ink else Theme.Muted
     self.fill.BackgroundColor3 = if full then Theme.Green else Theme.Gold
-    self.fill.Size = UDim2.fromScale(bag.fries / Economy.Capacity, 1)
+    self.fill.Size = UDim2.fromScale(bag.fries / capacity, 1)
 end
 return HudView

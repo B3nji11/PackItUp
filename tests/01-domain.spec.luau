@@ -15,7 +15,7 @@ test("corrupt nonfinite and future core profiles are rejected", function()
     for _, bad in ipairs({-1, math.huge, 0/0, "100", 0.5}) do
         local p = Profile.new(); p.cash = bad; eq(Profile.validate(p), false)
     end
-    for _, bad in ipairs({-1, math.huge, 0/0, "20", Economy.Capacity + 1}) do
+    for _, bad in ipairs({-1, math.huge, 0/0, "20", Economy.BaseCapacity + 1}) do
         local p = Profile.new(); p.bag.fries = bad; eq(Profile.validate(p), false)
     end
     local p = Profile.new(); p.version = 2; eq(Profile.validate(p), false)
@@ -29,8 +29,8 @@ test("basic fryer click and sale values do not depend on old progression", funct
 end)
 
 test("bag sale value is capacity times money per fry", function()
-    eq(Pricing.sale(), math.floor(Economy.Capacity * Economy.MoneyPerFryCents / 100))
-    eq(Pricing.sale(), Economy.Capacity * Pricing.perFry())
+    eq(Pricing.sale(), math.floor(Economy.BaseCapacity * Economy.MoneyPerFryCents / 100))
+    eq(Pricing.sale(), Economy.BaseCapacity * Pricing.perFry())
     eq(Pricing.sale() % 1, 0)
 end)
 

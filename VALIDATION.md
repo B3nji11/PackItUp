@@ -1,5 +1,31 @@
 # Validation record
 
+## Increment 1: upgrade shop
+
+Validation date: 8 October 2026.
+
+Scope: money per fry pricing, the three Cash upgrade tracks, saved upgrade levels, the Upgrade action, the UPGRADES button and shop panel, and dimmed world lighting from the owner's polish review.
+
+**60 tests passed, 0 failed.** All **33 Luau source/test files** compiled. The rebuilt place contains **29 game source files**. Output is in TEST_RESULTS.txt.
+
+New coverage:
+
+- Cost curves and rounding for all three tracks; costs never decrease as levels rise.
+- Effects of each level on fries per click, money per fry, capacity, and sale value, including rounding down ($13.75 -> $13).
+- Purchases deduct once, raise one level, reject insufficient Cash and unknown tracks, and leave lifetime Cash unchanged.
+- The old prototype `upgrades` field never grants levels.
+- Buying capacity with a full bag makes it partial without losing fries.
+- Upgrade levels save and load; saves without levels load at level 0; corrupt levels refuse to load.
+- Server remote flow: unclaimed rejection, insufficient Cash notice, the purchase cooldown blocking a rapid second buy, forged arguments dropped before dispatch, upgraded packing and sale values, and separate state per player.
+- Shop UI: rows show server values, unaffordable Buy buttons are inactive and send nothing, affordable ones send only the track name, and the panel stays closed before claiming.
+- Calculated bounds for the UPGRADES button and panel at 320x568, 390x844, 568x320, 844x390, and 1280x720, clear of the actions, Cash card, Return to Counter, and guidance.
+
+Layout previews (including desktop-shop, phone-shop, and landscape-shop) were regenerated with tools/preview_ui.py and inspected. That review caught the pack button title wrapping at "+2 fries/click"; the titles now shrink to fit on one line. The previews use approximate fonts and are not Roblox screenshots.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, Upgrade shop section), real DataStore persistence, and owner review. The dimmed lighting was approved by the owner.
+
+## UI/UX polish iteration (accepted 8 October 2026)
+
 Validation date: 8 October 2026.
 
 Scope: the owner-approved UI/UX iteration on the working core loop, including the smooth cartoon world pass. Base packing, fryer production after claiming, and $10 sales are unchanged.

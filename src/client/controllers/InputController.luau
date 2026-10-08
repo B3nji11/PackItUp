@@ -9,7 +9,7 @@ return function(hud, send, getState)
     local nextPack = 0
     local function pack()
         local state = getState()
-        if not state or not state.hasStation or not state.nearStation or state.profile.bag.fries >= Economy.Capacity then return end
+        if not state or not state.hasStation or not state.nearStation or state.profile.bag.fries >= state.stats.capacity then return end
         local now = os.clock()
         if now < nextPack then return end
         nextPack = now + 1 / Economy.ClicksPerSecond + 0.02

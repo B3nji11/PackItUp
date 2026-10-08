@@ -59,12 +59,13 @@ return function(count)
         P.part(model, "PlazaBench", Vector3.new(8, 1.5, 2.5), Vector3.new(x, 1, 12), Color3.fromRGB(250, 183, 101))
     end
     -- Broad, soft lighting keeps the solid cartoon colors readable indoors and out.
+    -- Dimmed on owner review (8 Oct 2026): the earlier values washed out the colors.
     -- LightingStyle is saved by the place builder/Rojo; runtime writes stop startup.
-    Lighting.ClockTime, Lighting.Brightness = 13.5, 2
-    Lighting.Ambient = Color3.fromRGB(166, 178, 196)
-    Lighting.OutdoorAmbient = Color3.fromRGB(178, 191, 208)
+    Lighting.ClockTime, Lighting.Brightness = 13.5, 1.5
+    Lighting.Ambient = Color3.fromRGB(136, 146, 162)
+    Lighting.OutdoorAmbient = Color3.fromRGB(148, 159, 176)
     Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0.3, 0.12
     Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 1
-    Lighting.ExposureCompensation = 0
+    Lighting.ExposureCompensation = -0.25
     return stations
 end
