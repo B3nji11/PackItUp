@@ -1,5 +1,29 @@
 # Validation record
 
+## Stages 4 and 5: following pets, settings, and inventory management
+
+Validation date: 16 October 2026.
+
+Scope: code-built pets that follow their owner, the Settings panel (Pets follow me, Show other players' pets), Golden merges, delete all by rarity, and auto-delete by rarity.
+
+**89 tests passed, 0 failed.** All **50 Luau source/test files** compiled. The rebuilt place contains **44 game source files**. Output is in TEST_RESULTS.txt.
+
+New coverage:
+
+- Merging: 5 unequipped copies become one Golden pet with a new ID and 2x bonus; equipped copies are excluded; Golden pets never merge again; the rarest mergeable pet is offered first.
+- Delete all removes only unequipped, non-golden pets of Common, Uncommon, or Rare; Epic, Legendary, and unknown rarities are refused.
+- Auto-delete: matching spins cost Cash and count for pity but are not kept; Epic and Legendary cannot be auto-deleted.
+- Settings default ON, toggle, reject unknown names, can change before claiming, save, and load.
+- The public FollowPets text lists equipped pets with Golden marks and is empty when Pets follow me is off.
+- Validation of golden flags, settings, and auto-delete (8 corrupt cases rejected), plus save and load.
+- Server flow: 69 sales, 4 spins, merge, equip, settings toggles updating the attribute, auto-deleted spin, delete all, refusals, and forged arguments dropped.
+- Follower: own and other players' pets drawn near their characters, non-colliding and anchored, easing rather than snapping, hidden by Show other players' pets, removed for dead or departed players, and rebuilt when the attribute changes.
+- Client: Settings panel toggles and requests, Golden rows, auto-delete and delete-all chips with two-tap confirmation, the merge banner, auto-deleted spin results, and bounds for the gear button and Settings panel at all five viewports.
+
+Layout previews (including the Settings panel and the PETS tools) were regenerated and inspected. That led to an outline on OFF toggles. Pet models cannot be previewed outside Studio.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, stages 4 and 5), performance with six players, real DataStore persistence, and owner review.
+
 ## Increment 3: first Cash gacha machine
 
 Validation date: 16 October 2026.
@@ -25,7 +49,7 @@ Bag size is now only sanity-checked in saves and trimmed to the current capacity
 
 Layout previews (including desktop/phone machine and pets panels and a wide short screen) were regenerated and inspected. The preview tool now stacks list rows like Roblox's list layout. That review led to fit-to-width odds labels, short bonus wording in pet rows, and UNEQUIP aligned right. The previews use approximate fonts and are not Roblox screenshots.
 
-Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, Increment 3 section), real DataStore persistence, and owner review.
+**Accepted by the project owner on 16 October 2026.**
 
 ## Increment 2: gems and rebirth
 

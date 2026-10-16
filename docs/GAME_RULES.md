@@ -1,4 +1,4 @@
-# Current iteration: first Cash gacha machine (Increment 3)
+# Game rules (current through stages 4 and 5)
 
 Each player arrives in a central plaza and chooses a free restaurant entrance using E or its touch prompt. Only a nearby living player with a loaded profile can claim; one restaurant is allowed per session. Leaving releases it. Every restaurant has one counter, a basic fryer, and a bag. Players earn Cash, rebirth at a rising Cash threshold to earn gems, spend gems in the upgrade shop, and spend Cash on gacha spins for pets that boost the same three stats.
 
@@ -37,7 +37,20 @@ Each player arrives in a central plaza and chooses a free restaurant entrance us
 - **Inventory:** up to 50 pets, each with a unique ID that is never reused. Spinning is blocked when full.
 - **Equipping:** up to 3 pets. Effective stat = (base + upgrade levels) x (1 + total equipped bonus for that stat). Bonuses for the same stat add together.
 - **Deleting:** only unequipped pets, after a second confirming tap.
-- Unequipping or deleting trims an over-full bag to the new capacity. Pets, equipped pets, and pity survive rebirth.
+- Unequipping or deleting trims an over-full bag to the new capacity. Pets, equipped pets, pity, and settings survive rebirth.
+
+## Inventory management
+
+- **Merging:** 5 unequipped, non-golden copies of one pet merge into one Golden pet (new ID, 2x bonus). Golden pets cannot merge again.
+- **Delete all:** removes every unequipped, non-golden Common, Uncommon, or Rare pet of the chosen rarity (second tap within 3 seconds). Epic and Legendary cannot be bulk deleted.
+- **Auto-delete:** per rarity (Common, Uncommon, Rare). A matching spin still costs Cash and counts for pity, but the pet is not kept.
+
+## Following pets and settings
+
+- Equipped pets float behind their owner (up to 3 slots behind the character), bob gently, and ease after them. Golden pets have a gold body.
+- **Pets follow me** (default ON): when OFF, nobody sees your pets. Bonuses still apply.
+- **Show other players' pets** (default ON): only changes what you see.
+- Settings are saved, open from the gear beside Return to Counter, and can be changed before claiming.
 
 ## Upgrades
 
@@ -54,7 +67,7 @@ Each player arrives in a central plaza and chooses a free restaurant entrance us
 - Upgrade levels are saved in `upgradeLevels`, gems in `gems`, the rebirth count in `rebirths`, pets in `pets`, equipped pet IDs in `equippedPets`, the last pet number in `nextPetId`, and pity per machine in `pity`. The old prototype's `equipped` equipment field is never read. A missing field or track means 0. The old prototype's `upgrades` field is never read.
 - Saves from before gems existed load once with 0 gems, 0 rebirths, and level 0 upgrades (the owner chose to reset Cash-bought levels). A bag above base capacity is trimmed to 20 fries.
 
-There are no random fry variants, folding bonuses, Tickets, pets following the player, merging, rebirth unlocks, or event rewards in this iteration. Legacy saved bonuses do not change these rules.
+There are no random fry variants, folding bonuses, Tickets, rebirth unlocks, extra machines, Robux purchases, or event rewards. Legacy saved bonuses do not change these rules.
 
 ## Controls
 
@@ -65,11 +78,11 @@ Four menu buttons form a 2x2 grid: UPGRADES and REBIRTH, then SPIN and PETS. On 
 - UPGRADES opens one row per track: level, current value -> next value, and a Buy button showing the gem cost. Unaffordable Buy buttons are greyed out and send nothing.
 - REBIRTH glows when the threshold is reached. Its panel shows the gems it gives, the threshold and current Cash with a progress bar, what resets and what is kept, and the rebirth count. The confirm button reads NEED $X until the threshold is reached, then REBIRTH NOW. A completed rebirth closes the panel.
 - SPIN opens the Starter Fryer: price, pity countdown, odds per rarity with pet names, the last result in its rarity color, the pet count, and a button reading SPIN $100, NEED $100, or INVENTORY FULL.
-- PETS lists owned pets (equipped first, then by rarity) with name, rarity, bonus, EQUIP/UNEQUIP, and DELETE (unequipped only; tap twice within 3 seconds).
+- PETS lists owned pets (equipped first, then by rarity, Golden first) with name, rarity, bonus, EQUIP/UNEQUIP, and DELETE (unequipped only; tap twice within 3 seconds). Above the list: AUTO-DELETE and DELETE ALL chips for Common, Uncommon, and Rare, and a merge banner with MERGE for the rarest mergeable pet.
 - X closes any panel.
 
 Return to Counter stays at the top and is disabled before claiming. Keyboard shortcuts are E for claiming, F for packing, and R for selling. The Sell button is disabled until a full bag is ready at the player's own counter; the server independently enforces that rule.
 
 ## Acceptance
 
-Use the Increment 3 acceptance criteria in README.md and the checks in STUDIO_TESTS.md. Review the result with the project owner before starting Increment 4.
+Use the checks in STUDIO_TESTS.md and review with the project owner before starting the visual overhaul. Past acceptance criteria are in HISTORY.md.

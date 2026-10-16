@@ -1,6 +1,23 @@
 # Roblox Studio acceptance checks
 
-Current iteration: **Increment 3, gacha machine and pets**. Run its checks first, then the Increment 2 checks as regression (they replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+Awaiting review: **stages 4 and 5** (following pets, settings, inventory management). Run those checks first; the sections after them are regression checks for accepted stages, newest first (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+
+## Following pets and settings (stage 4)
+
+1. Equip 1-3 pets. They appear behind your character, bob gently, and ease after you when you walk, run, jump, and turn. Golden pets have a gold body.
+2. Unequip, delete, or merge: the following pets update at once. Reset the character: pets disappear while dead and return on respawn.
+3. Open Settings (gear beside Return to Counter), including before claiming. Turn **Pets follow me** OFF: your pets vanish for you and for a second player; bonuses still apply. Turn it back ON.
+4. With two players: each sees the other's pets. Turn **Show other players' pets** OFF on one client: only the other player's pets vanish there. Settings survive rejoining with persistence enabled.
+5. Walk through doors, counters, and the plaza with pets out: they never block movement. Note any clipping through walls for the visual overhaul.
+6. With six players and 3 pets each, check frame rate on desktop and a phone.
+
+## Inventory management (stage 5)
+
+1. Collect 5 unequipped copies of one pet. The PETS merge banner offers it; MERGE replaces the 5 with one Golden pet (2x bonus, gold outline). Equipped copies are never used.
+2. Golden pets are never offered for merging and are never removed by DELETE ALL.
+3. DELETE ALL Common: the first tap shows SURE?, the second removes every unequipped non-golden Common; waiting 3 seconds cancels. Epic and Legendary have no DELETE ALL.
+4. Turn AUTO-DELETE on for Common, then spin until a Common rolls: Cash is spent, the machine says "Auto-deleted ...", the pet count does not rise, and the pity countdown still drops. Turn it off again.
+5. Check the PETS panel tools on desktop, a portrait phone, and a short landscape phone: chips must be tappable and readable.
 
 ## Gacha machine and pets (Increment 3)
 
@@ -20,7 +37,7 @@ These checks need a real Studio session. Automated tests cover odds, pity, spins
 12. Check the 2x2 menu grid and both panels on desktop, a portrait phone, a short landscape phone (grid at the top right), and a wide short screen. Text must fit, buttons must be tappable, and nothing may overlap the action buttons, Cash card, Return to Counter, guidance, or Roblox's own controls.
 13. With two players, confirm pets, equipped pets, pity, and Cash stay separate.
 14. With persistence enabled in a test experience: spin, equip, leave, and rejoin. Pets, equipped pets, pity, and stat bonuses are restored.
-15. Confirm no pets follow the player yet, and no merging, more machines, or Robux options have appeared.
+15. Confirm no extra machines or Robux options have appeared.
 
 ## Gems, rebirth, and upgrades (Increment 2)
 
@@ -95,7 +112,7 @@ These checks need a real Studio session. Automated tests cover the rules, saving
 6. Check the middle-left Cash card, coin symbol, and comma-grouped amount, including clearance from the bottom actions on short screens. Verify large amounts fit the card.
 7. Walk away from the counter with a full bag: selling must be disabled and the return instruction should be clear. Return to Counter must target the player's own restaurant.
 8. Confirm useful errors appear briefly near the top, then clear, rather than obscuring the bottom actions.
-9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade, rebirth, machine, and pets panels are the only menus.
+9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade, rebirth, machine, pets, and settings panels are the only menus.
 
 ## Devices, multiplayer, and latency
 
@@ -115,4 +132,4 @@ Use a separately published test experience with StudioUseDataStore enabled. Keep
 
 ## Iteration review
 
-Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting Increment 4.
+Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting the visual overhaul.

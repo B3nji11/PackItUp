@@ -55,6 +55,8 @@ function Gacha.spin(p, id, random)
     p.cash -= machine.Price
     if type(p.pity) ~= "table" then p.pity = {} end
     p.pity[id] = if rank(rarity) >= rank(machine.PityRarity) then 0 else Gacha.pity(p, id) + 1
+    -- Auto-deleted rarities still cost the spin and count for pity, but are not kept.
+    if Pets.autoDeletes(p, rarity) then return true, { type = petType, rarity = rarity, autoDeleted = true } end
     return true, Pets.add(p, petType, id)
 end
 -- Display data for the client: price, odds per rarity with pet names, and pity progress.

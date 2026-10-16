@@ -9,6 +9,7 @@ local Rebirth = require(Shared.domain.Rebirth)
 local Gacha = require(Shared.domain.Gacha)
 local Pets = require(Shared.domain.Pets)
 local Profile = require(Shared.domain.Profile)
+local Settings = require(Shared.domain.Settings)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -28,6 +29,9 @@ local function validArgument(action, argument)
     if kind == "upgrade" then return Upgrades.isTrack(argument) end
     if kind == "machine" then return Gacha.isMachine(argument) end
     if kind == "pet" then return Pets.isPetId(argument) end
+    if kind == "petType" then return Pets.isPetType(argument) end
+    if kind == "bulkRarity" then return Pets.isBulkRarity(argument) end
+    if kind == "setting" then return Settings.isSetting(argument) end
     return false
 end
 function ActionService:handle(player, action, argument)
@@ -36,7 +40,8 @@ function ActionService:handle(player, action, argument)
     if type(action) ~= "string" or #action > 24 or not validArgument(action, argument) then return end
     local p = self.data:get(player)
     if not p then return end
-    if action ~= "Sync" and not self.stations:hasStation(player) then
+    -- Settings can change before claiming; everything else needs a restaurant.
+    if action ~= "Sync" and action ~= "ToggleSetting" and not self.stations:hasStation(player) then
         self.network:notice(player, "Choose an available restaurant and press E at its entrance.", false)
         return
     end
@@ -49,7 +54,8 @@ function ActionService:handle(player, action, argument)
         return -- Periodic snapshots coalesce rapid input.
     end
     local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" or action == "Spin" then 0.25
-        elseif action == "Rebirth" then 2 elseif action == "Return" or action == "Sync" then 1 else 0.15
+        elseif action == "Rebirth" then 2 elseif action == "Return" or action == "Sync" then 1
+        elseif action == "DeleteRarity" or action == "MergePets" then 0.5 else 0.15
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now < (cooldowns[action] or 0) then return end
@@ -72,11 +78,16 @@ function ActionService:handle(player, action, argument)
         if not ok then self.network:notice(player, result, false)
         else
             self.spins = (self.spins or 0) + 1
-            self.snapshots:send(player, { spin = { serial = self.spins, id = result.id, type = result.type } })
+            self.snapshots:send(player, { spin = { serial = self.spins, id = result.id, type = result.type, autoDeleted = result.autoDeleted } })
             return
         end
-    elseif action == "Equip" or action == "Unequip" or action == "DeletePet" then
-        local operation = if action == "Equip" then Pets.equip elseif action == "Unequip" then Pets.unequip else Pets.delete
+    elseif action == "ToggleSetting" then
+        Settings.toggle(p, argument)
+    elseif action == "ToggleAutoDelete" then
+        Pets.toggleAutoDelete(p, argument)
+    else -- Equip, Unequip, DeletePet, MergePets, DeleteRarity
+        local operation = if action == "Equip" then Pets.equip elseif action == "Unequip" then Pets.unequip
+            elseif action == "DeletePet" then Pets.delete elseif action == "MergePets" then Pets.merge else Pets.deleteRarity
         local ok, result = operation(p, argument)
         if ok then
             Profile.normalize(p) -- removing a capacity bonus trims an over-full bag

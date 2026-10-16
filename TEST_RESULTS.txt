@@ -1,4 +1,4 @@
-Compilation passed for 44 Luau files.
+Compilation passed for 50 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -42,7 +42,7 @@ PASS chevrons flow toward restaurants at the same speed across frame rates and l
 PASS restaurant guides handle death respawn missing characters and very short distances
 PASS restaurant markers clear on release and ignore late portraits from the previous owner
 PASS unavailable avatars retain a username fallback with bounded background retries
-PASS client has click sell teleport and the upgrade rebirth spin and pets menus only
+PASS client has click sell teleport settings and the upgrade rebirth spin and pets menus only
 PASS permanent core controls fit portrait landscape and desktop
 PASS button and keyboard selling require a full bag at the counter
 PASS click packs while full bags and distance block further client packing
@@ -51,6 +51,9 @@ PASS server rebirth needs the threshold resets Cash and the bag and awards gems 
 PASS wallet shop and rebirth panel show server values and send only allowed requests
 PASS server spins charge Cash roll on the server and equip unequip and delete owned pets
 PASS machine and pets panels show server data and send only spin equip and delete requests
+PASS server merges Golden pets bulk deletes auto-deletes and publishes following pets
+PASS following pets render behind their players respect settings and clean up
+PASS settings panel and pet tools show server state and send only allowed requests
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
 PASS gem upgrade costs follow the agreed curves and round to whole gems
@@ -78,4 +81,12 @@ PASS upgrade shop values include equipped pet bonuses
 PASS old prototype equipment never counts as equipped pets
 PASS saved pets equipped pets and pity are validated
 PASS pets equipped pets and pity save and load
-RESULT: 78 passed, 0 failed
+PASS five unequipped copies merge into one Golden pet with double bonus
+PASS Golden pets are never merged again and mergeable lists rarest first
+PASS delete all removes only unequipped non-golden pets of a bulk rarity
+PASS auto-deleted rarities still cost the spin and count for pity but are not kept
+PASS settings default on toggle and reject unknown names
+PASS the public follow text lists equipped pets and respects Pets follow me
+PASS golden flags settings and auto-delete are validated
+PASS golden pets settings and auto-delete save and load
+RESULT: 89 passed, 0 failed

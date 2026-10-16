@@ -5,6 +5,7 @@ local ShopView = require(script.Parent.ShopView)
 local RebirthView = require(script.Parent.RebirthView)
 local GachaView = require(script.Parent.GachaView)
 local PetsView = require(script.Parent.PetsView)
+local SettingsView = require(script.Parent.SettingsView)
 local AppView = {}
 AppView.__index = AppView
 -- The wallet card holds Cash (top) and Gems (bottom row).
@@ -67,11 +68,13 @@ function AppView.new(playerGui, send)
     self.pets = PetsView.new(gui, send)
     -- Grid order: UPGRADES | REBIRTH on the first row, SPIN | PETS on the second.
     self.menus = { self.shop, self.rebirth, self.gacha, self.pets }
+    self.settings = SettingsView.new(gui, send)
     -- Opening one panel closes the others so they never stack.
-    for _, menu in ipairs(self.menus) do
+    self.panels = { self.shop, self.rebirth, self.gacha, self.pets, self.settings }
+    for _, menu in ipairs(self.panels) do
         menu.button.Activated:Connect(function()
             if not menu.panel.Visible then return end
-            for _, other in ipairs(self.menus) do if other ~= menu then other:setOpen(false) end end
+            for _, other in ipairs(self.panels) do if other ~= menu then other:setOpen(false) end end
         end)
     end
     self:resize(Vector2.new(1280, 720))
@@ -91,7 +94,7 @@ function AppView:update(state)
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)
-    for _, menu in ipairs(self.menus) do menu:update(state) end
+    for _, menu in ipairs(self.panels) do menu:update(state) end
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -119,7 +122,14 @@ function AppView:resize(viewport)
     self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
     self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
     self.gems.Position = UDim2.fromOffset(if compact then 58 else 65, 80)
-    self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 36 else 16)
+    -- Return to Counter and the settings gear are centred together; compact screens narrow it.
+    local teleportWidth = if compact then 160 else 212
+    local teleportX = if compact then 0 else -26
+    local teleportY = if portrait then 36 else 16
+    self.teleport.Size = UDim2.fromOffset(teleportWidth, 44)
+    self.teleport.Position = UDim2.new(0.5, teleportX, 0, teleportY)
+    self.settings.button.AnchorPoint = Vector2.new(0, 0)
+    self.settings.button.Position = UDim2.new(0.5, teleportX + teleportWidth / 2 + 8, 0, teleportY)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
     local gridLeft = viewport.X
@@ -144,7 +154,7 @@ function AppView:resize(viewport)
         -- Keep the centred guidance strip clear of the top-right grid.
         self.guidance.Size = UDim2.fromOffset(math.min(460, 2 * (gridLeft - 12 - viewport.X / 2)), 44)
     end
-    for _, menu in ipairs(self.menus) do menu:resize(viewport) end
+    for _, menu in ipairs(self.panels) do menu:resize(viewport) end
     self.hud.scale.Scale = hudScale
 end
 return AppView

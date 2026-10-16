@@ -92,7 +92,14 @@ function GachaView:update(state)
     self.spin.TextColor3 = if self.canSpin then Theme.Ink else Theme.Muted
     -- A new spin result names the pet in its rarity color.
     local spin = state.spin
-    if spin and spin.serial ~= self.lastSerial then
+    if spin and spin.serial ~= self.lastSerial and spin.autoDeleted then
+        -- Auto-deleted pets are not in the inventory; name them from config.
+        self.lastSerial = spin.serial
+        local kind = PetConfig.Types[spin.type]
+        self.resultName.Text = "Auto-deleted " .. kind.Name
+        self.resultName.TextColor3 = Theme.Muted
+        self.resultBonus.Text = string.upper(kind.Rarity) .. "  ·  turn auto-delete off in PETS"
+    elseif spin and spin.serial ~= self.lastSerial then
         self.lastSerial = spin.serial
         for _, owned in ipairs(pets.owned) do
             if owned.id == spin.id then

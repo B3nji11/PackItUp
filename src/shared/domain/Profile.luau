@@ -2,12 +2,13 @@ local Economy = require(script.Parent.Parent.config.Economy)
 local Upgrades = require(script.Parent.Parent.config.Upgrades)
 local PetConfig = require(script.Parent.Parent.config.Pets)
 local Machines = require(script.Parent.Parent.config.Machines)
+local SettingsConfig = require(script.Parent.Parent.config.Settings)
 local Pricing = require(script.Parent.Pricing)
 local Profile = {}
 function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
     return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(),
-        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {} }
+        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {}, settings = {}, autoDelete = {} }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value >= low and value <= high
@@ -21,7 +22,8 @@ local function validPets(p)
         if count ~= #p.pets then return false end -- a plain list
         for _, owned in ipairs(p.pets) do
             if type(owned) ~= "table" or type(owned.id) ~= "string" or not string.match(owned.id, "^P%d+$")
-                or seen[owned.id] or not PetConfig.Types[owned.type] or not Machines.Machines[owned.machine] then
+                or seen[owned.id] or not PetConfig.Types[owned.type] or not Machines.Machines[owned.machine]
+                or (owned.golden ~= nil and owned.golden ~= true) then
                 return false
             end
             seen[owned.id] = true
@@ -47,10 +49,22 @@ local function validPets(p)
             if not machine or not numberIn(count, 0, machine.PityEvery, true) then return false end
         end
     end
+    if p.settings ~= nil then
+        if type(p.settings) ~= "table" then return false end
+        for key, value in pairs(p.settings) do
+            if type(key) ~= "string" or SettingsConfig.Defaults[key] == nil or type(value) ~= "boolean" then return false end
+        end
+    end
+    if p.autoDelete ~= nil then
+        if type(p.autoDelete) ~= "table" then return false end
+        for rarity, value in pairs(p.autoDelete) do
+            if type(rarity) ~= "string" or not table.find(PetConfig.BulkRarities, rarity) or value ~= true then return false end
+        end
+    end
     return true
 end
 -- Version 1 core fields, plus optional upgradeLevels, gems, rebirths, pets, equippedPets,
--- nextPetId, and pity (missing means none). Extra fields from the earlier prototype,
+-- nextPetId, pity, settings, and autoDelete (missing means none or defaults). Extra fields from the earlier prototype,
 -- such as `upgrades`, stay in storage but are never used or sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end

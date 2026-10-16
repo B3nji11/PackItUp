@@ -29,4 +29,9 @@ return table.freeze({
     StatOrder = table.freeze({ "FriesPerClick", "MoneyPerFry", "BagCapacity" }),
     MaxPets = 50,
     EquipSlots = 3,
+    -- MergeCount unequipped copies of one pet merge into one Golden pet with GoldenMultiplier x bonus.
+    MergeCount = 5,
+    GoldenMultiplier = 2,
+    -- Rarities that can be bulk deleted or auto-deleted. Epic and Legendary are protected.
+    BulkRarities = table.freeze({ "Common", "Uncommon", "Rare" }),
 })

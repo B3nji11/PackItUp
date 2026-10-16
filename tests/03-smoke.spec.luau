@@ -31,6 +31,10 @@ Vector2 = { new = function(x,y) return {X=x,Y=y} end }
 local cfMeta = {}
 CFrame = { new = function(position) return setmetatable({Position=position, yaw=0}, cfMeta) end }
 function CFrame.Angles(_, yaw, _) return setmetatable({Position=Vector3.zero, yaw=yaw}, cfMeta) end
+function CFrame.lookAt(at, target)
+    local d = target - at
+    return setmetatable({Position=at, yaw=math.atan2(-d.X, -d.Z)}, cfMeta)
+end
 cfMeta.__index = {PointToWorldSpace=function(cf, point)
     return cf.Position + Vector3.new(math.cos(cf.yaw)*point.X + math.sin(cf.yaw)*point.Z,
         point.Y, -math.sin(cf.yaw)*point.X + math.cos(cf.yaw)*point.Z)
@@ -213,6 +217,11 @@ test("unclaimed players cannot pack sell or return to an arbitrary restaurant", 
     eq(replicated.FriesRemotes.State.lastArgs[1].profile.bag.fries, 0)
     eq(replicated.FriesRemotes.State.lastArgs[1].shop[1].level, 0)
     eq(replicated.FriesRemotes.State.lastArgs[1].rebirth.count, 0); eq(replicated.FriesRemotes.State.lastArgs[1].profile.gems, 0)
+    -- Settings can change before claiming.
+    serverTime += 1; remote.OnServerEvent:Fire(first, "ToggleSetting", "ShowOtherPets")
+    eq(replicated.FriesRemotes.State.lastArgs[1].settings.ShowOtherPets, false)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "ToggleSetting", "ShowOtherPets")
+    eq(replicated.FriesRemotes.State.lastArgs[1].settings.ShowOtherPets, true)
 end)
 
 test("claiming enforces distance life ownership and one restaurant per player", function()
@@ -588,7 +597,7 @@ test("unavailable avatars retain a username fallback with bounded background ret
     players.GetUserThumbnailAsync = original
 end)
 
-test("client has click sell teleport and the upgrade rebirth spin and pets menus only", function()
+test("client has click sell teleport settings and the upgrade rebirth spin and pets menus only", function()
     players.LocalPlayer=first
     loadModule("client/Main")
     local gui = first.PlayerGui:FindFirstChild("FriesInterface")
@@ -601,7 +610,10 @@ test("client has click sell teleport and the upgrade rebirth spin and pets menus
         if node.ClassName == "TextButton" then count += 1 end
         for _, child in ipairs(node._children or {}) do visit(child) end
     end
-    visit(gui); eq(count, 16) -- Click, Sell, Teleport, four menu buttons, four Close, Confirm, three Buy, and Spin
+    -- Click, Sell, Teleport, four menu buttons, Settings, five Close, Confirm, three Buy, Spin,
+    -- two setting toggles, six rarity chips, and Merge.
+    visit(gui); eq(count, 27)
+    eq(gui.SettingsPanel.Visible, false)
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Core loop ready", true)
     runService.RenderStepped:Fire(); drain()
@@ -658,11 +670,17 @@ test("permanent core controls fit portrait landscape and desktop", function()
         for i = 1, #menuButtons do
             for j = i + 1, #menuButtons do assert(apart(rect(menuButtons[i]), rect(menuButtons[j])), menuButtons[i].Name .. "/" .. menuButtons[j].Name) end
         end
-        for _, other in ipairs({gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton, gui.Teleport, cash}) do
+        local gearBox = rect(gui.SettingsButton)
+        assert(gearBox[1] >= 0 and gearBox[2] >= 0 and gearBox[3] <= viewport.X and gearBox[4] <= height, "Settings on screen")
+        assert(apart(gearBox, rect(gui.Actions, scale)), "Settings/Actions")
+        for _, other in ipairs({gui.Teleport, gui.Guidance, cash, gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton}) do
+            assert(apart(gearBox, rect(other)), "Settings/" .. other.Name)
+        end
+        for _, other in ipairs({gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton, gui.SettingsButton, gui.Teleport, cash}) do
             assert(apart(rect(gui.Mode), rect(other)), "Mode/" .. other.Name)
         end
         assert(apart(rect(gui.Mode), rect(gui.Actions, scale)), "Mode/Actions")
-        for _, panel in ipairs({gui.UpgradeShop, gui.RebirthPanel, gui.GachaPanel, gui.PetsPanel}) do
+        for _, panel in ipairs({gui.UpgradeShop, gui.RebirthPanel, gui.GachaPanel, gui.PetsPanel, gui.SettingsPanel}) do
             eq(panel.ZIndex, 5)
             local panelScale = panel:FindFirstChildOfClass("UIScale").Scale
             assert(panel.Size.X.Offset * panelScale <= viewport.X - 32 + 0.001)
@@ -938,6 +956,146 @@ test("machine and pets panels show server data and send only spin equip and dele
     eq(petsPanel.Visible, false)
     gui.SpinButton.Activated:Fire(); gui.PetsButton.Activated:Fire()
     eq(machine.Visible, false); eq(petsPanel.Visible, false); eq(gui.SpinButton.Active, false); eq(gui.PetsButton.Active, false)
+    replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
+end)
+
+test("server merges Golden pets bulk deletes auto-deletes and publishes following pets", function()
+    local State, Notice = replicated.FriesRemotes.State, replicated.FriesRemotes.Notice
+    local function sync() serverTime += 1; remote.OnServerEvent:Fire(first, "Sync"); return State.lastArgs[1] end
+    local function fill(capacity)
+        local state = sync()
+        while state.profile.bag.fries < capacity do
+            serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack"); state = sync()
+        end
+        return state
+    end
+    local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
+    local s = sync(); eq(s.profile.cash, 10); eq(#s.pets.owned, 1); eq(#s.pets.mergeable, 0)
+    for _ = 1, 69 do fill(20); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
+    for _ = 1, 4 do act("Spin", "StarterFryer") end
+    s = sync(); eq(s.profile.cash, 300); eq(#s.pets.owned, 5); eq(s.pets.mergeable[1].type, "CrinkleFry"); eq(s.pets.mergeable[1].count, 5)
+    s = act("MergePets", "CrinkleFry")
+    eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P7"); eq(s.pets.owned[1].golden, true); eq(s.pets.owned[1].name, "Golden Crinkle Fry")
+    near(s.pets.owned[1].bonuses[1].amount, 0.1)
+    s = act("Equip", "P7"); near(s.stats.perClick, 3.3); eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
+    s = act("ToggleSetting", "PetsFollow"); eq(s.settings.PetsFollow, false); eq(first:GetAttribute("FollowPets"), "")
+    s = act("ToggleSetting", "PetsFollow"); eq(s.settings.PetsFollow, true); eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
+    s = act("ToggleAutoDelete", "Common"); eq(s.pets.autoDelete.Common, true)
+    s = act("Spin", "StarterFryer"); eq(s.spin.autoDeleted, true); eq(s.spin.type, "CrinkleFry"); eq(s.profile.cash, 200); eq(#s.pets.owned, 1)
+    s = act("ToggleAutoDelete", "Common"); eq(s.pets.autoDelete.Common, nil)
+    act("Spin", "StarterFryer"); s = act("Spin", "StarterFryer")
+    eq(#s.pets.owned, 3); eq(s.spin.id, "P9"); eq(s.profile.cash, 0)
+    s = act("DeleteRarity", "Common"); eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P7")
+    act("DeleteRarity", "Common"); eq(Notice.lastArgs[1], "No unequipped Common pets to delete.")
+    act("MergePets", "CrinkleFry"); eq(Notice.lastArgs[1], "You need 5 unequipped copies of that pet to merge.")
+    -- Forged arguments are dropped before dispatch.
+    for _, pair in ipairs({ {"MergePets", "Dragon"}, {"DeleteRarity", "Epic"}, {"ToggleAutoDelete", "Legendary"},
+        {"ToggleSetting", "Admin"}, {"ToggleSetting", {PetsFollow=false}}, {"DeleteRarity", nil} }) do
+        act(pair[1], pair[2])
+    end
+    s = sync(); eq(#s.pets.owned, 1); eq(s.settings.PetsFollow, true); eq(next(s.pets.autoDelete), nil)
+    serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
+    eq(second:GetAttribute("FollowPets"), ""); eq(State.lastArgs[1].settings.PetsFollow, true)
+end)
+
+test("following pets render behind their players respect settings and clean up", function()
+    local folder = workspace.FollowingPets
+    local function models() local names = {} for _, child in ipairs(folder._children or {}) do names[child.Name] = child end return names end
+    runService.RenderStepped:Fire(0.1)
+    local mine = models().CrinkleFryGolden
+    assert(mine, "own Golden pet is drawn")
+    local root = first.Character.HumanoidRootPart
+    for _, part in ipairs(mine._children) do
+        assert((part.CFrame.Position - root.Position).Magnitude < 10)
+        eq(part.CanCollide, false); eq(part.Anchored, true); eq(part.CastShadow, false)
+    end
+    eq(mine._children[1].Color.R, 1) -- Golden body tint
+    second:SetAttribute("FollowPets", "FryKing,MayoJar")
+    runService.RenderStepped:Fire(0.1)
+    assert(models().FryKing and models().MayoJar and models().CrinkleFryGolden)
+    -- Pets ease towards a moving player instead of teleporting.
+    local body = mine._children[1]
+    local before = body.CFrame.Position
+    root.Position = root.Position + Vector3.new(10, 0, 0)
+    runService.RenderStepped:Fire(0.05)
+    local moved = (body.CFrame.Position - before).Magnitude
+    assert(moved > 1 and moved < 9, moved)
+    root.Position = root.Position - Vector3.new(10, 0, 0)
+    -- Show other players' pets off hides only other players' pets.
+    local state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
+    state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
+    state.settings.ShowOtherPets = false
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    runService.RenderStepped:Fire(0.1)
+    eq(models().FryKing, nil); assert(models().CrinkleFryGolden)
+    state.settings.ShowOtherPets = true
+    replicated.FriesRemotes.State.OnClientEvent:Fire(state)
+    runService.RenderStepped:Fire(0.1); assert(models().FryKing)
+    -- Dead or departed players lose their pets; a changed attribute rebuilds them.
+    second.Character.Humanoid.Health = 0
+    runService.RenderStepped:Fire(0.1); eq(models().FryKing, nil)
+    second.Character.Humanoid.Health = 100
+    runService.RenderStepped:Fire(0.1); assert(models().MayoJar)
+    activePlayers = {first}
+    runService.RenderStepped:Fire(0.1); eq(models().MayoJar, nil)
+    activePlayers = {first, second}
+    second:SetAttribute("FollowPets", "")
+    first:SetAttribute("FollowPets", "PotatoPup")
+    runService.RenderStepped:Fire(0.1); assert(models().PotatoPup); eq(models().CrinkleFryGolden, nil)
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
+    eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
+    runService.RenderStepped:Fire(0.1); assert(models().CrinkleFryGolden); eq(models().PotatoPup, nil)
+    local count = 0
+    for _ in pairs(models()) do count += 1 end
+    eq(count, 1)
+end)
+
+test("settings panel and pet tools show server state and send only allowed requests", function()
+    local gui = first.PlayerGui.FriesInterface
+    local settings, petsPanel = gui.SettingsPanel, gui.PetsPanel
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
+    local state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
+    local function show() replicated.FriesRemotes.State.OnClientEvent:Fire(state) end
+    show()
+    gui.PetsButton.Activated:Fire(); eq(petsPanel.Visible, true)
+    gui.SettingsButton.Activated:Fire(); eq(settings.Visible, true); eq(petsPanel.Visible, false)
+    eq(settings.PetsFollow.Toggle.Text, "ON"); eq(settings.ShowOtherPets.Toggle.Text, "ON")
+    eq(settings.PetsFollow.SettingName.Text, "Pets follow me")
+    remote.lastServerArgs = nil; settings.PetsFollow.Toggle.Activated:Fire()
+    eq(remote.lastServerArgs[1], "ToggleSetting"); eq(remote.lastServerArgs[2], "PetsFollow")
+    state.settings.PetsFollow = false; show(); eq(settings.PetsFollow.Toggle.Text, "OFF")
+    settings.Close.Activated:Fire(); eq(settings.Visible, false)
+    -- Golden row and tools.
+    gui.PetsButton.Activated:Fire()
+    local row = petsPanel.ListArea.List.P7
+    eq(row.PetName.Text, "Golden Crinkle Fry"); eq(row.Rarity.Text, "COMMON  ·  GOLDEN  ·  EQUIPPED"); eq(row.Bonus.Text, "+10% fries/click")
+    remote.lastServerArgs = nil; petsPanel.AutoCommon.Activated:Fire()
+    eq(remote.lastServerArgs[1], "ToggleAutoDelete"); eq(remote.lastServerArgs[2], "Common")
+    state.pets.autoDelete = { Common = true }; show()
+    eq(petsPanel.AutoCommon.BackgroundColor3, loadModule("client/ui/Theme").Red)
+    remote.lastServerArgs = nil; petsPanel.ClearUncommon.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    eq(petsPanel.ClearUncommon.Text, "SURE?")
+    petsPanel.ClearUncommon.Activated:Fire()
+    eq(remote.lastServerArgs[1], "DeleteRarity"); eq(remote.lastServerArgs[2], "Uncommon")
+    eq(petsPanel.ClearUncommon.Text, "UNCOMMON")
+    eq(petsPanel.Merge.MergeButton.Visible, false)
+    state.pets.mergeable = { { type = "SaltShaker", name = "Salt Shaker", count = 6, rank = 1 }, { type = "PaperCup", name = "Paper Cup", count = 5, rank = 1 } }
+    show()
+    eq(petsPanel.Merge.MergeButton.Visible, true)
+    eq(petsPanel.Merge.MergeText.Text, "Merge 5 Salt Shaker into a Golden Salt Shaker (2x bonus)  ·  +1 more")
+    remote.lastServerArgs = nil; petsPanel.Merge.MergeButton.Activated:Fire()
+    eq(remote.lastServerArgs[1], "MergePets"); eq(remote.lastServerArgs[2], "SaltShaker")
+    state.pets.mergeable = {}; show(); eq(petsPanel.Merge.MergeButton.Visible, false)
+    -- An auto-deleted spin names the pet without adding it.
+    state.spin = { serial = 5000, type = "CrinkleFry", autoDeleted = true }; show()
+    eq(gui.GachaPanel.Result.PetName.Text, "Auto-deleted Crinkle Fry")
+    state.spin = nil
+    -- Settings stay available before claiming; pet tools do not.
+    state.hasStation = false; show()
+    gui.SettingsButton.Activated:Fire(); eq(settings.Visible, true)
+    remote.lastServerArgs = nil; petsPanel.AutoCommon.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    settings.Close.Activated:Fire()
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
 end)
 

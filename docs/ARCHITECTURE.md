@@ -1,4 +1,4 @@
-# Architecture: core loop, upgrades, rebirth, and pets
+# Architecture
 
 ## Dependency direction
 
@@ -21,6 +21,7 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | shared/config/Rebirth | Rebirth threshold curve and gem rewards |
 | shared/config/Pets | Pet types, rarities, bonuses, inventory size, and equip slots |
 | shared/config/Machines | Gacha machines as data: price, odds, pet pool, and pity |
+| shared/config/Settings | Setting names, hints, and defaults |
 | shared/config/Runtime | Server, replication, and persistence settings |
 | shared/config/Actions | Closed action vocabulary and each action's allowed argument |
 | shared/domain/Profile | Core defaults and validation, including upgradeLevels, gems, and rebirths; one-time migration of pre-gem saves; v1 save compatibility |
@@ -28,7 +29,8 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | shared/domain/Upgrades | Gem upgrade costs, purchases, and server-computed shop rows |
 | shared/domain/Rebirth | Threshold, reward, and the rebirth reset |
 | shared/domain/Gacha | Odds with pity, rolls from an injected random source, and spins |
-| shared/domain/Pets | Owned pets, unique IDs, equipping, deleting, and equipped bonuses |
+| shared/domain/Pets | Owned pets, unique IDs, equipping, deleting, Golden merges, bulk delete, auto-delete, and equipped bonuses |
+| shared/domain/Settings | Saved settings with defaults |
 | shared/domain/Packing | Fill a bag and execute a sale |
 | shared/util/Copy | Deep-copy saved tables |
 | shared/util/RateLimiter | Bound per-player request frequency |
@@ -51,11 +53,14 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | client/ui/GachaView | SPIN button and machine panel; displays odds, pity, and results, and requests spins |
 | client/ui/PetsView | PETS button and inventory panel; requests equip, unequip, and delete |
 | client/ui/PetText | Shared pet bonus text and rarity colors |
+| client/ui/SettingsView | Gear button and settings panel; requests setting toggles |
+| client/ui/PetModels | Code-built cartoon pet models |
+| client/ui/PetFollower | Draws every player's equipped pets locally from the FollowPets attribute and moves them each frame |
 | client/ui/Theme and Elements | Shared UI styling and widgets |
 
 ## Remote contract
 
-Clients send Action:FireServer(actionName), or one validated argument for Upgrade (a track name), Spin (a machine name), and Equip, Unequip, and DeletePet (a pet ID such as "P12"). Every other action rejects any argument.
+Clients send Action:FireServer(actionName), or one validated argument for Upgrade (a track name), Spin (a machine name), Equip, Unequip, and DeletePet (a pet ID such as "P12"), MergePets (a pet type), DeleteRarity and ToggleAutoDelete (Common, Uncommon, or Rare), and ToggleSetting (a setting name). Every other action rejects any argument.
 
 | Action | Server rule |
 | --- | --- |
@@ -65,6 +70,10 @@ Clients send Action:FireServer(actionName), or one validated argument for Upgrad
 | Rebirth | Claimed restaurant and Cash >= threshold; two-second cooldown; reset Cash and the bag, add gems, and count the rebirth together |
 | Spin | Claimed restaurant, a known machine, enough Cash, and inventory space; short cooldown; deduct, roll on the server, add the pet, and update pity together. The spin's snapshot carries the result |
 | Equip / Unequip / DeletePet | Claimed restaurant and an owned pet; at most 3 equipped; only unequipped pets can be deleted; trims an over-full bag |
+| MergePets | Claimed restaurant and a pet type with 5 unequipped non-golden copies; replaces them with one Golden pet |
+| DeleteRarity | Claimed restaurant and Common, Uncommon, or Rare; deletes all unequipped non-golden pets of it |
+| ToggleAutoDelete | Claimed restaurant and Common, Uncommon, or Rare |
+| ToggleSetting | A known setting name; allowed before claiming |
 | Return | Teleport to the player's assigned station |
 | Sync | Send the player's private snapshot |
 
@@ -74,14 +83,18 @@ Players reserve one of six admission slots before data loading, but receive no r
 
 Retired feature requests and unknown names are rejected before dispatch. Clients cannot supply prices, levels, quantities, Cash deltas, equipment, or other player IDs. General rate limits apply before dispatch; packing has a separate four-per-second limit.
 
+## Following pets
+
+SnapshotService sets a public `FollowPets` attribute on each Player whenever it sends a snapshot: the equipped pet types in slot order, comma-separated, with `*` after Golden pets (for example `FryKing*,MayoJar`), or empty when Pets follow me is off. Each client's PetFollower reads the attribute for every player, builds code-made models once per change, and positions them each render frame behind the character. Nothing is sent per frame, the models are local, non-colliding, and non-queryable, and Show other players' pets only filters what that client draws.
+
 ## Transactions and persistence
 
 Filling, selling, upgrade purchases, rebirth, spins, and pet changes do not yield. A sale reads a full bag, credits Cash and lifetime counters, and replaces it with an empty bag before another request runs.
 
 DataStore writes remain serialized per profile with ownership tokens and bounded retries. Repeating a request after a lost response recognizes an already-committed write. Autosaves renew the lease. If safe ownership cannot be maintained, the session is disconnected. Load failures do not create writable default progress.
 
-Version 1 core fields are version, cash, sales, lifetimeCash, and bag.fries, plus optional upgradeLevels (track name -> whole level), gems, rebirths, pets (list of {id, type, machine}), equippedPets (list of owned IDs), nextPetId, and pity (machine -> count); missing means none. The pet fields use new names because the old prototype already stored an `equipped` equipment table. Unknown pet types or machines, duplicate or malformed IDs, more than 50 pets, more than 3 or unowned equipped pets, and out-of-range pity make a profile invalid. Bag size is only sanity-checked; Profile.normalize trims it to the current capacity on load so balance changes cannot make saves unloadable. Unknown track names or invalid levels make a profile invalid, so it is not loaded or saved. Keeping version 1 was agreed because there are no live players yet. DataService runs Profile.migrate once after each load: a save without `gems` predates gems, so its Cash-bought upgrade levels reset to 0 (owner decision, 16 October 2026) and its bag is trimmed to base capacity. Existing profiles may also contain inactive fields from the earlier prototype; storage preserves them, but runtime rules and snapshots ignore them. No equipment selection or bonus state is created for new players. New fields or incompatible formats in future iterations require an explicit compatibility decision.
+Version 1 core fields are version, cash, sales, lifetimeCash, and bag.fries, plus optional upgradeLevels (track name -> whole level), gems, rebirths, pets (list of {id, type, machine}), equippedPets (list of owned IDs), nextPetId, pity (machine -> count), settings (name -> boolean), and autoDelete (rarity -> true); a pet may carry golden = true. Missing means none or defaults. The pet fields use new names because the old prototype already stored an `equipped` equipment table. Unknown pet types or machines, duplicate or malformed IDs, more than 50 pets, more than 3 or unowned equipped pets, and out-of-range pity make a profile invalid. Bag size is only sanity-checked; Profile.normalize trims it to the current capacity on load so balance changes cannot make saves unloadable. Unknown track names or invalid levels make a profile invalid, so it is not loaded or saved. Keeping version 1 was agreed because there are no live players yet. DataService runs Profile.migrate once after each load: a save without `gems` predates gems, so its Cash-bought upgrade levels reset to 0 (owner decision, 16 October 2026) and its bag is trimmed to base capacity. Existing profiles may also contain inactive fields from the earlier prototype; storage preserves them, but runtime rules and snapshots ignore them. No equipment selection or bonus state is created for new players. New fields or incompatible formats in future iterations require an explicit compatibility decision.
 
 ## Iteration boundary
 
-Follow the AGILE workflow in README.md. Current work is Increment 3, the first Cash gacha machine. Preserve base rates and prices; the fryer rate stays fixed. Keep fryer name tags absent in future changes too. Do not add pets following the player, merging, auto-delete, more machines, rebirth unlocks, placeholder feature modules, or speculative frameworks ahead of their agreed increment.
+Follow the AGILE workflow in README.md. Stages 4 (following pets) and 5 (inventory management) are built and awaiting review; the visual overhaul comes next. Preserve base rates and prices; the fryer rate stays fixed. Keep fryer name tags absent in future changes too. Do not add more machines, rebirth unlocks, Robux purchases, placeholder feature modules, or speculative frameworks ahead of their agreed increment.
