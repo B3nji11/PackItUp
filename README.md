@@ -14,7 +14,9 @@ Develop in small, reviewable iterations. Prove the basic functionality works bef
 4. Review the playable result with the project owner and use their feedback to choose the next increment.
 5. Keep the game playable after every iteration. Fix core-loop failures before expanding scope.
 
-**Current iteration: Increment 1 — upgrade shop.** Agreed with the project owner on 8 October 2026. Players spend Cash on three upgrade tracks: fries per click, money per fry, and bag capacity. The acceptance criteria are in **Planned expansion > Increment 1 acceptance criteria** below. Tokens, gacha, pets, inventory, and Robux are not part of this iteration.
+**Current iteration: Increment 2 — gems and rebirth.** Agreed with the project owner on 16 October 2026. Players rebirth at a rising Cash threshold to earn gems, and the upgrade shop now costs gems. The acceptance criteria are in **Planned expansion > Increment 2 acceptance criteria** below. Gacha, pets, inventory, and Robux are not part of this iteration.
+
+**Completed iteration: Increment 1 — upgrade shop.** Accepted 8 October 2026. Players spend Cash on fries per click, money per fry, and bag capacity; see **Planned expansion > Increment 1 acceptance criteria**.
 
 **Completed iteration: UI/UX polish.** Accepted by the project owner on 8 October 2026, after the world lighting was dimmed.
 
@@ -36,7 +38,7 @@ Develop in small, reviewable iterations. Prove the basic functionality works bef
 - Players' Cash and bags remain independent; teleport returns each player to their own counter.
 - Automated checks pass, Studio desktop/mobile and two-player checks pass, and the project owner reviews the result.
 
-Automated checks alone do not finish an iteration. The upgrade shop needs Studio playtesting and owner review. **Do not start Increment 2 (tokens and gacha) until the upgrade shop has been accepted.**
+Automated checks alone do not finish an iteration. The gems and rebirth increment needs Studio playtesting and owner review. **Do not start Increment 3 (the first gacha machine) until it has been accepted.**
 
 Folding, Upgrades, Delivery, Index, and Inventory have been removed from the running game and source modules. Their connected bonus systems—Tickets, random fry variants, discovery rewards, order rewards, and Lunch Rush—are also outside this iteration. They are possible future backlog items, not a commitment to implement them. The exception is the upgrade, gacha, and inventory design agreed in **Planned expansion** below, which replaces the old Upgrades and Inventory and is planned for later increments. There are no placeholder menus or active background rewards for these systems.
 
@@ -46,15 +48,29 @@ Folding, Upgrades, Delivery, Index, and Inventory have been removed from the run
 
 ## Planned expansion: progression (backlog)
 
-Agreed with the project owner on 8 October 2026 as the direction for progression. **This is backlog, not the current iteration.** Start it only after the UI/UX polish iteration is accepted, and build it in the small increments listed below. Numbers here are starting points for tuning, not commitments.
+First agreed with the project owner on 8 October 2026 and revised on 16 October 2026 to a **Cash, gems, and rebirth** loop. Build it in the small increments listed below. Numbers here are starting points for tuning, not commitments.
+
+### The progression loop
+
+1. Players earn **Cash** by packing and selling fries.
+2. Cash is spent on **gacha spins** for pets, or saved to **rebirth**.
+3. Rebirth converts Cash into **Gems**.
+4. Gems buy **upgrades** (fries per click, money per fry, bag capacity).
+5. Pets and upgrades both increase Cash income, so the next rebirth comes sooner.
 
 ### Agreed decisions
 
-- **Money per fry, not money per bag.** A bag sells for *bag capacity x money per fry*. This is already live: $0.50 per fry x 20 fries = $10 per bag. Without it, a bigger bag would mean more clicks for the same Cash.
-- **Two systems with separate jobs.** The upgrade shop raises *base* values with Cash. The gacha gives *percentage multipliers* on top.
+- **Two currencies: Cash and Gems.** Cash is the existing currency and keeps its name (the owner sometimes calls it coins). Gems replace the earlier "Fry Tokens" idea.
+- **Gems come from rebirth only** and are spent on upgrades. The upgrade shop moves from Cash to gems.
+- **Cash is the gacha currency.** Cash is easy to earn, so players can spin as often as they can afford.
+- **Rebirth resets Cash and the current bag only.** Gems, upgrade levels, pets, and the rebirth count are kept.
+- **Rebirth resets all Cash,** not just the threshold amount. Cash above the threshold are lost, so players are encouraged to spin before rebirthing.
+- **The first rebirth threshold is $1,000** and rises with each rebirth. It can be retuned after playtesting.
+- **Each gacha machine has a fixed Cash price per spin.** Better machines with better pets will come in future updates, later tied to worlds as in Pet Simulator.
+- **Money per fry, not money per bag.** A bag sells for *bag capacity x money per fry* ($0.50 x 20 = $10 before upgrades). Already live.
 - **The gacha gives pets**, which need an inventory system.
 - **Free to play first.** Robux purchases come in a later, separately agreed increment.
-- **The basic fryer's automatic rate stays fixed** at 0.5 fries per second. It is not an upgradeable stat.
+- **The basic fryer's automatic rate stays fixed** at 0.5 fries per second.
 
 ### The three progression stats
 
@@ -66,22 +82,35 @@ Agreed with the project owner on 8 October 2026 as the direction for progression
 
 Effective value = (base + upgrade levels) x (1 + total equipped pet bonus for that stat). Pet bonuses for the same stat add together; upgrades and pets multiply. Sale values are rounded down to whole Cash; money per fry is stored in cents to keep sums exact.
 
-### Upgrade system (Cash)
+### Rebirth (gems)
 
-A shop with one upgrade track per stat. It is predictable and always available, with cost rising each level: cost = base cost x growth^level.
+- A **REBIRTH** button shows the current threshold and the gems it will give. It is enabled only when Cash >= threshold.
+- Threshold = 1,000 x 1.6^(rebirths so far): $1,000, $1,600, $2,560, ...
+- Gems per rebirth = 10 + 5 x (rebirths so far): 10, 15, 20, ...
+- Rebirth sets Cash to 0 and empties the bag. Lifetime Cash and sales counters are kept.
 
-| Upgrade | Per level | Starting cost formula |
+### Upgrade system (gems)
+
+The same three tracks as Increment 1, now bought with gems. Upgrades are permanent and survive rebirth.
+
+| Upgrade | Per level | Gem cost |
 | --- | --- | --- |
-| Fries per click | +1 fry per click | 25 x 1.18^level |
-| Money per fry | +$0.05 per fry | 40 x 1.20^level |
-| Bag capacity | +5 fries | 50 x 1.25^level |
+| Fries per click | +1 fry per click | 3 x 1.25^level |
+| Money per fry | +$0.05 per fry | 4 x 1.25^level |
+| Bag capacity | +5 fries | 5 x 1.25^level |
 
-The first upgrade costs about 2-3 bags. The server validates every purchase; clients only request an upgrade by name.
+**Balance check (16 October 2026).** A simulation of an active player (4 clicks per second, about 1 second per sale, spending gems on the best-value upgrade, no pets) gave:
+- about 9 minutes to the first rebirth;
+- 7-11 minutes for each of rebirths 2-5;
+- cycles of 15-25 minutes by rebirths 6-8.
+
+Real players click more slowly, so real times will be longer. Pets will shorten the later cycles. Retune after playtesting.
 
 ### Gacha system (pets)
 
-- **Currency: Fry Tokens (working name).** A second currency earned by playing: for example 1 token per bag sold, plus bonus tokens at milestones. Pulls are paced by play, not by Cash inflation, and the gacha never competes with the upgrade shop for Cash.
+- **Currency: Cash.** Each machine has a fixed Cash price per spin. The first machine's price is to be agreed in its increment.
 - **Reward: Fry Buddies (working name).** Collectible companions that follow the player around the plaza. Each one gives one percentage bonus to one stat (fries per click, money per fry, or bag capacity).
+- **Machines are data.** Each machine is a config entry (price, pet pool, odds), and each pet records which machine it came from. New machines in future updates are added as data, not new systems.
 - **Rarity table (starting point):**
 
 | Rarity | Chance | Example bonus |
@@ -92,29 +121,33 @@ The first upgrade costs about 2-3 bags. The server validates every purchase; cli
 | Epic | 4% | +40% |
 | Legendary | 1% | +75%, or two stats |
 
-- **Pity:** a guaranteed Epic or better within 50 pulls. The pity counter is saved per player.
-- **Odds are shown in game** from the start. Roblox requires this once pulls can be bought with Robux, and it builds trust before then.
-- All rolls are resolved on the server. Clients send a roll request only; they never choose or report results.
-- **Later:** merging duplicates (for example 5 of the same pet into a Golden version with double the bonus), more machines, and Robux purchases.
+- **Pity:** a guaranteed Epic or better within 50 spins. The pity counter is saved per player.
+- **Odds are shown in game** from the start. Roblox requires this once spins can be bought with Robux, and it builds trust before then.
+- All rolls are resolved on the server. Clients send a spin request only; they never choose or report results.
+- Cheap, frequent spins fill inventories fast and hand out the best pets quickly. Inventory limits, bulk delete, auto-delete by rarity, and merging duplicates (for example 5 of the same pet into a Golden version) give extra pets a use and players a long-term goal.
 
 ### Inventory system (pets)
 
-- Each owned pet is saved with a unique ID, pet type, and rarity (and later a Golden flag).
+- Each owned pet is saved with a unique ID, pet type, rarity, and source machine (and later a Golden flag).
 - Players equip a limited number of pets (start with 3 slots). Only equipped pets give bonuses and follow the player.
-- Inventory has a capacity limit (for example 50 pets), with a way to delete unwanted pets to make space.
+- Inventory has a capacity limit (for example 50 pets), with ways to delete unwanted pets.
 - An inventory screen shows owned pets, their bonuses, and which are equipped.
 
 ### Delivery increments
 
 Each increment follows the AGILE workflow above: agreed acceptance criteria, tests, a Studio playtest, and owner review before the next one.
 
-1. **Upgrade shop.** Three Cash upgrades, saved upgrade levels, and the shop UI.
-2. **Tokens and one gacha machine.** Token earning, about 10 pets, server-side rolls with pity, odds display, and a basic inventory list.
-3. **Equipping.** Equip slots, pet bonuses applied to stats, and pets following the player.
-4. **Merging and inventory management.** Duplicates to Golden, deleting pets, and inventory limits.
-5. **Robux** (later, separately agreed). Paid token packs or pulls, with odds disclosed.
+1. **Upgrade shop.** Done: accepted 8 October 2026, using Cash.
+2. **Gems and rebirth.** Gem balance, the rebirth button and threshold, and the upgrade shop switched to gems.
+3. **First Cash gacha machine.** About 10 pets, server-side rolls with pity, odds display, and a basic inventory list.
+4. **Equipping.** Equip slots, pet bonuses applied to stats, and pets following the player.
+5. **Inventory management.** Merging duplicates to Golden, deleting pets, auto-delete, and inventory limits.
+6. **More machines** with better pets, in future updates, later tied to worlds.
+7. **Robux** (later, separately agreed). Odds disclosed. Selling gems would sell upgrades directly, so decide what is sold with care.
 
-### Increment 1 acceptance criteria: upgrade shop (agreed 8 October 2026)
+### Increment 1 acceptance criteria: upgrade shop (agreed and accepted 8 October 2026)
+
+These criteria were met with Cash as the upgrade currency. Increment 2 changes the currency and costs to gems; the tracks and effects stay the same.
 
 - An **UPGRADES** button on the HUD opens a shop panel on desktop and mobile. Each of the three tracks shows its level, current value -> next value, and cost.
   - Fries per click = 1 + level. Money per fry = $0.50 + $0.05 per level. Bag capacity = 20 + 5 per level.
@@ -127,14 +160,30 @@ Each increment follows the AGILE workflow above: agreed acceptance criteria, tes
 - Done when automated tests (costs, effects, purchases, rejected requests, saving, HUD layout), Studio desktop/mobile and two-player checks pass, and the owner reviews the result.
 - Not included: tokens, gacha, pets, inventory, Robux, buying several levels at once.
 
-Each saved field added here (upgrade levels, tokens, pets, pity) needs an explicit profile-compatibility decision, as described in docs/ARCHITECTURE.md. Inactive fields from the earlier prototype must not be reused by accident.
+
+### Increment 2 acceptance criteria: gems and rebirth (agreed 16 October 2026)
+
+- A **Gems** row is added to the Cash card and shows the gem balance. New profiles start with 0 gems.
+- A **REBIRTH** button opens a confirmation showing the threshold, the gems it gives, and what resets (Cash and the current bag) and what is kept (gems, upgrades, rebirth count). It is greyed out below the threshold.
+- Threshold = 1,000 x 1.6^rebirths; gems per rebirth = 10 + 5 x rebirths; both rounded to whole numbers.
+- The client sends only the rebirth request. The server checks the claim and that Cash >= threshold, then in one non-yielding step sets Cash to 0, empties the bag, adds the gems, and increases the rebirth count by one. A rapid repeat cannot rebirth twice.
+- The upgrade shop costs gems: 3, 4, and 5 x 1.25^level. Unaffordable upgrades are greyed out. Upgrade levels survive rebirth.
+- Gems and rebirth count save and load. A missing field means 0.
+- Done when automated tests (formulas, rebirth reset and rewards, gem purchases, rejected requests, saving, HUD layout), Studio desktop/mobile and two-player checks pass, and the owner reviews the result.
+- Not included: gacha, pets, inventory, rebirth unlocks, Robux.
+
+Agreed details (16 October 2026):
+- The currency keeps the name **Cash** in game.
+- Upgrade levels bought with Cash in existing test saves **reset to 0** (there are no live players). Saves made before gems existed load with 0 gems, 0 rebirths, and level 0 upgrades; a bag above base capacity is trimmed to 20 fries.
+
+Each saved field added here (upgrade levels, gems, rebirths, pets, pity) needs an explicit profile-compatibility decision, as described in docs/ARCHITECTURE.md. Inactive fields from the earlier prototype must not be reused by accident.
 
 ### Open questions
 
-- Final names for the token currency and pets.
-- Token earning rate and milestone rewards.
+- Final names for the pets.
+- The first machine's spin price.
+- Whether rebirth count unlocks anything (for example, extra pet slots or machines) before worlds exist.
 - Whether upgrade tracks have level caps.
-- Whether a rebirth/prestige layer is added later.
 
 ## Open and play
 
@@ -143,10 +192,10 @@ Each saved field added here (upgrade levels, tokens, pets, pity) needs an explic
 3. Walk to a free restaurant entrance and press **E**, or tap the entrance prompt on touch devices. Claiming puts you at its counter.
 4. Hold or tap the gold packing button at the bottom centre. It displays **+1 fry/click** and changes to **CLICK** on hover or selection, with the fries-per-click value shown underneath. Its packing hint stays visible for touch users.
 5. The adjacent button shows **fries / capacity** and a progress bar. When full, it turns green and reads **SELL BAG +$10** (more after upgrades). Selling requires proximity to your own counter.
-6. After claiming, press **UPGRADES** below the Cash card (top right on short landscape screens) to open the shop. Buy a level with its Cash button; unaffordable upgrades are greyed out.
+6. After claiming, use **UPGRADES** and **REBIRTH** below the Cash card (stacked at the top right on short landscape screens). Rebirth when you reach the Cash threshold ($1,000 at first): it resets your Cash and current bag and gives gems. Spend gems in the upgrade shop; unaffordable upgrades are greyed out.
 7. Use **RETURN TO COUNTER** at the top to return to your claimed restaurant. It is disabled before you claim.
 
-Desktop shortcuts: **E** to claim, **F** to pack, and **R** to sell. E is reserved for proximity claiming so it cannot accidentally sell a bag. Touch users have permanent on-screen buttons. The upgrade shop is the only menu; there is no folding shortcut or equipment selection.
+Desktop shortcuts: **E** to claim, **F** to pack, and **R** to sell. E is reserved for proximity claiming so it cannot accidentally sell a bag. Touch users have permanent on-screen buttons. The upgrade shop and rebirth panel are the only menus; there is no folding shortcut or equipment selection.
 
 Studio uses explicitly labelled **memory-only test mode** by default. Stopping the test resets this mode's progress. This lets an unpublished place run without DataStore permissions.
 
@@ -167,7 +216,8 @@ If the restaurant is still absent after pressing Play, check Studio's Output win
 - Six player-chosen restaurant plots with identical basic fryers and bags, separate entrances, and a shared central plaza.
 - Click/hold input and basic online automatic filling.
 - One bag at a time, sold at capacity x money per fry (20 fries x $0.50 = $10 before upgrades).
-- An upgrade shop with three Cash tracks: fries per click, money per fry, and bag capacity.
+- Rebirth at a rising Cash threshold for gems, shown with Cash on the wallet card.
+- An upgrade shop with three gem tracks: fries per click, money per fry, and bag capacity.
 - Cash display, fry progress, feedback, and return-to-counter teleport.
 - Server-side validation, input rate limits, and bounded Cash.
 - Existing profile validation, session locking, retries, autosaves, disconnect saves, and shutdown saves.

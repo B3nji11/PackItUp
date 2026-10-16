@@ -23,7 +23,7 @@
             <string name="Name">Actions</string>
             <ProtectedString name="Source">-- Only these actions are accepted. "none" takes no client argument; "upgrade" takes
 -- exactly one upgrade track name, which the server validates.
-return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "none", Upgrade = "upgrade" })
+return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "none", Rebirth = "none", Upgrade = "upgrade" })
 </ProtectedString>
           </Properties>
         </Item>
@@ -45,6 +45,20 @@ return table.freeze({
         </Item>
         <Item class="ModuleScript" referent="RBX00006">
           <Properties>
+            <string name="Name">Rebirth</string>
+            <ProtectedString name="Source">-- Rebirth balance. Threshold = BaseThreshold x Growth ^ rebirths (rounded, in Cash).
+-- Gems = BaseGems + GemsPerRebirth x rebirths. Rebirth resets Cash and the current bag only.
+return table.freeze({
+    BaseThreshold = 1000,
+    Growth = 1.6,
+    BaseGems = 10,
+    GemsPerRebirth = 5,
+})
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00007">
+          <Properties>
             <string name="Name">Runtime</string>
             <ProtectedString name="Source">return table.freeze({
     StationCount = 6,
@@ -62,16 +76,16 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00007">
+        <Item class="ModuleScript" referent="RBX00008">
           <Properties>
             <string name="Name">Upgrades</string>
-            <ProtectedString name="Source">-- Cash upgrade tracks, in shop order. Cost = round(BaseCost x Growth ^ level).
+            <ProtectedString name="Source">-- Gem upgrade tracks, in shop order. Cost in gems = round(BaseCost x Growth ^ level).
 -- Each level adds Step to the track's base value in Economy. There are no level caps;
 -- MaxLevel only bounds saved data, far beyond any affordable level.
 local Tracks = {
-    FriesPerClick = table.freeze({ Name = "Fries per click", BaseCost = 25, Growth = 1.18, Step = 1 }),
-    MoneyPerFry = table.freeze({ Name = "Money per fry", BaseCost = 40, Growth = 1.20, Step = 5 }), -- cents
-    BagCapacity = table.freeze({ Name = "Bag capacity", BaseCost = 50, Growth = 1.25, Step = 5 }),
+    FriesPerClick = table.freeze({ Name = "Fries per click", BaseCost = 3, Growth = 1.25, Step = 1 }),
+    MoneyPerFry = table.freeze({ Name = "Money per fry", BaseCost = 4, Growth = 1.25, Step = 5 }), -- cents
+    BagCapacity = table.freeze({ Name = "Bag capacity", BaseCost = 5, Growth = 1.25, Step = 5 }),
 }
 return table.freeze({
     Order = table.freeze({ "FriesPerClick", "MoneyPerFry", "BagCapacity" }),
@@ -82,11 +96,11 @@ return table.freeze({
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00008">
+      <Item class="Folder" referent="RBX00009">
         <Properties>
           <string name="Name">domain</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00009">
+        <Item class="ModuleScript" referent="RBX00010">
           <Properties>
             <string name="Name">Packing</string>
             <ProtectedString name="Source">local Pricing = require(script.Parent.Pricing)
@@ -112,7 +126,7 @@ return Packing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00010">
+        <Item class="ModuleScript" referent="RBX00011">
           <Properties>
             <string name="Name">Pricing</string>
             <ProtectedString name="Source">-- Effective stats from base values plus Cash upgrade levels. Old prototype fields
@@ -140,7 +154,7 @@ return Pricing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00011">
+        <Item class="ModuleScript" referent="RBX00012">
           <Properties>
             <string name="Name">Profile</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
@@ -149,19 +163,23 @@ local Pricing = require(script.Parent.Pricing)
 local Profile = {}
 function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
-    return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(), upgradeLevels = {} }
+    return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(),
+        upgradeLevels = {}, gems = 0, rebirths = 0 }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value &gt;= low and value &lt;= high
         and (not integer or value % 1 == 0)
 end
--- Version 1 core fields, plus optional upgradeLevels (a missing field or track means level 0).
+-- Version 1 core fields, plus optional upgradeLevels, gems, and rebirths (missing means 0).
 -- Extra fields from the earlier prototype, such as `upgrades`, stay in storage but are
 -- never used or sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end
     for _, key in ipairs({ "cash", "sales", "lifetimeCash" }) do
         if not numberIn(p[key], 0, Economy.MaxCurrency, true) then return false end
+    end
+    for _, key in ipairs({ "gems", "rebirths" }) do
+        if p[key] ~= nil and not numberIn(p[key], 0, Economy.MaxCurrency, true) then return false end
     end
     if p.upgradeLevels ~= nil then
         if type(p.upgradeLevels) ~= "table" then return false end
@@ -173,14 +191,56 @@ function Profile.validate(p)
     end
     return type(p.bag) == "table" and numberIn(p.bag.fries, 0, Pricing.capacity(p), false)
 end
+-- Saves from before gems existed (no `gems` field) bought upgrades with Cash. The owner
+-- chose to reset those levels to 0 (16 Oct 2026, no live players). Runs once per save,
+-- after a validated load; returns true when it changed the profile.
+function Profile.migrate(p)
+    if p.gems ~= nil then return false end
+    p.gems, p.rebirths, p.upgradeLevels = 0, 0, {}
+    p.bag.fries = math.min(p.bag.fries, Pricing.capacity(p))
+    return true
+end
 return Profile
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00012">
+        <Item class="ModuleScript" referent="RBX00013">
+          <Properties>
+            <string name="Name">Rebirth</string>
+            <ProtectedString name="Source">-- Rebirth: convert Cash into gems at a rising threshold. Pure rules: no Instances,
+-- messages, or DataStores. Gems, upgrade levels, and the rebirth count are kept.
+local Config = require(script.Parent.Parent.config.Rebirth)
+local Economy = require(script.Parent.Parent.config.Economy)
+local Profile = require(script.Parent.Profile)
+local Rebirth = {}
+function Rebirth.count(p) return if type(p.rebirths) == "number" then p.rebirths else 0 end
+function Rebirth.threshold(p)
+    return math.floor(Config.BaseThreshold * Config.Growth ^ Rebirth.count(p) + 0.5)
+end
+function Rebirth.reward(p) return Config.BaseGems + Config.GemsPerRebirth * Rebirth.count(p) end
+function Rebirth.ready(p) return p.cash &gt;= Rebirth.threshold(p) end
+-- One non-yielding step: reset Cash and the bag, add gems, count the rebirth.
+function Rebirth.perform(p)
+    local threshold = Rebirth.threshold(p)
+    if p.cash &lt; threshold then return false, "Reach the rebirth threshold first." end
+    local gems = Rebirth.reward(p)
+    p.cash = 0
+    p.bag = Profile.emptyBag()
+    p.gems = math.min(Economy.MaxCurrency, (p.gems or 0) + gems)
+    p.rebirths = Rebirth.count(p) + 1
+    return true, gems
+end
+function Rebirth.snapshot(p)
+    return { count = Rebirth.count(p), threshold = Rebirth.threshold(p), reward = Rebirth.reward(p), ready = Rebirth.ready(p) }
+end
+return Rebirth
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00014">
           <Properties>
             <string name="Name">Upgrades</string>
-            <ProtectedString name="Source">-- Cash upgrade purchases. Pure rules: no Instances, messages, or DataStores.
+            <ProtectedString name="Source">-- Gem upgrade purchases. Pure rules: no Instances, messages, or DataStores.
 local Config = require(script.Parent.Parent.config.Upgrades)
 local Pricing = require(script.Parent.Pricing)
 local Upgrades = {}
@@ -202,8 +262,9 @@ function Upgrades.buy(p, id)
     local level = Pricing.level(p, id)
     if level &gt;= Config.MaxLevel then return false, "That upgrade is maxed out." end
     local cost = Upgrades.cost(id, level)
-    if p.cash &lt; cost then return false, "Not enough Cash for this upgrade." end
-    p.cash -= cost
+    local gems = if type(p.gems) == "number" then p.gems else 0
+    if gems &lt; cost then return false, "Not enough gems for this upgrade." end
+    p.gems = gems - cost
     if type(p.upgradeLevels) ~= "table" then p.upgradeLevels = {} end
     p.upgradeLevels[id] = level + 1
     return true, cost
@@ -225,11 +286,11 @@ return Upgrades
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00013">
+      <Item class="Folder" referent="RBX00015">
         <Properties>
           <string name="Name">util</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00014">
+        <Item class="ModuleScript" referent="RBX00016">
           <Properties>
             <string name="Name">Copy</string>
             <ProtectedString name="Source">local function copy(value)
@@ -242,7 +303,7 @@ return copy
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00015">
+        <Item class="ModuleScript" referent="RBX00017">
           <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
@@ -268,15 +329,15 @@ return RateLimiter
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00016">
+  <Item class="ServerScriptService" referent="RBX00018">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00017">
+    <Item class="Folder" referent="RBX00019">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00018">
+      <Item class="Script" referent="RBX00020">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -391,7 +452,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00019">
+      <Item class="ModuleScript" referent="RBX00021">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -417,11 +478,11 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00020">
+      <Item class="Folder" referent="RBX00022">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00021">
+        <Item class="ModuleScript" referent="RBX00023">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -431,6 +492,7 @@ local RateLimiter = require(Shared.util.RateLimiter)
 local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
 local Upgrades = require(Shared.domain.Upgrades)
+local Rebirth = require(Shared.domain.Rebirth)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -468,7 +530,7 @@ function ActionService:handle(player, action, argument)
         if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
-    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 else 1
+    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 elseif action == "Rebirth" then 2 else 1
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now &lt; (cooldowns[action] or 0) then return end
@@ -481,6 +543,10 @@ function ActionService:handle(player, action, argument)
         -- Purchase and level change happen in one non-yielding step.
         local ok, result = Upgrades.buy(p, argument)
         if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
+    elseif action == "Rebirth" then
+        -- Cash, bag, gems, and count change together in one non-yielding step.
+        local ok, result = Rebirth.perform(p)
+        if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
     end
     self.snapshots:send(player)
 end
@@ -488,7 +554,7 @@ return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00022">
+        <Item class="ModuleScript" referent="RBX00024">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -521,6 +587,7 @@ function DataService:load(player)
     local data, expires
     if self.volatile then data, expires = Profile.new(), math.huge
     else data, expires = self.repository:load(key, token) end
+    if data then Profile.migrate(data) end
     if not data then
         self.loading[player] = nil
         warn("[Fries] Load failed for", player.UserId, expires)
@@ -591,12 +658,13 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00023">
+        <Item class="ModuleScript" referent="RBX00025">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Pricing = require(Shared.domain.Pricing)
 local Upgrades = require(Shared.domain.Upgrades)
+local Rebirth = require(Shared.domain.Rebirth)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
 function SnapshotService.new(data, stations, network)
@@ -606,18 +674,19 @@ function SnapshotService:send(player)
     local p = self.data:get(player)
     if not p or not player.Parent then return end
     self.network.State:FireClient(player, {
-        profile = { cash = p.cash, sales = p.sales, bag = { fries = p.bag.fries } },
+        profile = { cash = p.cash, gems = p.gems or 0, sales = p.sales, bag = { fries = p.bag.fries } },
         hasStation = self.stations:hasStation(player), nearStation = self.stations:near(player), volatile = self.data.volatile,
         stats = { perClick = Pricing.click(p), perSecond = Pricing.automatic(), perFry = Pricing.perFry(p),
             capacity = Pricing.capacity(p), saleValue = Pricing.sale(p) },
         shop = Upgrades.snapshot(p),
+        rebirth = Rebirth.snapshot(p),
     })
 end
 return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00024">
+        <Item class="ModuleScript" referent="RBX00026">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -687,11 +756,11 @@ return StationService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00025">
+      <Item class="Folder" referent="RBX00027">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00026">
+        <Item class="ModuleScript" referent="RBX00028">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -776,11 +845,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00027">
+      <Item class="Folder" referent="RBX00029">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00028">
+        <Item class="ModuleScript" referent="RBX00030">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -817,7 +886,7 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00029">
+        <Item class="ModuleScript" referent="RBX00031">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -883,7 +952,7 @@ return function(parent, index, origin, yaw)
             local light = Instance.new("SurfaceLight")
             light.Name, light.Face = "InteriorLight", Enum.NormalId.Bottom
             light.Color = Color3.fromRGB(255, 244, 225)
-            light.Brightness, light.Range, light.Angle = 1.2, 28, 140
+            light.Brightness, light.Range, light.Angle = 0.8, 28, 140
             light.Shadows, light.Enabled, light.Parent = false, true, panel
         end
     end
@@ -922,7 +991,7 @@ end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00030">
+        <Item class="ModuleScript" referent="RBX00032">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
@@ -1002,19 +1071,19 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00031">
+  <Item class="StarterPlayer" referent="RBX00033">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00032">
+    <Item class="StarterPlayerScripts" referent="RBX00034">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00033">
+      <Item class="Folder" referent="RBX00035">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="LocalScript" referent="RBX00034">
+        <Item class="LocalScript" referent="RBX00036">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -1053,11 +1122,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00035">
+        <Item class="Folder" referent="RBX00037">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00036">
+          <Item class="ModuleScript" referent="RBX00038">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1103,25 +1172,33 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="Folder" referent="RBX00037">
+        <Item class="Folder" referent="RBX00039">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00038">
+          <Item class="ModuleScript" referent="RBX00040">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
 local ShopView = require(script.Parent.ShopView)
+local RebirthView = require(script.Parent.RebirthView)
 local AppView = {}
 AppView.__index = AppView
+-- The wallet card holds Cash (top) and Gems (bottom row).
+local CardHeight, ButtonGap, ButtonHeight = 112, 10, 44
+local function scaledText(label, max)
+    label.TextScaled, label.TextWrapped = true, false
+    local fit = Instance.new("UITextSizeConstraint")
+    fit.MinTextSize, fit.MaxTextSize, fit.Parent = 10, max, label
+end
 function AppView.new(playerGui, send)
     local self = setmetatable({}, AppView)
     local gui = Instance.new("ScreenGui")
     gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "FriesInterface", false, Enum.ZIndexBehavior.Sibling
     gui.Parent = playerGui
-    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, 76), Theme.Background, 18)
+    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, CardHeight), Theme.Background, 18)
     self.cashCard.AnchorPoint = Vector2.new(0, 0.5)
     E.stroke(self.cashCard, Theme.Gold, 2, 0.12)
     local coin = E.box(self.cashCard, "Coin", UDim2.fromOffset(12, 17), UDim2.fromOffset(42, 42), Theme.Gold, 21)
@@ -1132,12 +1209,24 @@ function AppView.new(playerGui, send)
     caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(65, 10), UDim2.fromOffset(140, 18), 11
     self.wallet = E.label(self.cashCard, "$0", 36, Theme.Text)
     self.wallet.Name, self.wallet.Position, self.wallet.Size = "Cash", UDim2.fromOffset(65, 29), UDim2.fromOffset(142, 36)
-    self.wallet.Font, self.wallet.TextSize, self.wallet.TextWrapped = Enum.Font.GothamBold, 27, false
-    self.wallet.TextScaled = true
-    local cashTextSize = Instance.new("UITextSizeConstraint")
-    cashTextSize.MinTextSize, cashTextSize.MaxTextSize, cashTextSize.Parent = 10, 27, self.wallet
+    self.wallet.Font, self.wallet.TextSize = Enum.Font.GothamBold, 27
+    scaledText(self.wallet, 27)
+    local divider = E.box(self.cashCard, "Divider", UDim2.fromOffset(12, 74), UDim2.new(1, -24, 0, 1), Theme.Muted, 0)
+    divider.BackgroundTransparency = 0.7
+    -- A code-built gem: a small rotated square, no texture assets.
+    local gem = E.box(self.cashCard, "GemIcon", UDim2.fromOffset(24, 84), UDim2.fromOffset(18, 18), Theme.Gem, 3)
+    gem.Rotation = 45
+    self.gems = E.label(self.cashCard, "0", 26, Theme.Text)
+    self.gems.Name, self.gems.Position, self.gems.Size = "Gems", UDim2.fromOffset(65, 80), UDim2.new(1, -125, 0, 26)
+    self.gems.Font, self.gems.TextSize = Enum.Font.GothamBold, 20
+    scaledText(self.gems, 20)
+    local gemCaption = E.label(self.cashCard, "GEMS", 18, Theme.Gem)
+    gemCaption.Name, gemCaption.AnchorPoint = "GemCaption", Vector2.new(1, 0)
+    gemCaption.Position, gemCaption.Size, gemCaption.TextSize = UDim2.new(1, -14, 0, 84), UDim2.fromOffset(50, 18), 11
+    gemCaption.TextXAlignment = Enum.TextXAlignment.Right
     self.mode = E.label(gui, "", 20, Theme.Text)
-    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 8), UDim2.fromOffset(220, 20), 10
+    -- Studio-only label in the bottom-left corner, below every control.
+    self.mode.Name, self.mode.Position, self.mode.Size, self.mode.TextSize = "Mode", UDim2.new(0, 16, 1, -18), UDim2.fromOffset(220, 16), 10
     self.teleport = E.button(gui, "RETURN TO COUNTER", function()
         if self.hasStation then send("Return") end
     end, Theme.Background)
@@ -1152,13 +1241,17 @@ function AppView.new(playerGui, send)
     E.corner(self.guidance, 12)
     self.hud = HudView.new(gui, send)
     self.shop = ShopView.new(gui, send)
+    self.rebirth = RebirthView.new(gui, send)
+    -- Opening one panel closes the other so they never stack.
+    self.shop.button.Activated:Connect(function() if self.shop.panel.Visible then self.rebirth:setOpen(false) end end)
+    self.rebirth.button.Activated:Connect(function() if self.rebirth.panel.Visible then self.shop:setOpen(false) end end)
     self:resize(Vector2.new(1280, 720))
     return self
 end
 function AppView:update(state)
     self.hasStation = state.hasStation
     self.wallet.Text = E.money(state.profile.cash)
-    self.wallet.TextSize = if #self.wallet.Text &gt; 12 then 14 elseif #self.wallet.Text &gt; 9 then 19 else 27
+    self.gems.Text = E.count(state.profile.gems or 0)
     self.mode.Text = if state.volatile then "STUDIO TEST / resets on stop" else ""
     self.teleport.Active, self.teleport.Selectable = state.hasStation, state.hasStation
     self.teleport.Text = if state.hasStation then "RETURN TO COUNTER" else "CHOOSE A RESTAURANT"
@@ -1170,6 +1263,7 @@ function AppView:update(state)
     end
     self.hud:update(state)
     self.shop:update(state)
+    self.rebirth:update(state)
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -1185,34 +1279,51 @@ function AppView:resize(viewport)
     local hudScale = math.min(1, (viewport.X - 24) / 392)
     local height = viewport.Y - 60
     local actionTop = height - 22 - 104 * hudScale
-    -- Centre Cash on the left; lift it only when a short screen needs room for actions.
-    -- Outside compact layouts, the UPGRADES button sits below Cash and needs room too.
-    local below = if compact then 0 else ShopView.ButtonGap + ShopView.ButtonHeight
-    local cashOffset = math.min(0, actionTop - 12 - below - 38 - height / 2)
+    local cardWidth = if compact then 172 else 218
+    -- Centre the wallet on the left; lift it only when a short screen needs room for actions.
+    -- Outside compact layouts, the UPGRADES and REBIRTH buttons sit below it and need room too.
+    local below = if compact then 0 else ButtonGap + ButtonHeight
+    local cashOffset = math.min(0, actionTop - 12 - below - CardHeight / 2 - height / 2)
     self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
-    self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
+    self.cashCard.Size = UDim2.fromOffset(cardWidth, CardHeight)
     self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
     self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
+    self.gems.Position = UDim2.fromOffset(if compact then 58 else 65, 80)
     self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 36 else 16)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
+    local shopButton, rebirthButton = self.shop.button, self.rebirth.button
+    if compact then
+        -- Short landscape: stack both buttons at the top right, clear of the actions.
+        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(1, 0), Vector2.new(1, 0)
+        shopButton.Position, rebirthButton.Position = UDim2.new(1, -16, 0, 16), UDim2.new(1, -16, 0, 16 + ButtonHeight + 8)
+        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(112, ButtonHeight), UDim2.fromOffset(112, ButtonHeight)
+    else
+        local half = (cardWidth - 8) / 2
+        local y = cashOffset + CardHeight / 2 + ButtonGap
+        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(0, 0), Vector2.new(0, 0)
+        shopButton.Position, rebirthButton.Position = UDim2.new(0, 16, 0.5, y), UDim2.new(0, 16 + half + 8, 0.5, y)
+        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(half, ButtonHeight), UDim2.fromOffset(half, ButtonHeight)
+    end
+    self.shop:resize(viewport)
+    self.rebirth:resize(viewport)
     self.hud.scale.Scale = hudScale
-    self.shop:resize(viewport, compact, if compact then 172 else 218, cashOffset)
 end
 return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00039">
+          <Item class="ModuleScript" referent="RBX00041">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
 local Elements = {}
-function Elements.money(value)
+function Elements.count(value)
     local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
     local result = string.reverse(grouped):gsub("^,", "")
-    return "$" .. result
+    return result
 end
+function Elements.money(value) return "$" .. Elements.count(value) end
 function Elements.stroke(parent, color, thickness, transparency)
     local stroke = Instance.new("UIStroke")
     stroke.Color, stroke.Thickness, stroke.Transparency = color, thickness, transparency or 0
@@ -1298,7 +1409,7 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00040">
+          <Item class="ModuleScript" referent="RBX00042">
             <Properties>
               <string name="Name">HudView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1404,7 +1515,104 @@ return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00041">
+          <Item class="ModuleScript" referent="RBX00043">
+            <Properties>
+              <string name="Name">RebirthView</string>
+              <ProtectedString name="Source">-- Rebirth: a REBIRTH button and a confirmation panel. The server checks the threshold,
+-- resets Cash and the bag, and awards gems; this view only displays and requests.
+local Theme = require(script.Parent.Theme)
+local E = require(script.Parent.Elements)
+local RebirthView = {}
+RebirthView.__index = RebirthView
+local PanelWidth, PanelHeight = 340, 312
+local function line(parent, name, text, y, height, color, size)
+    local label = E.label(parent, text, height, color)
+    label.Name, label.Position, label.Size, label.TextSize = name, UDim2.fromOffset(20, y), UDim2.fromOffset(PanelWidth - 40, height), size
+    return label
+end
+function RebirthView.new(gui, send)
+    local self = setmetatable({ send = send, hasStation = false, ready = false, count = nil }, RebirthView)
+    self.button = E.button(gui, "REBIRTH", function() self:toggle() end, Theme.Background)
+    self.button.Name, self.button.TextSize, self.button.TextColor3 = "RebirthButton", 13, Theme.Gem
+    self.button.Size = UDim2.fromOffset(105, 44)
+    self.buttonStroke = E.stroke(self.button, Theme.Gem, 1.5, 0.3)
+
+    local panel = E.box(gui, "RebirthPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
+    panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
+    panel.ZIndex = 5 -- above the HUD buttons when open
+    E.stroke(panel, Theme.Gem, 2, 0.12)
+    self.panel = panel
+    self.scale = Instance.new("UIScale")
+    self.scale.Parent = panel
+    local title = line(panel, "Title", "REBIRTH", 14, 28, Theme.Text, 21)
+    title.Font, title.Size = Enum.Font.GothamBold, UDim2.fromOffset(240, 28)
+    local caption = line(panel, "Caption", "Trade your Cash for gems", 42, 16, Theme.Muted, 11)
+    caption.Size = UDim2.fromOffset(240, 16)
+    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
+    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
+    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
+
+    local card = E.box(panel, "Details", UDim2.fromOffset(16, 70), UDim2.fromOffset(PanelWidth - 32, 164), Theme.Card, 14)
+    self.reward = E.label(card, "+10 GEMS", 32, Theme.Gem)
+    self.reward.Name, self.reward.Position, self.reward.Size = "Reward", UDim2.fromOffset(14, 8), UDim2.fromOffset(PanelWidth - 60, 32)
+    self.reward.Font, self.reward.TextSize = Enum.Font.GothamBold, 24
+    self.need = E.label(card, "", 18, Theme.Text)
+    self.need.Name, self.need.Position, self.need.Size, self.need.TextSize = "Need", UDim2.fromOffset(14, 44), UDim2.fromOffset(PanelWidth - 60, 18), 13
+    -- Large amounts shrink to one line instead of wrapping out of the card.
+    self.need.TextScaled, self.need.TextWrapped = true, false
+    local fit = Instance.new("UITextSizeConstraint")
+    fit.MinTextSize, fit.MaxTextSize, fit.Parent = 8, 13, self.need
+    local track
+    track, self.fill = E.bar(card, Theme.Gem, 8)
+    track.Position, track.Size, track.BackgroundColor3 = UDim2.fromOffset(14, 66), UDim2.fromOffset(PanelWidth - 60, 8), Theme.Background
+    local resets = E.label(card, "Resets: your Cash and current bag", 16, Theme.Muted)
+    resets.Name, resets.Position, resets.Size, resets.TextSize = "Resets", UDim2.fromOffset(14, 88), UDim2.fromOffset(PanelWidth - 60, 16), 12
+    local keeps = E.label(card, "Keeps: gems, upgrades, and rebirth count", 16, Theme.Muted)
+    keeps.Name, keeps.Position, keeps.Size, keeps.TextSize = "Keeps", UDim2.fromOffset(14, 108), UDim2.fromOffset(PanelWidth - 60, 16), 12
+    self.countLabel = E.label(card, "REBIRTHS: 0", 16, Theme.Muted)
+    self.countLabel.Name, self.countLabel.Position, self.countLabel.Size = "Count", UDim2.fromOffset(14, 136), UDim2.fromOffset(PanelWidth - 60, 16)
+    self.countLabel.TextSize = 11
+
+    self.confirm = E.button(panel, "REBIRTH", function() self:rebirth() end, Theme.Green)
+    self.confirm.Name, self.confirm.Position, self.confirm.Size = "Confirm", UDim2.fromOffset(16, 248), UDim2.fromOffset(PanelWidth - 32, 48)
+    self.confirm.AutoButtonColor, self.confirm.TextColor3, self.confirm.TextSize = false, Theme.Ink, 16
+    return self
+end
+function RebirthView:setOpen(open) self.panel.Visible = open and self.hasStation end
+function RebirthView:toggle() if self.hasStation then self:setOpen(not self.panel.Visible) end end
+function RebirthView:rebirth()
+    if self.hasStation and self.ready and self.panel.Visible then self.send("Rebirth") end
+end
+function RebirthView:update(state)
+    local info = state.rebirth
+    self.hasStation = state.hasStation
+    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
+    if not state.hasStation then self.panel.Visible = false end
+    if not info then return end
+    -- A completed rebirth closes the panel; the Cash and Gems card shows the result.
+    if self.count and info.count &gt; self.count then self.panel.Visible = false end
+    self.count = info.count
+    self.ready = state.hasStation and state.profile.cash &gt;= info.threshold
+    local glow = self.ready
+    self.button.BackgroundColor3 = if glow then Theme.Gem else Theme.Background
+    self.button.TextColor3 = if glow then Theme.Ink elseif state.hasStation then Theme.Gem else Theme.Muted
+    self.reward.Text = "+" .. E.count(info.reward) .. " GEMS"
+    self.need.Text = "Needs " .. E.money(info.threshold) .. " Cash  (you have " .. E.money(state.profile.cash) .. ")"
+    self.fill.Size = UDim2.fromScale(math.clamp(state.profile.cash / info.threshold, 0, 1), 1)
+    self.countLabel.Text = "REBIRTHS: " .. E.count(info.count)
+    self.confirm.Active, self.confirm.Selectable = self.ready, self.ready
+    self.confirm.Text = if self.ready then "REBIRTH NOW" else "NEED " .. E.money(info.threshold)
+    self.confirm.BackgroundColor3 = if self.ready then Theme.Green else Theme.Card
+    self.confirm.TextColor3 = if self.ready then Theme.Ink else Theme.Muted
+end
+function RebirthView:resize(viewport)
+    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+end
+return RebirthView
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00044">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1520,7 +1728,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00042">
+          <Item class="ModuleScript" referent="RBX00045">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -1638,10 +1846,10 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00043">
+          <Item class="ModuleScript" referent="RBX00046">
             <Properties>
               <string name="Name">ShopView</string>
-              <ProtectedString name="Source">-- Upgrade shop: an UPGRADES button and a panel with one row per Cash upgrade track.
+              <ProtectedString name="Source">-- Upgrade shop: an UPGRADES button and a panel with one row per gem upgrade track.
 -- Rows display server-computed levels, values, and costs; the server decides purchases.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Upgrades = require(Shared.config.Upgrades)
@@ -1667,6 +1875,7 @@ function ShopView.new(gui, send)
 
     local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
     panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
+    panel.ZIndex = 5 -- above the HUD buttons when open
     E.stroke(panel, Theme.Gold, 2, 0.12)
     self.panel = panel
     self.scale = Instance.new("UIScale")
@@ -1674,7 +1883,7 @@ function ShopView.new(gui, send)
     local title = E.label(panel, "UPGRADES", 28, Theme.Text)
     title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(250, 28)
     title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    local caption = E.label(panel, "Spend Cash to boost your restaurant", 16, Theme.Muted)
+    local caption = E.label(panel, "Spend gems to boost your restaurant", 16, Theme.Muted)
     caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(20, 42), UDim2.fromOffset(260, 16), 11
     self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
     self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
@@ -1715,35 +1924,27 @@ function ShopView:update(state)
     for _, row in ipairs(state.shop or {}) do
         local view = self.rows[row.id]
         if view then
-            local affordable = state.hasStation and state.profile.cash &gt;= row.cost
+            local affordable = state.hasStation and (state.profile.gems or 0) &gt;= row.cost
             self.data[row.id] = { affordable = affordable }
             view.level.Text = "LEVEL " .. row.level
             view.value.Text = describe(row)
-            view.buy.Text = E.money(row.cost)
-            view.buy.TextSize = if #view.buy.Text &gt; 9 then 12 else 16
+            view.buy.Text = E.count(row.cost) .. (if row.cost == 1 then " GEM" else " GEMS")
+            view.buy.TextSize = if #view.buy.Text &gt; 10 then 11 else 14
             view.buy.Active, view.buy.Selectable = affordable, affordable
             view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Background
             view.buy.TextColor3 = if affordable then Theme.Ink else Theme.Muted
         end
     end
 end
--- `compact` short landscape screens put the button top right; otherwise it sits below Cash.
-function ShopView:resize(viewport, compact, cashWidth, cashOffset)
-    if compact then
-        self.button.AnchorPoint = Vector2.new(1, 0)
-        self.button.Position, self.button.Size = UDim2.new(1, -16, 0, 16), UDim2.fromOffset(112, 44)
-    else
-        self.button.AnchorPoint = Vector2.new(0, 0)
-        self.button.Position, self.button.Size = UDim2.new(0, 16, 0.5, cashOffset + 38 + 10), UDim2.fromOffset(cashWidth, 44)
-    end
+-- AppView places the button; the panel scales to fit the screen.
+function ShopView:resize(viewport)
     self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
 end
-ShopView.ButtonGap, ShopView.ButtonHeight = 10, 44
 return ShopView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00044">
+          <Item class="ModuleScript" referent="RBX00047">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">return {
@@ -1757,6 +1958,7 @@ return ShopView
     GreenLight = Color3.fromRGB(155, 239, 183),
     Red = Color3.fromRGB(244, 112, 111),
     Blue = Color3.fromRGB(92, 175, 243),
+    Gem = Color3.fromRGB(183, 140, 255),
     Ink = Color3.fromRGB(57, 44, 25),
     Shadow = Color3.fromRGB(25, 31, 28),
 }
@@ -1767,23 +1969,23 @@ return ShopView
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00045">
+  <Item class="StarterGui" referent="RBX00048">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00046">
+  <Item class="Lighting" referent="RBX00049">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00047">
+  <Item class="Players" referent="RBX00050">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00048">
+  <Item class="SoundService" referent="RBX00051">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

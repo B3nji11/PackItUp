@@ -5,6 +5,7 @@ local RateLimiter = require(Shared.util.RateLimiter)
 local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
 local Upgrades = require(Shared.domain.Upgrades)
+local Rebirth = require(Shared.domain.Rebirth)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -42,7 +43,7 @@ function ActionService:handle(player, action, argument)
         if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
-    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 else 1
+    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 elseif action == "Rebirth" then 2 else 1
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now < (cooldowns[action] or 0) then return end
@@ -54,6 +55,10 @@ function ActionService:handle(player, action, argument)
     elseif action == "Upgrade" then
         -- Purchase and level change happen in one non-yielding step.
         local ok, result = Upgrades.buy(p, argument)
+        if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
+    elseif action == "Rebirth" then
+        -- Cash, bag, gems, and count change together in one non-yielding step.
+        local ok, result = Rebirth.perform(p)
         if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
     end
     self.snapshots:send(player)

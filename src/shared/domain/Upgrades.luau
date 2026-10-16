@@ -1,4 +1,4 @@
--- Cash upgrade purchases. Pure rules: no Instances, messages, or DataStores.
+-- Gem upgrade purchases. Pure rules: no Instances, messages, or DataStores.
 local Config = require(script.Parent.Parent.config.Upgrades)
 local Pricing = require(script.Parent.Pricing)
 local Upgrades = {}
@@ -20,8 +20,9 @@ function Upgrades.buy(p, id)
     local level = Pricing.level(p, id)
     if level >= Config.MaxLevel then return false, "That upgrade is maxed out." end
     local cost = Upgrades.cost(id, level)
-    if p.cash < cost then return false, "Not enough Cash for this upgrade." end
-    p.cash -= cost
+    local gems = if type(p.gems) == "number" then p.gems else 0
+    if gems < cost then return false, "Not enough gems for this upgrade." end
+    p.gems = gems - cost
     if type(p.upgradeLevels) ~= "table" then p.upgradeLevels = {} end
     p.upgradeLevels[id] = level + 1
     return true, cost

@@ -9,6 +9,7 @@ return {
     GreenLight = Color3.fromRGB(155, 239, 183),
     Red = Color3.fromRGB(244, 112, 111),
     Blue = Color3.fromRGB(92, 175, 243),
+    Gem = Color3.fromRGB(183, 140, 255),
     Ink = Color3.fromRGB(57, 44, 25),
     Shadow = Color3.fromRGB(25, 31, 28),
 }

@@ -28,6 +28,7 @@ function DataService:load(player)
     local data, expires
     if self.volatile then data, expires = Profile.new(), math.huge
     else data, expires = self.repository:load(key, token) end
+    if data then Profile.migrate(data) end
     if not data then
         self.loading[player] = nil
         warn("[Fries] Load failed for", player.UserId, expires)

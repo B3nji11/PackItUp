@@ -41,7 +41,7 @@ do
             anchor=node.AnchorPoint and {node.AnchorPoint.X,node.AnchorPoint.Y} or {0,0},
             text=node.Text, textSize=node.TextSize, textScaled=node.TextScaled, font=node.Font,
             align=node.TextXAlignment, bg=color(node.BackgroundColor3), fg=color(node.TextColor3),
-            transparency=node.BackgroundTransparency or 0}
+            transparency=node.BackgroundTransparency or 0, z=node.ZIndex or 1}
         local scale=node:FindFirstChildOfClass("UIScale")
         data.scale=scale and scale.Scale or 1
         local corner=node:FindFirstChildOfClass("UICorner")
@@ -57,16 +57,18 @@ do
     end
     local Upgrades=loadModule("shared/domain/Upgrades")
     local Pricing=loadModule("shared/domain/Pricing")
-    local sampleProfile={cash=1250,upgradeLevels={FriesPerClick=1,BagCapacity=2}}
+    local Rebirth=loadModule("shared/domain/Rebirth")
+    local sampleProfile={cash=1250,gems=12,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2}}
     for _, example in ipairs({{1280,720,true,12,"desktop"},{390,844,false,0,"phone"},{568,320,true,30,"landscape"},
-        {1280,720,true,12,"desktop-shop",true},{390,844,true,12,"phone-shop",true},{568,320,true,12,"landscape-shop",true}}) do
+        {1280,720,true,12,"desktop-shop",true},{390,844,true,12,"phone-shop",true},{568,320,true,12,"landscape-shop",true},
+        {1280,720,true,12,"desktop-rebirth","rebirth"},{390,844,true,12,"phone-rebirth","rebirth"},{568,320,true,12,"landscape-rebirth","rebirth"}}) do
         local app=loadModule("client/ui/AppView").new(makeInstance("PlayerGui"),function() end)
         app:resize(Vector2.new(example[1],example[2]))
         app:update({hasStation=example[3],nearStation=example[3],volatile=true,
-            profile={cash=1250,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),
+            profile={cash=1250,gems=12,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),rebirth=Rebirth.snapshot(sampleProfile),
             stats={perClick=Pricing.click(sampleProfile),perSecond=0.5,perFry=Pricing.perFry(sampleProfile),
                 capacity=Pricing.capacity(sampleProfile),saleValue=Pricing.sale(sampleProfile)}})
-        if example[6] then app.shop:toggle() end
+        if example[6] == "rebirth" then app.rebirth:toggle() elseif example[6] then app.shop:toggle() end
         print("UI_PREVIEW:"..encode({name=example[5],width=example[1],height=example[2],ui=capture(app.hud.frame.Parent)}))
     end
 end
@@ -123,8 +125,8 @@ def render(sample, output):
                 if item.get('align')=='TextXAlignment.Center': tx=x+(iw-draw.textlength(line,font=f))/2
                 draw.text((tx,ty),line,font=f,fill=tuple(int(c) for c in item.get('fg',(255,255,255))))
                 ty+=lh
-        for child in item.get('children',[]): node(child,(x,y,iw,ih),scale)
-    for child in sample['ui']['children']: node(child,(0,36,w,h-60))
+        for child in sorted(item.get('children',[]), key=lambda c: c.get('z',1)): node(child,(x,y,iw,ih),scale)
+    for child in sorted(sample['ui']['children'], key=lambda c: c.get('z',1)): node(child,(0,36,w,h-60))
     image.save(output)
 
 

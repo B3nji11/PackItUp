@@ -1,4 +1,4 @@
-# Architecture: core loop and upgrade shop
+# Architecture: core loop, upgrades, and rebirth
 
 ## Dependency direction
 
@@ -17,12 +17,14 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | Module | Responsibility |
 | --- | --- |
 | shared/config/Economy | Base capacity, base click, fryer rate, base money per fry, and currency bound |
-| shared/config/Upgrades | Upgrade tracks in shop order: names, cost curves, and per-level steps |
+| shared/config/Upgrades | Upgrade tracks in shop order: names, gem cost curves, and per-level steps |
+| shared/config/Rebirth | Rebirth threshold curve and gem rewards |
 | shared/config/Runtime | Server, replication, and persistence settings |
 | shared/config/Actions | Closed action vocabulary and each action's allowed argument |
-| shared/domain/Profile | Core defaults and validation, including upgradeLevels; v1 save compatibility |
+| shared/domain/Profile | Core defaults and validation, including upgradeLevels, gems, and rebirths; one-time migration of pre-gem saves; v1 save compatibility |
 | shared/domain/Pricing | Effective stats from base values plus upgrade levels; sale value; bounded currency credits |
-| shared/domain/Upgrades | Upgrade costs, purchases, and server-computed shop rows |
+| shared/domain/Upgrades | Gem upgrade costs, purchases, and server-computed shop rows |
+| shared/domain/Rebirth | Threshold, reward, and the rebirth reset |
 | shared/domain/Packing | Fill a bag and execute a sale |
 | shared/util/Copy | Deep-copy saved tables |
 | shared/util/RateLimiter | Bound per-player request frequency |
@@ -38,9 +40,10 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | server/world/WorldBuilder | Six restaurants facing a shared central plaza and a physical title mural |
 | client/Main.client | UI/input composition and state subscriptions |
 | client/controllers/InputController | Keyboard, mouse, and touch input |
-| client/ui/AppView | Cash card, claiming guidance, errors, teleport, and responsive HUD placement |
+| client/ui/AppView | Cash and Gems card, claiming guidance, errors, teleport, and responsive placement of the HUD and panel buttons |
 | client/ui/HudView | Click, Sell, bag progress, and feedback |
 | client/ui/ShopView | UPGRADES button and shop panel; displays server rows and requests purchases |
+| client/ui/RebirthView | REBIRTH button and confirmation panel; displays server values and requests a rebirth |
 | client/ui/Theme and Elements | Shared UI styling and widgets |
 
 ## Remote contract
@@ -51,7 +54,8 @@ Clients send Action:FireServer(actionName) or, for Upgrade only, Action:FireServ
 | --- | --- |
 | Pack | Alive and at own station; rate-limited; add the player's fries per click |
 | Sell | Alive and at own station with a full bag; credit once and clear the bag |
-| Upgrade | Claimed restaurant and a known track name; short cooldown; deduct the cost and raise one level only if Cash is sufficient |
+| Upgrade | Claimed restaurant and a known track name; short cooldown; deduct the gem cost and raise one level only if gems are sufficient |
+| Rebirth | Claimed restaurant and Cash >= threshold; two-second cooldown; reset Cash and the bag, add gems, and count the rebirth together |
 | Return | Teleport to the player's assigned station |
 | Sync | Send the player's private snapshot |
 
@@ -63,12 +67,12 @@ Retired feature requests and unknown names are rejected before dispatch. Clients
 
 ## Transactions and persistence
 
-Filling, selling, and upgrade purchases do not yield. A sale reads a full bag, credits Cash and lifetime counters, and replaces it with an empty bag before another request runs.
+Filling, selling, upgrade purchases, and rebirth do not yield. A sale reads a full bag, credits Cash and lifetime counters, and replaces it with an empty bag before another request runs.
 
 DataStore writes remain serialized per profile with ownership tokens and bounded retries. Repeating a request after a lost response recognizes an already-committed write. Autosaves renew the lease. If safe ownership cannot be maintained, the session is disconnected. Load failures do not create writable default progress.
 
-Version 1 core fields are version, cash, sales, lifetimeCash, and bag.fries, plus optional upgradeLevels (track name -> whole level; missing means 0). Unknown track names or invalid levels make a profile invalid, so it is not loaded or saved. Keeping version 1 was agreed because there are no live players yet. Existing profiles may also contain inactive fields from the earlier prototype; storage preserves them, but runtime rules and snapshots ignore them. No equipment selection or bonus state is created for new players. New fields or incompatible formats in future iterations require an explicit compatibility decision.
+Version 1 core fields are version, cash, sales, lifetimeCash, and bag.fries, plus optional upgradeLevels (track name -> whole level), gems, and rebirths (whole numbers); missing means 0. Unknown track names or invalid levels make a profile invalid, so it is not loaded or saved. Keeping version 1 was agreed because there are no live players yet. DataService runs Profile.migrate once after each load: a save without `gems` predates gems, so its Cash-bought upgrade levels reset to 0 (owner decision, 16 October 2026) and its bag is trimmed to base capacity. Existing profiles may also contain inactive fields from the earlier prototype; storage preserves them, but runtime rules and snapshots ignore them. No equipment selection or bonus state is created for new players. New fields or incompatible formats in future iterations require an explicit compatibility decision.
 
 ## Iteration boundary
 
-Follow the AGILE workflow in README.md. Current work is Increment 1, the upgrade shop. Preserve base rates and prices; the fryer rate stays fixed. Keep fryer name tags absent in future changes too. Do not add tokens, gacha, pets, inventory, placeholder feature modules, or speculative frameworks ahead of their agreed increment.
+Follow the AGILE workflow in README.md. Current work is Increment 2, gems and rebirth. Preserve base rates and prices; the fryer rate stays fixed. Keep fryer name tags absent in future changes too. Do not add gacha, pets, inventory, rebirth unlocks, placeholder feature modules, or speculative frameworks ahead of their agreed increment.

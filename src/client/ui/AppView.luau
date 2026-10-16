@@ -2,14 +2,22 @@ local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
 local ShopView = require(script.Parent.ShopView)
+local RebirthView = require(script.Parent.RebirthView)
 local AppView = {}
 AppView.__index = AppView
+-- The wallet card holds Cash (top) and Gems (bottom row).
+local CardHeight, ButtonGap, ButtonHeight = 112, 10, 44
+local function scaledText(label, max)
+    label.TextScaled, label.TextWrapped = true, false
+    local fit = Instance.new("UITextSizeConstraint")
+    fit.MinTextSize, fit.MaxTextSize, fit.Parent = 10, max, label
+end
 function AppView.new(playerGui, send)
     local self = setmetatable({}, AppView)
     local gui = Instance.new("ScreenGui")
     gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "FriesInterface", false, Enum.ZIndexBehavior.Sibling
     gui.Parent = playerGui
-    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, 76), Theme.Background, 18)
+    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, CardHeight), Theme.Background, 18)
     self.cashCard.AnchorPoint = Vector2.new(0, 0.5)
     E.stroke(self.cashCard, Theme.Gold, 2, 0.12)
     local coin = E.box(self.cashCard, "Coin", UDim2.fromOffset(12, 17), UDim2.fromOffset(42, 42), Theme.Gold, 21)
@@ -20,12 +28,24 @@ function AppView.new(playerGui, send)
     caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(65, 10), UDim2.fromOffset(140, 18), 11
     self.wallet = E.label(self.cashCard, "$0", 36, Theme.Text)
     self.wallet.Name, self.wallet.Position, self.wallet.Size = "Cash", UDim2.fromOffset(65, 29), UDim2.fromOffset(142, 36)
-    self.wallet.Font, self.wallet.TextSize, self.wallet.TextWrapped = Enum.Font.GothamBold, 27, false
-    self.wallet.TextScaled = true
-    local cashTextSize = Instance.new("UITextSizeConstraint")
-    cashTextSize.MinTextSize, cashTextSize.MaxTextSize, cashTextSize.Parent = 10, 27, self.wallet
+    self.wallet.Font, self.wallet.TextSize = Enum.Font.GothamBold, 27
+    scaledText(self.wallet, 27)
+    local divider = E.box(self.cashCard, "Divider", UDim2.fromOffset(12, 74), UDim2.new(1, -24, 0, 1), Theme.Muted, 0)
+    divider.BackgroundTransparency = 0.7
+    -- A code-built gem: a small rotated square, no texture assets.
+    local gem = E.box(self.cashCard, "GemIcon", UDim2.fromOffset(24, 84), UDim2.fromOffset(18, 18), Theme.Gem, 3)
+    gem.Rotation = 45
+    self.gems = E.label(self.cashCard, "0", 26, Theme.Text)
+    self.gems.Name, self.gems.Position, self.gems.Size = "Gems", UDim2.fromOffset(65, 80), UDim2.new(1, -125, 0, 26)
+    self.gems.Font, self.gems.TextSize = Enum.Font.GothamBold, 20
+    scaledText(self.gems, 20)
+    local gemCaption = E.label(self.cashCard, "GEMS", 18, Theme.Gem)
+    gemCaption.Name, gemCaption.AnchorPoint = "GemCaption", Vector2.new(1, 0)
+    gemCaption.Position, gemCaption.Size, gemCaption.TextSize = UDim2.new(1, -14, 0, 84), UDim2.fromOffset(50, 18), 11
+    gemCaption.TextXAlignment = Enum.TextXAlignment.Right
     self.mode = E.label(gui, "", 20, Theme.Text)
-    self.mode.Position, self.mode.Size, self.mode.TextSize = UDim2.fromOffset(16, 8), UDim2.fromOffset(220, 20), 10
+    -- Studio-only label in the bottom-left corner, below every control.
+    self.mode.Name, self.mode.Position, self.mode.Size, self.mode.TextSize = "Mode", UDim2.new(0, 16, 1, -18), UDim2.fromOffset(220, 16), 10
     self.teleport = E.button(gui, "RETURN TO COUNTER", function()
         if self.hasStation then send("Return") end
     end, Theme.Background)
@@ -40,13 +60,17 @@ function AppView.new(playerGui, send)
     E.corner(self.guidance, 12)
     self.hud = HudView.new(gui, send)
     self.shop = ShopView.new(gui, send)
+    self.rebirth = RebirthView.new(gui, send)
+    -- Opening one panel closes the other so they never stack.
+    self.shop.button.Activated:Connect(function() if self.shop.panel.Visible then self.rebirth:setOpen(false) end end)
+    self.rebirth.button.Activated:Connect(function() if self.rebirth.panel.Visible then self.shop:setOpen(false) end end)
     self:resize(Vector2.new(1280, 720))
     return self
 end
 function AppView:update(state)
     self.hasStation = state.hasStation
     self.wallet.Text = E.money(state.profile.cash)
-    self.wallet.TextSize = if #self.wallet.Text > 12 then 14 elseif #self.wallet.Text > 9 then 19 else 27
+    self.gems.Text = E.count(state.profile.gems or 0)
     self.mode.Text = if state.volatile then "STUDIO TEST / resets on stop" else ""
     self.teleport.Active, self.teleport.Selectable = state.hasStation, state.hasStation
     self.teleport.Text = if state.hasStation then "RETURN TO COUNTER" else "CHOOSE A RESTAURANT"
@@ -58,6 +82,7 @@ function AppView:update(state)
     end
     self.hud:update(state)
     self.shop:update(state)
+    self.rebirth:update(state)
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -73,18 +98,34 @@ function AppView:resize(viewport)
     local hudScale = math.min(1, (viewport.X - 24) / 392)
     local height = viewport.Y - 60
     local actionTop = height - 22 - 104 * hudScale
-    -- Centre Cash on the left; lift it only when a short screen needs room for actions.
-    -- Outside compact layouts, the UPGRADES button sits below Cash and needs room too.
-    local below = if compact then 0 else ShopView.ButtonGap + ShopView.ButtonHeight
-    local cashOffset = math.min(0, actionTop - 12 - below - 38 - height / 2)
+    local cardWidth = if compact then 172 else 218
+    -- Centre the wallet on the left; lift it only when a short screen needs room for actions.
+    -- Outside compact layouts, the UPGRADES and REBIRTH buttons sit below it and need room too.
+    local below = if compact then 0 else ButtonGap + ButtonHeight
+    local cashOffset = math.min(0, actionTop - 12 - below - CardHeight / 2 - height / 2)
     self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
-    self.cashCard.Size = UDim2.fromOffset(if compact then 172 else 218, 76)
+    self.cashCard.Size = UDim2.fromOffset(cardWidth, CardHeight)
     self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
     self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
+    self.gems.Position = UDim2.fromOffset(if compact then 58 else 65, 80)
     self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 36 else 16)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
+    local shopButton, rebirthButton = self.shop.button, self.rebirth.button
+    if compact then
+        -- Short landscape: stack both buttons at the top right, clear of the actions.
+        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(1, 0), Vector2.new(1, 0)
+        shopButton.Position, rebirthButton.Position = UDim2.new(1, -16, 0, 16), UDim2.new(1, -16, 0, 16 + ButtonHeight + 8)
+        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(112, ButtonHeight), UDim2.fromOffset(112, ButtonHeight)
+    else
+        local half = (cardWidth - 8) / 2
+        local y = cashOffset + CardHeight / 2 + ButtonGap
+        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(0, 0), Vector2.new(0, 0)
+        shopButton.Position, rebirthButton.Position = UDim2.new(0, 16, 0.5, y), UDim2.new(0, 16 + half + 8, 0.5, y)
+        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(half, ButtonHeight), UDim2.fromOffset(half, ButtonHeight)
+    end
+    self.shop:resize(viewport)
+    self.rebirth:resize(viewport)
     self.hud.scale.Scale = hudScale
-    self.shop:resize(viewport, compact, if compact then 172 else 218, cashOffset)
 end
 return AppView

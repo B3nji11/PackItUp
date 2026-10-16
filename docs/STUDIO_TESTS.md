@@ -1,22 +1,24 @@
 # Roblox Studio acceptance checks
 
-Current iteration: **Increment 1, upgrade shop**. Run its checks first. The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+Current iteration: **Increment 2, gems and rebirth**. Run its checks first. It replaces the Increment 1 upgrade shop checks, since upgrades now cost gems. The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
 
-## Upgrade shop (Increment 1)
+## Gems, rebirth, and upgrades (Increment 2)
 
-These checks need a real Studio session. Automated tests cover the rules, saving, and calculated layout, but not rendering, touch input, or real latency.
+These checks need a real Studio session. Automated tests cover the rules, saving, migration, and calculated layout, but not rendering, touch input, or real latency.
 
-1. Before claiming, the UPGRADES button below the Cash card is greyed out and does not open the shop.
-2. Claim a restaurant. Press UPGRADES: the panel opens in the centre with three rows (Fries per click, Money per fry, Bag capacity). Each shows LEVEL 0, its current -> next value, and a cost of $25, $40, and $50. X closes it.
-3. With less than $25, every Buy button is greyed out and clicking it does nothing.
-4. Earn $25 and buy Fries per click. Cash drops by exactly $25, the row shows LEVEL 1 and $30, and the packing button reads +2 fries/click. Each click now adds 2 fries.
-5. Buy Money per fry. A full 20-fry bag now reads SELL BAG +$11.
-6. Fill the bag completely, then buy Bag capacity. The bag shows 20 / 25 and keeps filling; no fries disappear. A 25-fry bag at $0.55 per fry sells for $13.
-7. Tap Buy repeatedly and quickly, including with high simulated latency. Each accepted tap buys one level at most, and Cash never goes negative or double-charges.
-8. Check the button and panel on desktop, a portrait phone, and a short landscape phone (where UPGRADES moves to the top right). Text must fit, Buy buttons must be easy to tap, and nothing may overlap the action buttons, Cash card, Return to Counter, or Roblox's own controls.
-9. With two players, confirm each player's levels, Cash, and stats stay separate.
-10. With persistence enabled in a test experience: buy upgrades, leave, and rejoin. Levels, Cash, and the bag are restored. An old test save from the earlier prototype must load at level 0 on all three tracks.
-11. Confirm no tokens, gacha, pets, inventory, or Robux options have appeared.
+1. Before claiming, UPGRADES and REBIRTH below the Cash card are greyed out and open nothing. The Cash card shows Cash on top and Gems (0) below a divider.
+2. Claim a restaurant. Open UPGRADES: three rows cost 3, 4, and 5 GEMS and are all greyed out with 0 gems, however much Cash you have.
+3. Open REBIRTH: it shows +10 GEMS, Needs $1,000 Cash with a progress bar, what resets and what is kept, and REBIRTHS: 0. The confirm button reads NEED $1,000 and does nothing. Opening UPGRADES closes the rebirth panel, and the reverse.
+4. Earn $1,000 (a temporary lower threshold in config/Rebirth is fine for a quick test; restore it afterwards). The REBIRTH button glows and the confirm button reads REBIRTH NOW.
+5. Part-fill the bag and earn some Cash above the threshold, then rebirth. Cash goes to exactly $0, the bag empties (visible fries too), Gems shows 10, the panel closes, and the next rebirth reads +15 GEMS at $1,600.
+6. Buy Fries per click for 3 gems: Gems drops to 7, the row shows LEVEL 1 and 4 GEMS, and packing reads +2 fries/click. Cash is unchanged. Buy until a row is unaffordable and check it greys out.
+7. Rebirth again: upgrade levels and gems are kept; only Cash and the bag reset.
+8. Tap REBIRTH NOW and the Buy buttons repeatedly and quickly, including with high simulated latency. Each accepted request applies once; gems never go negative and a rebirth never pays twice.
+9. Fill the bag completely, then buy Bag capacity: the bag shows 20 / 25 and keeps filling; no fries disappear.
+10. Check the Cash and Gems card, both buttons, and both panels on desktop, a portrait phone, and a short landscape phone (buttons stack at the top right). Text must fit, buttons must be easy to tap, and nothing may overlap the action buttons, Return to Counter, or Roblox's own controls. The Studio test label sits in the bottom-left corner.
+11. With two players, confirm Cash, gems, rebirth counts, and levels stay separate.
+12. With persistence enabled in a test experience: rebirth, buy upgrades, leave, and rejoin. Gems, rebirth count, levels, Cash, and the bag are restored. A save from Increment 1 (upgrade levels bought with Cash, no gems) loads with 0 gems and level 0 on all tracks, keeping its Cash.
+13. Confirm no gacha, pets, inventory, or Robux options have appeared.
 
 ## Arrival and claiming
 
@@ -53,7 +55,7 @@ These checks need a real Studio session. Automated tests cover the rules, saving
 - Confirm buildings feel separated and the central area remains open. Ask testers whether they can identify an available plot and understand where to go without instructions.
 - Confirm the title is on the physical mural wall, following the wall's perspective rather than facing the camera.
 - Confirm ownership plaques are readable nearby and no floating fryer/equipment name tags or old customer text bubbles return.
-- Verify no doors, progression rewards beyond the upgrade shop, or other unrequested systems have been introduced.
+- Verify no doors, progression rewards beyond the upgrade shop and rebirth, or other unrequested systems have been introduced.
 
 ## Smooth cartoon world
 
@@ -73,7 +75,7 @@ These checks need a real Studio session. Automated tests cover the rules, saving
 6. Check the middle-left Cash card, coin symbol, and comma-grouped amount, including clearance from the bottom actions on short screens. Verify large amounts fit the card.
 7. Walk away from the counter with a full bag: selling must be disabled and the return instruction should be clear. Return to Counter must target the player's own restaurant.
 8. Confirm useful errors appear briefly near the top, then clear, rather than obscuring the bottom actions.
-9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade shop is the only menu.
+9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade shop and rebirth panel are the only menus.
 
 ## Devices, multiplayer, and latency
 
@@ -93,4 +95,4 @@ Use a separately published test experience with StudioUseDataStore enabled. Keep
 
 ## Iteration review
 
-Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting Increment 2.
+Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting Increment 3.

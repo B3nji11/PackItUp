@@ -1,5 +1,28 @@
 # Validation record
 
+## Increment 2: gems and rebirth
+
+Validation date: 16 October 2026.
+
+Scope: the gem balance, rebirth (threshold, reward, reset), the upgrade shop switched from Cash to gems, the one-time reset of Cash-bought upgrade levels in older saves, the REBIRTH button and panel, and the Gems row on the Cash card.
+
+**63 tests passed, 0 failed.** All **36 Luau source/test files** compiled. The rebuilt place contains **32 game source files**. Output is in TEST_RESULTS.txt.
+
+New coverage:
+
+- Rebirth thresholds ($1,000, $1,600, $2,560, $4,096, $6,554) and gem rewards (10, 15, 20, ...).
+- Rebirth refuses below the threshold, then resets Cash (including any excess) and the bag only, keeping gems, levels, sales, and lifetime Cash.
+- Gem upgrade costs (3, 4, 5 x 1.25^level), purchases spend gems never Cash, and insufficient gems are rejected.
+- Pre-gem saves migrate once: 0 gems, 0 rebirths, level 0 upgrades, Cash kept, and an oversized bag trimmed to 20 fries. Newer saves are never migrated again.
+- Gems and rebirths validate as whole non-negative numbers, then save and load; corrupt values refuse to load.
+- Server flow over 98 sales to the first rebirth: threshold and gem notices, a rapid second rebirth or purchase ignored, forged arguments dropped, separate state per player, and Rebirth rejected before claiming.
+- Client: Gems on the wallet card, gem prices in the shop, Buy buttons depending on gems rather than Cash, the rebirth panel's values and confirm state, only "Rebirth" sent with no argument, the panel closing after a rebirth, one panel open at a time, and both inactive before claiming.
+- Calculated bounds at all five viewports for both buttons, both panels, and the Studio test label, which moved to the bottom-left corner.
+
+Layout previews (including desktop/phone/landscape rebirth panels) were regenerated and inspected. That review found the REBIRTH button drawing over the open upgrade panel on phones; both panels now sit on a higher layer, and the preview tool respects that layering. It also found the Studio test label overlapping the Cash card on short screens. The previews use approximate fonts and are not Roblox screenshots.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, Increment 2 section), real DataStore persistence and migration, and owner review.
+
 ## Increment 1: upgrade shop
 
 Validation date: 8 October 2026.
@@ -22,7 +45,7 @@ New coverage:
 
 Layout previews (including desktop-shop, phone-shop, and landscape-shop) were regenerated with tools/preview_ui.py and inspected. That review caught the pack button title wrapping at "+2 fries/click"; the titles now shrink to fit on one line. The previews use approximate fonts and are not Roblox screenshots.
 
-Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, Upgrade shop section), real DataStore persistence, and owner review. The dimmed lighting was approved by the owner.
+**Accepted by the project owner on 8 October 2026** after review. The dimmed lighting was also approved.
 
 ## UI/UX polish iteration (accepted 8 October 2026)
 

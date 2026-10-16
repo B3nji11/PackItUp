@@ -1,10 +1,11 @@
 local Theme = require(script.Parent.Theme)
 local Elements = {}
-function Elements.money(value)
+function Elements.count(value)
     local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
     local result = string.reverse(grouped):gsub("^,", "")
-    return "$" .. result
+    return result
 end
+function Elements.money(value) return "$" .. Elements.count(value) end
 function Elements.stroke(parent, color, thickness, transparency)
     local stroke = Instance.new("UIStroke")
     stroke.Color, stroke.Thickness, stroke.Transparency = color, thickness, transparency or 0

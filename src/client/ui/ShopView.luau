@@ -1,4 +1,4 @@
--- Upgrade shop: an UPGRADES button and a panel with one row per Cash upgrade track.
+-- Upgrade shop: an UPGRADES button and a panel with one row per gem upgrade track.
 -- Rows display server-computed levels, values, and costs; the server decides purchases.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Upgrades = require(Shared.config.Upgrades)
@@ -24,6 +24,7 @@ function ShopView.new(gui, send)
 
     local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
     panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
+    panel.ZIndex = 5 -- above the HUD buttons when open
     E.stroke(panel, Theme.Gold, 2, 0.12)
     self.panel = panel
     self.scale = Instance.new("UIScale")
@@ -31,7 +32,7 @@ function ShopView.new(gui, send)
     local title = E.label(panel, "UPGRADES", 28, Theme.Text)
     title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(250, 28)
     title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    local caption = E.label(panel, "Spend Cash to boost your restaurant", 16, Theme.Muted)
+    local caption = E.label(panel, "Spend gems to boost your restaurant", 16, Theme.Muted)
     caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(20, 42), UDim2.fromOffset(260, 16), 11
     self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
     self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
@@ -72,28 +73,20 @@ function ShopView:update(state)
     for _, row in ipairs(state.shop or {}) do
         local view = self.rows[row.id]
         if view then
-            local affordable = state.hasStation and state.profile.cash >= row.cost
+            local affordable = state.hasStation and (state.profile.gems or 0) >= row.cost
             self.data[row.id] = { affordable = affordable }
             view.level.Text = "LEVEL " .. row.level
             view.value.Text = describe(row)
-            view.buy.Text = E.money(row.cost)
-            view.buy.TextSize = if #view.buy.Text > 9 then 12 else 16
+            view.buy.Text = E.count(row.cost) .. (if row.cost == 1 then " GEM" else " GEMS")
+            view.buy.TextSize = if #view.buy.Text > 10 then 11 else 14
             view.buy.Active, view.buy.Selectable = affordable, affordable
             view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Background
             view.buy.TextColor3 = if affordable then Theme.Ink else Theme.Muted
         end
     end
 end
--- `compact` short landscape screens put the button top right; otherwise it sits below Cash.
-function ShopView:resize(viewport, compact, cashWidth, cashOffset)
-    if compact then
-        self.button.AnchorPoint = Vector2.new(1, 0)
-        self.button.Position, self.button.Size = UDim2.new(1, -16, 0, 16), UDim2.fromOffset(112, 44)
-    else
-        self.button.AnchorPoint = Vector2.new(0, 0)
-        self.button.Position, self.button.Size = UDim2.new(0, 16, 0.5, cashOffset + 38 + 10), UDim2.fromOffset(cashWidth, 44)
-    end
+-- AppView places the button; the panel scales to fit the screen.
+function ShopView:resize(viewport)
     self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
 end
-ShopView.ButtonGap, ShopView.ButtonHeight = 10, 44
 return ShopView
