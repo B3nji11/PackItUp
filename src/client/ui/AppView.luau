@@ -3,6 +3,8 @@ local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
 local ShopView = require(script.Parent.ShopView)
 local RebirthView = require(script.Parent.RebirthView)
+local GachaView = require(script.Parent.GachaView)
+local PetsView = require(script.Parent.PetsView)
 local AppView = {}
 AppView.__index = AppView
 -- The wallet card holds Cash (top) and Gems (bottom row).
@@ -61,9 +63,17 @@ function AppView.new(playerGui, send)
     self.hud = HudView.new(gui, send)
     self.shop = ShopView.new(gui, send)
     self.rebirth = RebirthView.new(gui, send)
-    -- Opening one panel closes the other so they never stack.
-    self.shop.button.Activated:Connect(function() if self.shop.panel.Visible then self.rebirth:setOpen(false) end end)
-    self.rebirth.button.Activated:Connect(function() if self.rebirth.panel.Visible then self.shop:setOpen(false) end end)
+    self.gacha = GachaView.new(gui, send)
+    self.pets = PetsView.new(gui, send)
+    -- Grid order: UPGRADES | REBIRTH on the first row, SPIN | PETS on the second.
+    self.menus = { self.shop, self.rebirth, self.gacha, self.pets }
+    -- Opening one panel closes the others so they never stack.
+    for _, menu in ipairs(self.menus) do
+        menu.button.Activated:Connect(function()
+            if not menu.panel.Visible then return end
+            for _, other in ipairs(self.menus) do if other ~= menu then other:setOpen(false) end end
+        end)
+    end
     self:resize(Vector2.new(1280, 720))
     return self
 end
@@ -81,8 +91,7 @@ function AppView:update(state)
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)
-    self.shop:update(state)
-    self.rebirth:update(state)
+    for _, menu in ipairs(self.menus) do menu:update(state) end
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -100,8 +109,10 @@ function AppView:resize(viewport)
     local actionTop = height - 22 - 104 * hudScale
     local cardWidth = if compact then 172 else 218
     -- Centre the wallet on the left; lift it only when a short screen needs room for actions.
-    -- Outside compact layouts, the UPGRADES and REBIRTH buttons sit below it and need room too.
-    local below = if compact then 0 else ButtonGap + ButtonHeight
+    -- Tall screens put the 2x2 menu grid below it, which needs room too. Short screens
+    -- (under 500 px high) put the grid at the top right instead.
+    local side = viewport.Y < 500
+    local below = if side then 0 else ButtonGap + ButtonHeight * 2 + 8
     local cashOffset = math.min(0, actionTop - 12 - below - CardHeight / 2 - height / 2)
     self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
     self.cashCard.Size = UDim2.fromOffset(cardWidth, CardHeight)
@@ -111,21 +122,29 @@ function AppView:resize(viewport)
     self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 36 else 16)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
-    local shopButton, rebirthButton = self.shop.button, self.rebirth.button
-    if compact then
-        -- Short landscape: stack both buttons at the top right, clear of the actions.
-        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(1, 0), Vector2.new(1, 0)
-        shopButton.Position, rebirthButton.Position = UDim2.new(1, -16, 0, 16), UDim2.new(1, -16, 0, 16 + ButtonHeight + 8)
-        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(112, ButtonHeight), UDim2.fromOffset(112, ButtonHeight)
-    else
-        local half = (cardWidth - 8) / 2
-        local y = cashOffset + CardHeight / 2 + ButtonGap
-        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(0, 0), Vector2.new(0, 0)
-        shopButton.Position, rebirthButton.Position = UDim2.new(0, 16, 0.5, y), UDim2.new(0, 16 + half + 8, 0.5, y)
-        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(half, ButtonHeight), UDim2.fromOffset(half, ButtonHeight)
+    local gridLeft = viewport.X
+    for index, menu in ipairs(self.menus) do
+        local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
+        local button = menu.button
+        if side then
+            -- Top right, clear of Return to Counter and the guidance strip.
+            local width = if compact then 60 else 96
+            button.AnchorPoint = Vector2.new(1, 0)
+            button.Position = UDim2.new(1, -16 - (1 - column) * (width + 8), 0, 16 + row * (ButtonHeight + 8))
+            button.Size = UDim2.fromOffset(width, ButtonHeight)
+            gridLeft = viewport.X - 16 - width * 2 - 8
+        else
+            local half = (cardWidth - 8) / 2
+            button.AnchorPoint = Vector2.new(0, 0)
+            button.Position = UDim2.new(0, 16 + column * (half + 8), 0.5, cashOffset + CardHeight / 2 + ButtonGap + row * (ButtonHeight + 8))
+            button.Size = UDim2.fromOffset(half, ButtonHeight)
+        end
     end
-    self.shop:resize(viewport)
-    self.rebirth:resize(viewport)
+    if side and not compact then
+        -- Keep the centred guidance strip clear of the top-right grid.
+        self.guidance.Size = UDim2.fromOffset(math.min(460, 2 * (gridLeft - 12 - viewport.X / 2)), 44)
+    end
+    for _, menu in ipairs(self.menus) do menu:resize(viewport) end
     self.hud.scale.Scale = hudScale
 end
 return AppView

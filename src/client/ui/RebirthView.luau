@@ -16,6 +16,7 @@ function RebirthView.new(gui, send)
     self.button.Name, self.button.TextSize, self.button.TextColor3 = "RebirthButton", 13, Theme.Gem
     self.button.Size = UDim2.fromOffset(105, 44)
     self.buttonStroke = E.stroke(self.button, Theme.Gem, 1.5, 0.3)
+    E.fit(self.button, 8, 13)
 
     local panel = E.box(gui, "RebirthPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
     panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false

@@ -15,9 +15,12 @@ test("corrupt nonfinite and future core profiles are rejected", function()
     for _, bad in ipairs({-1, math.huge, 0/0, "100", 0.5}) do
         local p = Profile.new(); p.cash = bad; eq(Profile.validate(p), false)
     end
-    for _, bad in ipairs({-1, math.huge, 0/0, "20", Economy.BaseCapacity + 1}) do
+    for _, bad in ipairs({-1, math.huge, 0/0, "20"}) do
         local p = Profile.new(); p.bag.fries = bad; eq(Profile.validate(p), false)
     end
+    -- An over-full bag (for example after a balance change) is trimmed on load, not rejected.
+    local trimmed = Profile.new(); trimmed.bag.fries = Economy.BaseCapacity + 1
+    assert(Profile.validate(trimmed)); Profile.normalize(trimmed); eq(trimmed.bag.fries, Economy.BaseCapacity)
     local p = Profile.new(); p.version = 2; eq(Profile.validate(p), false)
     p = Profile.new(); p.bag = nil; eq(Profile.validate(p), false)
 end)

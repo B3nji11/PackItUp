@@ -135,7 +135,7 @@ test("saved upgrade levels gems and rebirths are validated", function()
     end
     p.upgradeLevels = "levels"; eq(Profile.validate(p), false)
     p.upgradeLevels = { BagCapacity = 1 }; p.bag.fries = 24; assert(Profile.validate(p))
-    p.upgradeLevels = {}; eq(Profile.validate(p), false)
+    p.upgradeLevels = {}; assert(Profile.validate(p)); Profile.normalize(p); eq(p.bag.fries, 20)
     p.bag.fries = 0
     for _, key in ipairs({ "gems", "rebirths" }) do
         for _, bad in ipairs({ -1, 1.5, "3", 0/0, math.huge }) do

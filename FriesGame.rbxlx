@@ -21,9 +21,10 @@
         <Item class="ModuleScript" referent="RBX00004">
           <Properties>
             <string name="Name">Actions</string>
-            <ProtectedString name="Source">-- Only these actions are accepted. "none" takes no client argument; "upgrade" takes
--- exactly one upgrade track name, which the server validates.
-return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "none", Rebirth = "none", Upgrade = "upgrade" })
+            <ProtectedString name="Source">-- Only these actions are accepted. "none" takes no client argument; the others take exactly
+-- one name or ID, which the server validates: an upgrade track, a machine, or an owned pet ID.
+return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "none", Rebirth = "none",
+    Upgrade = "upgrade", Spin = "machine", Equip = "pet", Unequip = "pet", DeletePet = "pet" })
 </ProtectedString>
           </Properties>
         </Item>
@@ -45,6 +46,65 @@ return table.freeze({
         </Item>
         <Item class="ModuleScript" referent="RBX00006">
           <Properties>
+            <string name="Name">Machines</string>
+            <ProtectedString name="Source">-- Gacha machines are data: a fixed Cash price, rarity odds, a pet pool, and pity.
+-- Pets in the same rarity share that rarity's chance equally. New machines are added here.
+local Machines = {
+    StarterFryer = table.freeze({
+        Name = "Starter Fryer",
+        Price = 100,
+        Odds = table.freeze({ Common = 0.60, Uncommon = 0.25, Rare = 0.10, Epic = 0.04, Legendary = 0.01 }),
+        Pool = table.freeze({ "CrinkleFry", "SaltShaker", "PaperCup", "PotatoPup", "KetchupPacket", "NapkinGhost",
+            "CurlyFryCat", "MayoJar", "FryerBot", "FryKing" }),
+        -- The PityEvery-th spin in a row without PityRarity or better is guaranteed PityRarity or better.
+        PityEvery = 50,
+        PityRarity = "Epic",
+    }),
+}
+return table.freeze({ Order = table.freeze({ "StarterFryer" }), Machines = table.freeze(Machines) })
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00007">
+          <Properties>
+            <string name="Name">Pets</string>
+            <ProtectedString name="Source">-- Fry Buddies (placeholder names). Each bonus is a fraction added to one stat:
+-- effective value = (base + upgrade levels) x (1 + total equipped bonus for that stat).
+local Rarities = {
+    Common = table.freeze({ Rank = 1, Name = "Common", Color = { 198, 207, 191 } }),
+    Uncommon = table.freeze({ Rank = 2, Name = "Uncommon", Color = { 107, 218, 153 } }),
+    Rare = table.freeze({ Rank = 3, Name = "Rare", Color = { 92, 175, 243 } }),
+    Epic = table.freeze({ Rank = 4, Name = "Epic", Color = { 183, 140, 255 } }),
+    Legendary = table.freeze({ Rank = 5, Name = "Legendary", Color = { 255, 199, 70 } }),
+}
+local function pet(name, rarity, bonuses)
+    return table.freeze({ Name = name, Rarity = rarity, Bonuses = table.freeze(bonuses) })
+end
+local Types = {
+    CrinkleFry = pet("Crinkle Fry", "Common", { FriesPerClick = 0.05 }),
+    SaltShaker = pet("Salt Shaker", "Common", { MoneyPerFry = 0.05 }),
+    PaperCup = pet("Paper Cup", "Common", { BagCapacity = 0.05 }),
+    PotatoPup = pet("Potato Pup", "Uncommon", { FriesPerClick = 0.10 }),
+    KetchupPacket = pet("Ketchup Packet", "Uncommon", { MoneyPerFry = 0.10 }),
+    NapkinGhost = pet("Napkin Ghost", "Uncommon", { BagCapacity = 0.10 }),
+    CurlyFryCat = pet("Curly Fry Cat", "Rare", { FriesPerClick = 0.20 }),
+    MayoJar = pet("Mayo Jar", "Rare", { MoneyPerFry = 0.20 }),
+    FryerBot = pet("Fryer Bot", "Epic", { BagCapacity = 0.40 }),
+    FryKing = pet("Fry King", "Legendary", { FriesPerClick = 0.50, MoneyPerFry = 0.50 }),
+}
+return table.freeze({
+    RarityOrder = table.freeze({ "Common", "Uncommon", "Rare", "Epic", "Legendary" }),
+    Rarities = table.freeze(Rarities),
+    Types = table.freeze(Types),
+    StatOrder = table.freeze({ "FriesPerClick", "MoneyPerFry", "BagCapacity" }),
+    MaxPets = 50,
+    EquipSlots = 3,
+})
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00008">
+          <Properties>
             <string name="Name">Rebirth</string>
             <ProtectedString name="Source">-- Rebirth balance. Threshold = BaseThreshold x Growth ^ rebirths (rounded, in Cash).
 -- Gems = BaseGems + GemsPerRebirth x rebirths. Rebirth resets Cash and the current bag only.
@@ -57,7 +117,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00007">
+        <Item class="ModuleScript" referent="RBX00009">
           <Properties>
             <string name="Name">Runtime</string>
             <ProtectedString name="Source">return table.freeze({
@@ -76,7 +136,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00008">
+        <Item class="ModuleScript" referent="RBX00010">
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade tracks, in shop order. Cost in gems = round(BaseCost x Growth ^ level).
@@ -96,11 +156,89 @@ return table.freeze({
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00009">
+      <Item class="Folder" referent="RBX00011">
         <Properties>
           <string name="Name">domain</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00010">
+        <Item class="ModuleScript" referent="RBX00012">
+          <Properties>
+            <string name="Name">Gacha</string>
+            <ProtectedString name="Source">-- Gacha spins. Pure rules: the server injects `random` (returns 0 &lt;= x &lt; 1).
+local Machines = require(script.Parent.Parent.config.Machines)
+local PetConfig = require(script.Parent.Parent.config.Pets)
+local Pets = require(script.Parent.Pets)
+local Gacha = {}
+function Gacha.isMachine(id) return type(id) == "string" and Machines.Machines[id] ~= nil end
+function Gacha.pity(p, id)
+    local counts = type(p.pity) == "table" and p.pity
+    local count = counts and counts[id]
+    return if type(count) == "number" then count else 0
+end
+local function rank(rarity) return PetConfig.Rarities[rarity].Rank end
+-- Rarity odds for the next spin; when pity triggers, only PityRarity or better (renormalised).
+function Gacha.odds(p, id)
+    local machine = Machines.Machines[id]
+    local forced = Gacha.pity(p, id) &gt;= machine.PityEvery - 1
+    local odds, total = {}, 0
+    for _, rarity in ipairs(PetConfig.RarityOrder) do
+        local chance = machine.Odds[rarity] or 0
+        if forced and rank(rarity) &lt; rank(machine.PityRarity) then chance = 0 end
+        odds[rarity] = chance; total += chance
+    end
+    for rarity, chance in pairs(odds) do odds[rarity] = chance / total end
+    return odds, forced
+end
+local function poolOf(machine, rarity)
+    local pool = {}
+    for _, petType in ipairs(machine.Pool) do
+        if PetConfig.Types[petType].Rarity == rarity then table.insert(pool, petType) end
+    end
+    return pool
+end
+function Gacha.roll(p, id, random)
+    local machine = Machines.Machines[id]
+    local odds = Gacha.odds(p, id)
+    local pick, chosen = random(), nil
+    for _, rarity in ipairs(PetConfig.RarityOrder) do
+        if odds[rarity] &gt; 0 and #poolOf(machine, rarity) &gt; 0 then
+            chosen = rarity
+            pick -= odds[rarity]
+            if pick &lt; 0 then break end
+        end
+    end
+    local pool = poolOf(machine, chosen)
+    local index = math.clamp(math.floor(random() * #pool) + 1, 1, #pool)
+    return pool[index], chosen
+end
+-- Price, roll, new pet, and pity change together in one non-yielding step.
+function Gacha.spin(p, id, random)
+    local machine = Machines.Machines[id]
+    if not machine then return false, "That machine is unavailable." end
+    if Pets.full(p) then return false, "Your pet inventory is full. Delete a pet to spin again." end
+    if p.cash &lt; machine.Price then return false, "Not enough Cash to spin." end
+    local petType, rarity = Gacha.roll(p, id, random)
+    p.cash -= machine.Price
+    if type(p.pity) ~= "table" then p.pity = {} end
+    p.pity[id] = if rank(rarity) &gt;= rank(machine.PityRarity) then 0 else Gacha.pity(p, id) + 1
+    return true, Pets.add(p, petType, id)
+end
+-- Display data for the client: price, odds per rarity with pet names, and pity progress.
+function Gacha.snapshot(p, id)
+    local machine = Machines.Machines[id]
+    local rows = {}
+    for _, rarity in ipairs(PetConfig.RarityOrder) do
+        local names = {}
+        for _, petType in ipairs(poolOf(machine, rarity)) do table.insert(names, PetConfig.Types[petType].Name) end
+        if #names &gt; 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names }) end
+    end
+    return { id = id, name = machine.Name, price = machine.Price, odds = rows, pity = Gacha.pity(p, id),
+        pityEvery = machine.PityEvery, pityRarity = machine.PityRarity }
+end
+return Gacha
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00013">
           <Properties>
             <string name="Name">Packing</string>
             <ProtectedString name="Source">local Pricing = require(script.Parent.Pricing)
@@ -126,27 +264,93 @@ return Packing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00011">
+        <Item class="ModuleScript" referent="RBX00014">
+          <Properties>
+            <string name="Name">Pets</string>
+            <ProtectedString name="Source">-- Owned pets, equipping, deleting, and equipped stat bonuses. Pure rules.
+local Config = require(script.Parent.Parent.config.Pets)
+local Pets = {}
+function Pets.list(p) return if type(p) == "table" and type(p.pets) == "table" then p.pets else {} end
+function Pets.equipped(p) return if type(p) == "table" and type(p.equippedPets) == "table" then p.equippedPets else {} end
+function Pets.find(p, id)
+    for index, owned in ipairs(Pets.list(p)) do if owned.id == id then return owned, index end end
+    return nil
+end
+function Pets.isEquipped(p, id)
+    for index, equippedId in ipairs(Pets.equipped(p)) do if equippedId == id then return true, index end end
+    return false
+end
+function Pets.isPetId(id) return type(id) == "string" and #id &lt;= 16 and string.match(id, "^P%d+$") ~= nil end
+-- Total equipped bonus for a stat, as a fraction (0.15 = +15%).
+function Pets.bonus(p, stat)
+    local total = 0
+    for _, id in ipairs(Pets.equipped(p)) do
+        local owned = Pets.find(p, id)
+        local kind = owned and Config.Types[owned.type]
+        if kind then total += kind.Bonuses[stat] or 0 end
+    end
+    return total
+end
+function Pets.full(p) return #Pets.list(p) &gt;= Config.MaxPets end
+-- Adds a new pet with the next unique ID and returns it.
+function Pets.add(p, petType, machine)
+    if type(p.pets) ~= "table" then p.pets = {} end
+    local number = (if type(p.nextPetId) == "number" then p.nextPetId else 0) + 1
+    p.nextPetId = number
+    local owned = { id = "P" .. number, type = petType, machine = machine }
+    table.insert(p.pets, owned)
+    return owned
+end
+function Pets.equip(p, id)
+    if not Pets.find(p, id) then return false, "You do not own that pet." end
+    if Pets.isEquipped(p, id) then return false, "That pet is already equipped." end
+    if #Pets.equipped(p) &gt;= Config.EquipSlots then return false, "All pet slots are full. Unequip a pet first." end
+    if type(p.equippedPets) ~= "table" then p.equippedPets = {} end
+    table.insert(p.equippedPets, id)
+    return true
+end
+function Pets.unequip(p, id)
+    local equipped, index = Pets.isEquipped(p, id)
+    if not equipped then return false, "That pet is not equipped." end
+    table.remove(p.equippedPets, index)
+    return true
+end
+function Pets.delete(p, id)
+    local owned, index = Pets.find(p, id)
+    if not owned then return false, "You do not own that pet." end
+    if Pets.isEquipped(p, id) then return false, "Unequip this pet before deleting it." end
+    table.remove(p.pets, index)
+    return true, owned
+end
+return Pets
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00015">
           <Properties>
             <string name="Name">Pricing</string>
-            <ProtectedString name="Source">-- Effective stats from base values plus Cash upgrade levels. Old prototype fields
--- (such as `upgrades`) are never read; only `upgradeLevels` counts.
+            <ProtectedString name="Source">-- Effective stats: (base + upgrade levels) x (1 + equipped pet bonus). Old prototype
+-- fields (such as `upgrades`) are never read; only `upgradeLevels` and equipped pets count.
 local Economy = require(script.Parent.Parent.config.Economy)
 local Upgrades = require(script.Parent.Parent.config.Upgrades)
+local Pets = require(script.Parent.Pets)
 local Pricing = {}
 function Pricing.level(p, id)
     local levels = type(p) == "table" and p.upgradeLevels
     local level = type(levels) == "table" and levels[id]
     return if type(level) == "number" then level else 0
 end
-local function stepped(p, id, base) return base + Pricing.level(p, id) * Upgrades.Tracks[id].Step end
+local function stepped(p, id, base)
+    return (base + Pricing.level(p, id) * Upgrades.Tracks[id].Step) * (1 + Pets.bonus(p, id))
+end
 function Pricing.click(p) return stepped(p, "FriesPerClick", Economy.BaseClick) end
 function Pricing.perFryCents(p) return stepped(p, "MoneyPerFry", Economy.MoneyPerFryCents) end
 function Pricing.perFry(p) return Pricing.perFryCents(p) / 100 end
-function Pricing.capacity(p) return stepped(p, "BagCapacity", Economy.BaseCapacity) end
+-- Capacity is whole fries.
+function Pricing.capacity(p) return math.floor(stepped(p, "BagCapacity", Economy.BaseCapacity) + 1e-9) end
 function Pricing.automatic() return Economy.BasicFryerPerSecond end
--- Sale value scales with the fries in a full bag. Integer cents keep Cash whole and exact.
-function Pricing.sale(p) return (Pricing.capacity(p) * Pricing.perFryCents(p)) // 100 end
+-- Sale value scales with the fries in a full bag, rounded down to whole Cash.
+function Pricing.sale(p) return math.floor(Pricing.capacity(p) * Pricing.perFryCents(p) / 100 + 1e-9) end
 function Pricing.credit(p, currency, amount)
     p[currency] = math.min(Economy.MaxCurrency, p[currency] + amount)
 end
@@ -154,25 +358,63 @@ return Pricing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00012">
+        <Item class="ModuleScript" referent="RBX00016">
           <Properties>
             <string name="Name">Profile</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
 local Upgrades = require(script.Parent.Parent.config.Upgrades)
+local PetConfig = require(script.Parent.Parent.config.Pets)
+local Machines = require(script.Parent.Parent.config.Machines)
 local Pricing = require(script.Parent.Pricing)
 local Profile = {}
 function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
     return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(),
-        upgradeLevels = {}, gems = 0, rebirths = 0 }
+        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {} }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value &gt;= low and value &lt;= high
         and (not integer or value % 1 == 0)
 end
--- Version 1 core fields, plus optional upgradeLevels, gems, and rebirths (missing means 0).
--- Extra fields from the earlier prototype, such as `upgrades`, stay in storage but are
--- never used or sent to clients.
+local function validPets(p)
+    if p.pets ~= nil then
+        if type(p.pets) ~= "table" or #p.pets &gt; PetConfig.MaxPets then return false end
+        local count, seen = 0, {}
+        for _ in pairs(p.pets) do count += 1 end
+        if count ~= #p.pets then return false end -- a plain list
+        for _, owned in ipairs(p.pets) do
+            if type(owned) ~= "table" or type(owned.id) ~= "string" or not string.match(owned.id, "^P%d+$")
+                or seen[owned.id] or not PetConfig.Types[owned.type] or not Machines.Machines[owned.machine] then
+                return false
+            end
+            seen[owned.id] = true
+        end
+        if p.equippedPets ~= nil then
+            if type(p.equippedPets) ~= "table" or #p.equippedPets &gt; PetConfig.EquipSlots then return false end
+            local equippedCount, equippedSeen = 0, {}
+            for _ in pairs(p.equippedPets) do equippedCount += 1 end
+            if equippedCount ~= #p.equippedPets then return false end
+            for _, id in ipairs(p.equippedPets) do
+                if not seen[id] or equippedSeen[id] then return false end
+                equippedSeen[id] = true
+            end
+        end
+    elseif p.equippedPets ~= nil and (type(p.equippedPets) ~= "table" or next(p.equippedPets) ~= nil) then
+        return false
+    end
+    if p.nextPetId ~= nil and not numberIn(p.nextPetId, 0, Economy.MaxCurrency, true) then return false end
+    if p.pity ~= nil then
+        if type(p.pity) ~= "table" then return false end
+        for id, count in pairs(p.pity) do
+            local machine = type(id) == "string" and Machines.Machines[id]
+            if not machine or not numberIn(count, 0, machine.PityEvery, true) then return false end
+        end
+    end
+    return true
+end
+-- Version 1 core fields, plus optional upgradeLevels, gems, rebirths, pets, equippedPets,
+-- nextPetId, and pity (missing means none). Extra fields from the earlier prototype,
+-- such as `upgrades`, stay in storage but are never used or sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end
     for _, key in ipairs({ "cash", "sales", "lifetimeCash" }) do
@@ -189,22 +431,32 @@ function Profile.validate(p)
             end
         end
     end
-    return type(p.bag) == "table" and numberIn(p.bag.fries, 0, Pricing.capacity(p), false)
+    if not validPets(p) then return false end
+    -- Capacity depends on balance data that may change between releases, so a bag only
+    -- needs a sane size here; normalize() trims it to the current capacity on load.
+    return type(p.bag) == "table" and numberIn(p.bag.fries, 0, Economy.MaxCurrency, false)
+end
+-- Keeps the bag within the current capacity (after unequipping, deleting, or a balance change).
+function Profile.normalize(p)
+    p.bag.fries = math.min(p.bag.fries, Pricing.capacity(p))
 end
 -- Saves from before gems existed (no `gems` field) bought upgrades with Cash. The owner
 -- chose to reset those levels to 0 (16 Oct 2026, no live players). Runs once per save,
 -- after a validated load; returns true when it changed the profile.
 function Profile.migrate(p)
-    if p.gems ~= nil then return false end
-    p.gems, p.rebirths, p.upgradeLevels = 0, 0, {}
-    p.bag.fries = math.min(p.bag.fries, Pricing.capacity(p))
-    return true
+    local changed = false
+    if p.gems == nil then
+        p.gems, p.rebirths, p.upgradeLevels = 0, 0, {}
+        changed = true
+    end
+    Profile.normalize(p)
+    return changed
 end
 return Profile
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00013">
+        <Item class="ModuleScript" referent="RBX00017">
           <Properties>
             <string name="Name">Rebirth</string>
             <ProtectedString name="Source">-- Rebirth: convert Cash into gems at a rising threshold. Pure rules: no Instances,
@@ -237,7 +489,7 @@ return Rebirth
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00014">
+        <Item class="ModuleScript" referent="RBX00018">
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade purchases. Pure rules: no Instances, messages, or DataStores.
@@ -274,7 +526,8 @@ function Upgrades.snapshot(p)
     local rows = {}
     for _, id in ipairs(Config.Order) do
         local level = Pricing.level(p, id)
-        local nextProfile = { upgradeLevels = { [id] = level + 1 } }
+        -- The next value includes the same equipped pets, so it matches what the player will get.
+        local nextProfile = { upgradeLevels = { [id] = level + 1 }, pets = p.pets, equippedPets = p.equippedPets }
         table.insert(rows, { id = id, name = Config.Tracks[id].Name, level = level,
             cost = Upgrades.cost(id, level), value = Upgrades.value(p, id),
             nextValue = Upgrades.value(nextProfile, id) })
@@ -286,11 +539,11 @@ return Upgrades
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00015">
+      <Item class="Folder" referent="RBX00019">
         <Properties>
           <string name="Name">util</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00016">
+        <Item class="ModuleScript" referent="RBX00020">
           <Properties>
             <string name="Name">Copy</string>
             <ProtectedString name="Source">local function copy(value)
@@ -303,7 +556,7 @@ return copy
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00017">
+        <Item class="ModuleScript" referent="RBX00021">
           <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
@@ -329,15 +582,15 @@ return RateLimiter
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00018">
+  <Item class="ServerScriptService" referent="RBX00022">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00019">
+    <Item class="Folder" referent="RBX00023">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00020">
+      <Item class="Script" referent="RBX00024">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -452,7 +705,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00021">
+      <Item class="ModuleScript" referent="RBX00025">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -478,11 +731,11 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00022">
+      <Item class="Folder" referent="RBX00026">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00023">
+        <Item class="ModuleScript" referent="RBX00027">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -493,12 +746,15 @@ local Packing = require(Shared.domain.Packing)
 local Pricing = require(Shared.domain.Pricing)
 local Upgrades = require(Shared.domain.Upgrades)
 local Rebirth = require(Shared.domain.Rebirth)
+local Gacha = require(Shared.domain.Gacha)
+local Pets = require(Shared.domain.Pets)
+local Profile = require(Shared.domain.Profile)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
     return setmetatable({ data = data, stations = stations, network = network, snapshots = snapshots,
         generalLimit = RateLimiter.new(12, 18), clickLimit = RateLimiter.new(Economy.ClicksPerSecond, 1),
-        cooldowns = {} }, ActionService)
+        cooldowns = {}, random = Random.new() }, ActionService)
 end
 function ActionService:remove(player)
     self.generalLimit:remove(player)
@@ -510,6 +766,8 @@ local function validArgument(action, argument)
     if kind == "none" then return argument == nil end
     -- Upgrade takes only a known track name; never prices, levels, or Cash amounts.
     if kind == "upgrade" then return Upgrades.isTrack(argument) end
+    if kind == "machine" then return Gacha.isMachine(argument) end
+    if kind == "pet" then return Pets.isPetId(argument) end
     return false
 end
 function ActionService:handle(player, action, argument)
@@ -530,7 +788,8 @@ function ActionService:handle(player, action, argument)
         if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
-    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" then 0.25 elseif action == "Rebirth" then 2 else 1
+    local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" or action == "Spin" then 0.25
+        elseif action == "Rebirth" then 2 elseif action == "Return" or action == "Sync" then 1 else 0.15
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now &lt; (cooldowns[action] or 0) then return end
@@ -547,6 +806,22 @@ function ActionService:handle(player, action, argument)
         -- Cash, bag, gems, and count change together in one non-yielding step.
         local ok, result = Rebirth.perform(p)
         if ok then self.stations:render(player, p) else self.network:notice(player, result, false) end
+    elseif action == "Spin" then
+        -- Price, roll, pet, and pity change together; the roll happens only here.
+        local ok, result = Gacha.spin(p, argument, function() return self.random:NextNumber() end)
+        if not ok then self.network:notice(player, result, false)
+        else
+            self.spins = (self.spins or 0) + 1
+            self.snapshots:send(player, { spin = { serial = self.spins, id = result.id, type = result.type } })
+            return
+        end
+    elseif action == "Equip" or action == "Unequip" or action == "DeletePet" then
+        local operation = if action == "Equip" then Pets.equip elseif action == "Unequip" then Pets.unequip else Pets.delete
+        local ok, result = operation(p, argument)
+        if ok then
+            Profile.normalize(p) -- removing a capacity bonus trims an over-full bag
+            self.stations:render(player, p)
+        else self.network:notice(player, result, false) end
     end
     self.snapshots:send(player)
 end
@@ -554,7 +829,7 @@ return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00024">
+        <Item class="ModuleScript" referent="RBX00028">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -658,19 +933,37 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00025">
+        <Item class="ModuleScript" referent="RBX00029">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Pricing = require(Shared.domain.Pricing)
 local Upgrades = require(Shared.domain.Upgrades)
 local Rebirth = require(Shared.domain.Rebirth)
+local Gacha = require(Shared.domain.Gacha)
+local Pets = require(Shared.domain.Pets)
+local PetConfig = require(Shared.config.Pets)
+local Machines = require(Shared.config.Machines)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
 function SnapshotService.new(data, stations, network)
     return setmetatable({ data = data, stations = stations, network = network }, SnapshotService)
 end
-function SnapshotService:send(player)
+-- Owned pets for display: name, rarity, bonuses, and equipped state. Server-computed.
+local function petRows(p)
+    local rows = {}
+    for _, owned in ipairs(Pets.list(p)) do
+        local kind = PetConfig.Types[owned.type]
+        local bonuses = {}
+        for _, stat in ipairs(PetConfig.StatOrder) do
+            if kind.Bonuses[stat] then table.insert(bonuses, { stat = stat, amount = kind.Bonuses[stat] }) end
+        end
+        table.insert(rows, { id = owned.id, type = owned.type, name = kind.Name, rarity = kind.Rarity,
+            rank = PetConfig.Rarities[kind.Rarity].Rank, bonuses = bonuses, equipped = Pets.isEquipped(p, owned.id) })
+    end
+    return rows
+end
+function SnapshotService:send(player, extra)
     local p = self.data:get(player)
     if not p or not player.Parent then return end
     self.network.State:FireClient(player, {
@@ -680,13 +973,16 @@ function SnapshotService:send(player)
             capacity = Pricing.capacity(p), saleValue = Pricing.sale(p) },
         shop = Upgrades.snapshot(p),
         rebirth = Rebirth.snapshot(p),
+        machine = Gacha.snapshot(p, Machines.Order[1]),
+        pets = { owned = petRows(p), equipped = #Pets.equipped(p), slots = PetConfig.EquipSlots, max = PetConfig.MaxPets },
+        spin = extra and extra.spin,
     })
 end
 return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00026">
+        <Item class="ModuleScript" referent="RBX00030">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -756,11 +1052,11 @@ return StationService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00027">
+      <Item class="Folder" referent="RBX00031">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00028">
+        <Item class="ModuleScript" referent="RBX00032">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -845,11 +1141,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00029">
+      <Item class="Folder" referent="RBX00033">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00030">
+        <Item class="ModuleScript" referent="RBX00034">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -886,7 +1182,7 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00031">
+        <Item class="ModuleScript" referent="RBX00035">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -991,7 +1287,7 @@ end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00032">
+        <Item class="ModuleScript" referent="RBX00036">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
@@ -1071,19 +1367,19 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00033">
+  <Item class="StarterPlayer" referent="RBX00037">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00034">
+    <Item class="StarterPlayerScripts" referent="RBX00038">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00035">
+      <Item class="Folder" referent="RBX00039">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="LocalScript" referent="RBX00036">
+        <Item class="LocalScript" referent="RBX00040">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -1122,11 +1418,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00037">
+        <Item class="Folder" referent="RBX00041">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00038">
+          <Item class="ModuleScript" referent="RBX00042">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1172,11 +1468,11 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="Folder" referent="RBX00039">
+        <Item class="Folder" referent="RBX00043">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00040">
+          <Item class="ModuleScript" referent="RBX00044">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1184,6 +1480,8 @@ local E = require(script.Parent.Elements)
 local HudView = require(script.Parent.HudView)
 local ShopView = require(script.Parent.ShopView)
 local RebirthView = require(script.Parent.RebirthView)
+local GachaView = require(script.Parent.GachaView)
+local PetsView = require(script.Parent.PetsView)
 local AppView = {}
 AppView.__index = AppView
 -- The wallet card holds Cash (top) and Gems (bottom row).
@@ -1242,9 +1540,17 @@ function AppView.new(playerGui, send)
     self.hud = HudView.new(gui, send)
     self.shop = ShopView.new(gui, send)
     self.rebirth = RebirthView.new(gui, send)
-    -- Opening one panel closes the other so they never stack.
-    self.shop.button.Activated:Connect(function() if self.shop.panel.Visible then self.rebirth:setOpen(false) end end)
-    self.rebirth.button.Activated:Connect(function() if self.rebirth.panel.Visible then self.shop:setOpen(false) end end)
+    self.gacha = GachaView.new(gui, send)
+    self.pets = PetsView.new(gui, send)
+    -- Grid order: UPGRADES | REBIRTH on the first row, SPIN | PETS on the second.
+    self.menus = { self.shop, self.rebirth, self.gacha, self.pets }
+    -- Opening one panel closes the others so they never stack.
+    for _, menu in ipairs(self.menus) do
+        menu.button.Activated:Connect(function()
+            if not menu.panel.Visible then return end
+            for _, other in ipairs(self.menus) do if other ~= menu then other:setOpen(false) end end
+        end)
+    end
     self:resize(Vector2.new(1280, 720))
     return self
 end
@@ -1262,8 +1568,7 @@ function AppView:update(state)
         self.guidance.TextColor3 = Theme.Text
     end
     self.hud:update(state)
-    self.shop:update(state)
-    self.rebirth:update(state)
+    for _, menu in ipairs(self.menus) do menu:update(state) end
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -1281,8 +1586,10 @@ function AppView:resize(viewport)
     local actionTop = height - 22 - 104 * hudScale
     local cardWidth = if compact then 172 else 218
     -- Centre the wallet on the left; lift it only when a short screen needs room for actions.
-    -- Outside compact layouts, the UPGRADES and REBIRTH buttons sit below it and need room too.
-    local below = if compact then 0 else ButtonGap + ButtonHeight
+    -- Tall screens put the 2x2 menu grid below it, which needs room too. Short screens
+    -- (under 500 px high) put the grid at the top right instead.
+    local side = viewport.Y &lt; 500
+    local below = if side then 0 else ButtonGap + ButtonHeight * 2 + 8
     local cashOffset = math.min(0, actionTop - 12 - below - CardHeight / 2 - height / 2)
     self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
     self.cashCard.Size = UDim2.fromOffset(cardWidth, CardHeight)
@@ -1292,28 +1599,36 @@ function AppView:resize(viewport)
     self.teleport.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 36 else 16)
     self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
     self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
-    local shopButton, rebirthButton = self.shop.button, self.rebirth.button
-    if compact then
-        -- Short landscape: stack both buttons at the top right, clear of the actions.
-        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(1, 0), Vector2.new(1, 0)
-        shopButton.Position, rebirthButton.Position = UDim2.new(1, -16, 0, 16), UDim2.new(1, -16, 0, 16 + ButtonHeight + 8)
-        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(112, ButtonHeight), UDim2.fromOffset(112, ButtonHeight)
-    else
-        local half = (cardWidth - 8) / 2
-        local y = cashOffset + CardHeight / 2 + ButtonGap
-        shopButton.AnchorPoint, rebirthButton.AnchorPoint = Vector2.new(0, 0), Vector2.new(0, 0)
-        shopButton.Position, rebirthButton.Position = UDim2.new(0, 16, 0.5, y), UDim2.new(0, 16 + half + 8, 0.5, y)
-        shopButton.Size, rebirthButton.Size = UDim2.fromOffset(half, ButtonHeight), UDim2.fromOffset(half, ButtonHeight)
+    local gridLeft = viewport.X
+    for index, menu in ipairs(self.menus) do
+        local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
+        local button = menu.button
+        if side then
+            -- Top right, clear of Return to Counter and the guidance strip.
+            local width = if compact then 60 else 96
+            button.AnchorPoint = Vector2.new(1, 0)
+            button.Position = UDim2.new(1, -16 - (1 - column) * (width + 8), 0, 16 + row * (ButtonHeight + 8))
+            button.Size = UDim2.fromOffset(width, ButtonHeight)
+            gridLeft = viewport.X - 16 - width * 2 - 8
+        else
+            local half = (cardWidth - 8) / 2
+            button.AnchorPoint = Vector2.new(0, 0)
+            button.Position = UDim2.new(0, 16 + column * (half + 8), 0.5, cashOffset + CardHeight / 2 + ButtonGap + row * (ButtonHeight + 8))
+            button.Size = UDim2.fromOffset(half, ButtonHeight)
+        end
     end
-    self.shop:resize(viewport)
-    self.rebirth:resize(viewport)
+    if side and not compact then
+        -- Keep the centred guidance strip clear of the top-right grid.
+        self.guidance.Size = UDim2.fromOffset(math.min(460, 2 * (gridLeft - 12 - viewport.X / 2)), 44)
+    end
+    for _, menu in ipairs(self.menus) do menu:resize(viewport) end
     self.hud.scale.Scale = hudScale
 end
 return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00041">
+          <Item class="ModuleScript" referent="RBX00045">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1324,6 +1639,19 @@ function Elements.count(value)
     return result
 end
 function Elements.money(value) return "$" .. Elements.count(value) end
+-- Whole numbers stay whole; pet bonuses can make stats fractional (1.05 fries per click).
+function Elements.number(value)
+    if math.abs(value - math.floor(value + 0.5)) &lt; 1e-6 then return Elements.count(math.floor(value + 0.5)) end
+    local text = string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", "")
+    return text
+end
+-- Shrinks text to fit on one line, between min and max sizes.
+function Elements.fit(label, min, max)
+    label.TextScaled, label.TextWrapped = true, false
+    local constraint = Instance.new("UITextSizeConstraint")
+    constraint.Name, constraint.MinTextSize, constraint.MaxTextSize, constraint.Parent = "Fit", min, max, label
+    return constraint
+end
 function Elements.stroke(parent, color, thickness, transparency)
     local stroke = Instance.new("UIStroke")
     stroke.Color, stroke.Thickness, stroke.Transparency = color, thickness, transparency or 0
@@ -1409,7 +1737,122 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00042">
+          <Item class="ModuleScript" referent="RBX00046">
+            <Properties>
+              <string name="Name">GachaView</string>
+              <ProtectedString name="Source">-- Gacha machine panel: price, odds, pity, last result, and the SPIN button.
+-- The server rolls; this view only displays and requests.
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local PetConfig = require(Shared.config.Pets)
+local Theme = require(script.Parent.Theme)
+local E = require(script.Parent.Elements)
+local PetText = require(script.Parent.PetText)
+local GachaView = {}
+GachaView.__index = GachaView
+local PanelWidth, PanelHeight = 360, 376
+function GachaView.new(gui, send)
+    local self = setmetatable({ send = send, hasStation = false, canSpin = false, odds = {} }, GachaView)
+    self.button = E.button(gui, "SPIN", function() self:toggle() end, Theme.Background)
+    self.button.Name, self.button.TextSize, self.button.TextColor3 = "SpinButton", 13, Theme.Green
+    E.stroke(self.button, Theme.Green, 1.5, 0.3)
+    E.fit(self.button, 8, 13)
+
+    local panel = E.box(gui, "GachaPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
+    panel.AnchorPoint, panel.Visible, panel.ZIndex = Vector2.new(0.5, 0.5), false, 5
+    E.stroke(panel, Theme.Green, 2, 0.12)
+    self.panel = panel
+    self.scale = Instance.new("UIScale")
+    self.scale.Parent = panel
+    self.title = E.label(panel, "STARTER FRYER", 28, Theme.Text)
+    self.title.Name, self.title.Position, self.title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(260, 28)
+    self.title.Font, self.title.TextSize = Enum.Font.GothamBold, 21
+    self.caption = E.label(panel, "", 16, Theme.Muted)
+    self.caption.Name, self.caption.Position, self.caption.Size, self.caption.TextSize = "Caption", UDim2.fromOffset(20, 42), UDim2.fromOffset(270, 16), 11
+    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
+    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
+    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
+
+    local odds = E.box(panel, "Odds", UDim2.fromOffset(16, 70), UDim2.fromOffset(PanelWidth - 32, 136), Theme.Card, 14)
+    for index, rarity in ipairs(PetConfig.RarityOrder) do
+        local y = 8 + (index - 1) * 24
+        local chance = E.label(odds, "", 22, PetText.color(rarity))
+        chance.Name, chance.Position, chance.Size = rarity, UDim2.fromOffset(12, y), UDim2.fromOffset(112, 22)
+        chance.Font, chance.TextSize = Enum.Font.GothamBold, 12
+        E.fit(chance, 8, 12)
+        local names = E.label(odds, "", 22, Theme.Muted)
+        names.Name, names.Position, names.Size, names.TextSize = rarity .. "Pets", UDim2.fromOffset(126, y), UDim2.fromOffset(PanelWidth - 32 - 138, 22), 10
+        E.fit(names, 7, 10)
+        self.odds[rarity] = { chance = chance, names = names }
+    end
+
+    local result = E.box(panel, "Result", UDim2.fromOffset(16, 216), UDim2.fromOffset(PanelWidth - 32, 64), Theme.Card, 14)
+    self.resultName = E.label(result, "Spin to get a Fry Buddy!", 26, Theme.Text)
+    self.resultName.Name, self.resultName.Position, self.resultName.Size = "PetName", UDim2.fromOffset(14, 8), UDim2.fromOffset(PanelWidth - 60, 26)
+    self.resultName.Font, self.resultName.TextSize = Enum.Font.GothamBold, 17
+    E.fit(self.resultName, 9, 17)
+    self.resultBonus = E.label(result, "Pets you win appear in PETS.", 18, Theme.Muted)
+    self.resultBonus.Name, self.resultBonus.Position, self.resultBonus.Size, self.resultBonus.TextSize = "Bonus", UDim2.fromOffset(14, 36), UDim2.fromOffset(PanelWidth - 60, 18), 12
+
+    self.count = E.label(panel, "", 16, Theme.Muted)
+    self.count.Name, self.count.Position, self.count.Size, self.count.TextSize = "Count", UDim2.fromOffset(20, 290), UDim2.fromOffset(PanelWidth - 40, 16), 11
+    self.spin = E.button(panel, "SPIN", function() self:spinOnce() end, Theme.Green)
+    self.spin.Name, self.spin.Position, self.spin.Size = "Spin", UDim2.fromOffset(16, 312), UDim2.fromOffset(PanelWidth - 32, 48)
+    self.spin.AutoButtonColor, self.spin.TextColor3, self.spin.TextSize = false, Theme.Ink, 16
+    return self
+end
+function GachaView:setOpen(open) self.panel.Visible = open and self.hasStation end
+function GachaView:toggle() if self.hasStation then self:setOpen(not self.panel.Visible) end end
+function GachaView:spinOnce()
+    if self.canSpin and self.panel.Visible and self.machineId then self.send("Spin", self.machineId) end
+end
+function GachaView:update(state)
+    self.hasStation = state.hasStation
+    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
+    self.button.TextColor3 = if state.hasStation then Theme.Green else Theme.Muted
+    if not state.hasStation then self.panel.Visible = false end
+    local machine, pets = state.machine, state.pets
+    if not machine or not pets then return end
+    self.machineId = machine.id
+    self.title.Text = string.upper(machine.name)
+    local left = machine.pityEvery - machine.pity
+    self.caption.Text = E.money(machine.price) .. " per spin  ·  " .. machine.pityRarity .. " or better within " .. left
+        .. (if left == 1 then " spin" else " spins")
+    for _, row in ipairs(machine.odds) do
+        local view = self.odds[row.rarity]
+        if view then
+            view.chance.Text = string.upper(row.rarity) .. "  " .. E.number(row.chance * 100) .. "%"
+            view.names.Text = table.concat(row.pets, ", ")
+        end
+    end
+    local full = #pets.owned &gt;= pets.max
+    local affordable = state.profile.cash &gt;= machine.price
+    self.canSpin = state.hasStation and affordable and not full
+    self.count.Text = "PETS " .. #pets.owned .. " / " .. pets.max .. (if full then "  ·  inventory full" else "")
+    self.spin.Active, self.spin.Selectable = self.canSpin, self.canSpin
+    self.spin.Text = if full then "INVENTORY FULL" elseif affordable then "SPIN  " .. E.money(machine.price) else "NEED " .. E.money(machine.price)
+    self.spin.BackgroundColor3 = if self.canSpin then Theme.Green else Theme.Card
+    self.spin.TextColor3 = if self.canSpin then Theme.Ink else Theme.Muted
+    -- A new spin result names the pet in its rarity color.
+    local spin = state.spin
+    if spin and spin.serial ~= self.lastSerial then
+        self.lastSerial = spin.serial
+        for _, owned in ipairs(pets.owned) do
+            if owned.id == spin.id then
+                self.resultName.Text = "You got " .. owned.name .. "!"
+                self.resultName.TextColor3 = PetText.color(owned.rarity)
+                self.resultBonus.Text = string.upper(owned.rarity) .. "  ·  " .. PetText.bonus(owned.bonuses)
+            end
+        end
+    end
+end
+function GachaView:resize(viewport)
+    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+end
+return GachaView
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00047">
             <Properties>
               <string name="Name">HudView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1489,7 +1932,7 @@ function HudView:update(state)
     local canPack = state.hasStation and state.nearStation and not full
     local canSell = state.hasStation and state.nearStation and full
     local perClick = state.stats.perClick
-    local yieldText = "+" .. perClick .. (if perClick == 1 then " fry/click" else " fries/click")
+    local yieldText = "+" .. E.number(perClick) .. (if perClick == 1 then " fry/click" else " fries/click")
     self.pack.Active, self.pack.Selectable = canPack, canPack
     self.sell.Active, self.sell.Selectable = canSell, canSell
     self.pack.BackgroundColor3 = if canPack and self.hovered then Theme.GoldLight else Theme.Gold
@@ -1515,7 +1958,153 @@ return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00043">
+          <Item class="ModuleScript" referent="RBX00048">
+            <Properties>
+              <string name="Name">PetText</string>
+              <ProtectedString name="Source">-- Shared pet display text and rarity colors.
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local PetConfig = require(Shared.config.Pets)
+local PetText = {}
+local StatNames = { FriesPerClick = "fries per click", MoneyPerFry = "money per fry", BagCapacity = "bag capacity" }
+local ShortNames = { FriesPerClick = "fries/click", MoneyPerFry = "money/fry", BagCapacity = "bag size" }
+-- `short` uses compact stat names for narrow rows.
+function PetText.bonus(bonuses, short)
+    local names = if short then ShortNames else StatNames
+    local parts = {}
+    for _, bonus in ipairs(bonuses) do
+        table.insert(parts, "+" .. math.floor(bonus.amount * 100 + 0.5) .. "% " .. names[bonus.stat])
+    end
+    return table.concat(parts, ", ")
+end
+function PetText.color(rarity)
+    local c = PetConfig.Rarities[rarity].Color
+    return Color3.fromRGB(c[1], c[2], c[3])
+end
+return PetText
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00049">
+            <Properties>
+              <string name="Name">PetsView</string>
+              <ProtectedString name="Source">-- Pet inventory: owned pets with rarity, bonus, Equip/Unequip, and a two-tap Delete.
+-- The server owns the inventory; this view only displays and requests.
+local Theme = require(script.Parent.Theme)
+local E = require(script.Parent.Elements)
+local PetText = require(script.Parent.PetText)
+local PetsView = {}
+PetsView.__index = PetsView
+local PanelWidth, PanelHeight, RowHeight = 380, 400, 60
+local ConfirmSeconds = 3
+function PetsView.new(gui, send)
+    local self = setmetatable({ send = send, hasStation = false, rows = {}, confirmId = nil, confirmUntil = 0 }, PetsView)
+    self.button = E.button(gui, "PETS", function() self:toggle() end, Theme.Background)
+    self.button.Name, self.button.TextSize, self.button.TextColor3 = "PetsButton", 13, Theme.Blue
+    E.stroke(self.button, Theme.Blue, 1.5, 0.3)
+    E.fit(self.button, 8, 13)
+
+    local panel = E.box(gui, "PetsPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
+    panel.AnchorPoint, panel.Visible, panel.ZIndex = Vector2.new(0.5, 0.5), false, 5
+    E.stroke(panel, Theme.Blue, 2, 0.12)
+    self.panel = panel
+    self.scale = Instance.new("UIScale")
+    self.scale.Parent = panel
+    local title = E.label(panel, "PETS", 28, Theme.Text)
+    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(260, 28)
+    title.Font, title.TextSize = Enum.Font.GothamBold, 21
+    self.caption = E.label(panel, "", 16, Theme.Muted)
+    self.caption.Name, self.caption.Position, self.caption.Size, self.caption.TextSize = "Caption", UDim2.fromOffset(20, 42), UDim2.fromOffset(280, 16), 11
+    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
+    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
+    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
+    local holder = E.box(panel, "ListArea", UDim2.fromOffset(16, 70), UDim2.fromOffset(PanelWidth - 32, PanelHeight - 86), Theme.Background, 0)
+    self.list = E.column(holder, "List")
+    self.empty = E.label(holder, "No pets yet. Spin the machine to get one!", 40, Theme.Muted)
+    self.empty.Name, self.empty.TextXAlignment, self.empty.TextSize = "Empty", Enum.TextXAlignment.Center, 13
+    return self
+end
+function PetsView:setOpen(open) self.panel.Visible = open and self.hasStation end
+function PetsView:toggle() if self.hasStation then self:setOpen(not self.panel.Visible) end end
+function PetsView:delete(id)
+    -- The first tap arms Delete for a few seconds; the second tap sends it.
+    if self.confirmId == id and os.clock() &lt; self.confirmUntil then
+        self.confirmId = nil
+        self.send("DeletePet", id)
+    else
+        self.confirmId, self.confirmUntil = id, os.clock() + ConfirmSeconds
+        if self.state then self:update(self.state) end
+    end
+end
+local function sorted(owned)
+    local list = table.clone(owned)
+    table.sort(list, function(a, b)
+        if a.equipped ~= b.equipped then return a.equipped end
+        if a.rank ~= b.rank then return a.rank &gt; b.rank end
+        return tonumber(string.sub(a.id, 2)) &lt; tonumber(string.sub(b.id, 2))
+    end)
+    return list
+end
+function PetsView:row(pet, order, full)
+    local row = E.box(self.list, pet.id, UDim2.new(), UDim2.new(1, 0, 0, RowHeight), Theme.Card, 12)
+    row.LayoutOrder = order
+    E.stroke(row, PetText.color(pet.rarity), if pet.equipped then 2 else 1, if pet.equipped then 0 else 0.6)
+    local name = E.label(row, pet.name, 22, PetText.color(pet.rarity))
+    name.Name, name.Position, name.Size = "PetName", UDim2.fromOffset(12, 7), UDim2.new(1, -180, 0, 22)
+    name.Font, name.TextSize = Enum.Font.GothamBold, 14
+    E.fit(name, 9, 14)
+    local detail = E.label(row, string.upper(pet.rarity) .. (if pet.equipped then "  ·  EQUIPPED" else ""), 14, Theme.Muted)
+    detail.Name, detail.Position, detail.Size, detail.TextSize = "Rarity", UDim2.fromOffset(12, 29), UDim2.new(1, -180, 0, 14), 9
+    local bonus = E.label(row, PetText.bonus(pet.bonuses, true), 14, Theme.GoldLight)
+    bonus.Name, bonus.Position, bonus.Size, bonus.TextSize = "Bonus", UDim2.fromOffset(12, 43), UDim2.new(1, -180, 0, 14), 10
+    E.fit(bonus, 7, 10)
+    local canEquip = pet.equipped or not full
+    local equip = E.button(row, if pet.equipped then "UNEQUIP" else "EQUIP", function()
+        if not self.hasStation then return end
+        if pet.equipped then self.send("Unequip", pet.id) elseif not full then self.send("Equip", pet.id) end
+    end, if pet.equipped then Theme.Background elseif canEquip then Theme.Gold else Theme.Background)
+    equip.Name, equip.AnchorPoint, equip.Position, equip.Size = "Equip", Vector2.new(1, 0.5), UDim2.new(1, if pet.equipped then -8 else -78, 0.5, 0), UDim2.fromOffset(84, 38)
+    equip.TextSize, equip.AutoButtonColor = 11, canEquip
+    equip.TextColor3 = if pet.equipped then Theme.Text elseif canEquip then Theme.Ink else Theme.Muted
+    equip.Active, equip.Selectable = canEquip, canEquip
+    if not pet.equipped then
+        local armed = self.confirmId == pet.id and os.clock() &lt; self.confirmUntil
+        local delete = E.button(row, if armed then "SURE?" else "DELETE", function() self:delete(pet.id) end,
+            if armed then Theme.Red else Theme.Background)
+        delete.Name, delete.AnchorPoint, delete.Position, delete.Size = "Delete", Vector2.new(1, 0.5), UDim2.new(1, -8, 0.5, 0), UDim2.fromOffset(64, 38)
+        delete.TextSize, delete.TextColor3 = 10, if armed then Theme.Ink else Theme.Red
+        E.stroke(delete, Theme.Red, 1, 0.5)
+    end
+    return row
+end
+function PetsView:update(state)
+    self.state = state
+    self.hasStation = state.hasStation
+    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
+    self.button.TextColor3 = if state.hasStation then Theme.Blue else Theme.Muted
+    if not state.hasStation then self.panel.Visible = false end
+    local pets = state.pets
+    if not pets then return end
+    local full = pets.equipped &gt;= pets.slots
+    self.caption.Text = "Equipped " .. pets.equipped .. " / " .. pets.slots .. "  ·  " .. #pets.owned .. " / " .. pets.max .. " pets"
+    self.empty.Visible = #pets.owned == 0
+    -- Rebuild rows only when the pets, their equipped state, or a Delete confirmation changes.
+    local parts = { tostring(full), tostring(self.confirmId), tostring(self.confirmUntil &gt; os.clock()) }
+    for _, pet in ipairs(pets.owned) do table.insert(parts, pet.id .. (if pet.equipped then "*" else "")) end
+    local signature = table.concat(parts, ",")
+    if signature == self.signature then return end
+    self.signature = signature
+    for _, row in pairs(self.rows) do row:Destroy() end
+    self.rows = {}
+    for order, pet in ipairs(sorted(pets.owned)) do self.rows[pet.id] = self:row(pet, order, full) end
+end
+function PetsView:resize(viewport)
+    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+end
+return PetsView
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00050">
             <Properties>
               <string name="Name">RebirthView</string>
               <ProtectedString name="Source">-- Rebirth: a REBIRTH button and a confirmation panel. The server checks the threshold,
@@ -1536,6 +2125,7 @@ function RebirthView.new(gui, send)
     self.button.Name, self.button.TextSize, self.button.TextColor3 = "RebirthButton", 13, Theme.Gem
     self.button.Size = UDim2.fromOffset(105, 44)
     self.buttonStroke = E.stroke(self.button, Theme.Gem, 1.5, 0.3)
+    E.fit(self.button, 8, 13)
 
     local panel = E.box(gui, "RebirthPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
     panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
@@ -1612,7 +2202,7 @@ return RebirthView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00044">
+          <Item class="ModuleScript" referent="RBX00051">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1728,7 +2318,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00045">
+          <Item class="ModuleScript" referent="RBX00052">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -1846,7 +2436,7 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00046">
+          <Item class="ModuleScript" referent="RBX00053">
             <Properties>
               <string name="Name">ShopView</string>
               <ProtectedString name="Source">-- Upgrade shop: an UPGRADES button and a panel with one row per gem upgrade track.
@@ -1862,9 +2452,9 @@ local function describe(row)
     if row.id == "MoneyPerFry" then
         return string.format("$%.2f → $%.2f per fry", row.value, row.nextValue)
     elseif row.id == "FriesPerClick" then
-        return row.value .. " → " .. row.nextValue .. " fries/click"
+        return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries/click"
     end
-    return row.value .. " → " .. row.nextValue .. " fries per bag"
+    return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries per bag"
 end
 function ShopView.new(gui, send)
     local self = setmetatable({ send = send, rows = {}, data = {}, hasStation = false }, ShopView)
@@ -1872,6 +2462,7 @@ function ShopView.new(gui, send)
     self.button.Name, self.button.TextSize, self.button.TextColor3 = "UpgradesButton", 13, Theme.Gold
     self.button.Size = UDim2.fromOffset(218, 44)
     E.stroke(self.button, Theme.Gold, 1.5, 0.3)
+    E.fit(self.button, 8, 13)
 
     local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
     panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
@@ -1944,7 +2535,7 @@ return ShopView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00047">
+          <Item class="ModuleScript" referent="RBX00054">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">return {
@@ -1969,23 +2560,23 @@ return ShopView
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00048">
+  <Item class="StarterGui" referent="RBX00055">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00049">
+  <Item class="Lighting" referent="RBX00056">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00050">
+  <Item class="Players" referent="RBX00057">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00051">
+  <Item class="SoundService" referent="RBX00058">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

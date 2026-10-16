@@ -1,6 +1,26 @@
 # Roblox Studio acceptance checks
 
-Current iteration: **Increment 2, gems and rebirth**. Run its checks first. It replaces the Increment 1 upgrade shop checks, since upgrades now cost gems. The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+Current iteration: **Increment 3, gacha machine and pets**. Run its checks first, then the Increment 2 checks as regression (they replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+
+## Gacha machine and pets (Increment 3)
+
+These checks need a real Studio session. Automated tests cover odds, pity, spins, equipping, deleting, bonuses, saving, and calculated layout, but not rendering, touch scrolling, or real latency.
+
+1. Before claiming, SPIN and PETS (second row of the menu grid) are greyed out and open nothing.
+2. Claim and open SPIN. Check the title, $100 per spin, "Epic or better within 50 spins", the five odds rows with pet names, PETS 0 / 50, and NEED $100 while below $100.
+3. Earn $100 and spin. Cash drops by exactly $100, the result names the pet in its rarity color with its bonus, the pity countdown drops by one (unless Epic or better), and the pet count rises.
+4. Tap SPIN repeatedly and quickly, including with high simulated latency. Each accepted spin charges once and adds exactly one pet.
+5. Open PETS. Opening it closes the machine panel. Pets are listed equipped first, then by rarity, with name, rarity, and bonus. Scroll the list with many pets on desktop and touch.
+6. Equip a fries-per-click pet: the packing button shows the new value (for example +1.05 fries/click). Equip a money-per-fry pet: a full bag's SELL value rises. Equip Fryer Bot or a capacity pet: the bag capacity rises.
+7. Try a 4th pet with 3 equipped: its EQUIP is greyed out. Unequip one, then equip another.
+8. Fill the bag with a capacity pet equipped, then unequip it: the bag is trimmed to the new capacity and can be sold.
+9. DELETE an unequipped pet: the first tap shows SURE?, the second deletes it; waiting 3 seconds cancels. Equipped pets show no DELETE.
+10. Rebirth: pets, equipped pets, and the pity countdown are kept.
+11. Fill the inventory to 50 (a temporary higher starting Cash in Studio is fine; restore afterwards): the machine button reads INVENTORY FULL until a pet is deleted.
+12. Check the 2x2 menu grid and both panels on desktop, a portrait phone, a short landscape phone (grid at the top right), and a wide short screen. Text must fit, buttons must be tappable, and nothing may overlap the action buttons, Cash card, Return to Counter, guidance, or Roblox's own controls.
+13. With two players, confirm pets, equipped pets, pity, and Cash stay separate.
+14. With persistence enabled in a test experience: spin, equip, leave, and rejoin. Pets, equipped pets, pity, and stat bonuses are restored.
+15. Confirm no pets follow the player yet, and no merging, more machines, or Robux options have appeared.
 
 ## Gems, rebirth, and upgrades (Increment 2)
 
@@ -18,7 +38,7 @@ These checks need a real Studio session. Automated tests cover the rules, saving
 10. Check the Cash and Gems card, both buttons, and both panels on desktop, a portrait phone, and a short landscape phone (buttons stack at the top right). Text must fit, buttons must be easy to tap, and nothing may overlap the action buttons, Return to Counter, or Roblox's own controls. The Studio test label sits in the bottom-left corner.
 11. With two players, confirm Cash, gems, rebirth counts, and levels stay separate.
 12. With persistence enabled in a test experience: rebirth, buy upgrades, leave, and rejoin. Gems, rebirth count, levels, Cash, and the bag are restored. A save from Increment 1 (upgrade levels bought with Cash, no gems) loads with 0 gems and level 0 on all tracks, keeping its Cash.
-13. Confirm no gacha, pets, inventory, or Robux options have appeared.
+13. Confirm no Robux options have appeared.
 
 ## Arrival and claiming
 
@@ -55,7 +75,7 @@ These checks need a real Studio session. Automated tests cover the rules, saving
 - Confirm buildings feel separated and the central area remains open. Ask testers whether they can identify an available plot and understand where to go without instructions.
 - Confirm the title is on the physical mural wall, following the wall's perspective rather than facing the camera.
 - Confirm ownership plaques are readable nearby and no floating fryer/equipment name tags or old customer text bubbles return.
-- Verify no doors, progression rewards beyond the upgrade shop and rebirth, or other unrequested systems have been introduced.
+- Verify no doors, progression rewards beyond the upgrade shop, rebirth, and the gacha machine, or other unrequested systems have been introduced.
 
 ## Smooth cartoon world
 
@@ -75,7 +95,7 @@ These checks need a real Studio session. Automated tests cover the rules, saving
 6. Check the middle-left Cash card, coin symbol, and comma-grouped amount, including clearance from the bottom actions on short screens. Verify large amounts fit the card.
 7. Walk away from the counter with a full bag: selling must be disabled and the return instruction should be clear. Return to Counter must target the player's own restaurant.
 8. Confirm useful errors appear briefly near the top, then clear, rather than obscuring the bottom actions.
-9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade shop and rebirth panel are the only menus.
+9. Confirm Fold, Delivery, Index, and Inventory remain absent, and Q does nothing. The upgrade, rebirth, machine, and pets panels are the only menus.
 
 ## Devices, multiplayer, and latency
 
@@ -95,4 +115,4 @@ Use a separately published test experience with StudioUseDataStore enabled. Keep
 
 ## Iteration review
 
-Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting Increment 3.
+Record the Studio results and review the new player journey with the project owner. Fix UX and core-loop failures before starting Increment 4.

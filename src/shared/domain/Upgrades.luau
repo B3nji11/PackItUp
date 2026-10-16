@@ -32,7 +32,8 @@ function Upgrades.snapshot(p)
     local rows = {}
     for _, id in ipairs(Config.Order) do
         local level = Pricing.level(p, id)
-        local nextProfile = { upgradeLevels = { [id] = level + 1 } }
+        -- The next value includes the same equipped pets, so it matches what the player will get.
+        local nextProfile = { upgradeLevels = { [id] = level + 1 }, pets = p.pets, equippedPets = p.equippedPets }
         table.insert(rows, { id = id, name = Config.Tracks[id].Name, level = level,
             cost = Upgrades.cost(id, level), value = Upgrades.value(p, id),
             nextValue = Upgrades.value(nextProfile, id) })

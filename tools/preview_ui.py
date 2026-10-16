@@ -46,10 +46,13 @@ do
         data.scale=scale and scale.Scale or 1
         local corner=node:FindFirstChildOfClass("UICorner")
         data.radius=corner and corner.CornerRadius.Offset or 0
+        local layout=node:FindFirstChildOfClass("UIListLayout")
+        if layout then data.listPadding=layout.Padding.Offset end
+        data.order=node.LayoutOrder or 0
         local stroke=node:FindFirstChildOfClass("UIStroke")
         if stroke then data.stroke=color(stroke.Color); data.strokeWidth=stroke.Thickness end
         for _,child in ipairs(node._children or {}) do
-            if child.ClassName=="Frame" or child.ClassName=="TextLabel" or child.ClassName=="TextButton" then
+            if child.ClassName=="Frame" or child.ClassName=="TextLabel" or child.ClassName=="TextButton" or child.ClassName=="ScrollingFrame" then
                 table.insert(data.children,capture(child))
             end
         end
@@ -58,17 +61,34 @@ do
     local Upgrades=loadModule("shared/domain/Upgrades")
     local Pricing=loadModule("shared/domain/Pricing")
     local Rebirth=loadModule("shared/domain/Rebirth")
-    local sampleProfile={cash=1250,gems=12,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2}}
+    local Gacha=loadModule("shared/domain/Gacha")
+    local PetConfig=loadModule("shared/config/Pets")
+    local sampleProfile={cash=1250,gems=12,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2},pity={StarterFryer=7},
+        pets={{id="P1",type="FryKing",machine="StarterFryer"},{id="P2",type="MayoJar",machine="StarterFryer"},
+            {id="P3",type="PotatoPup",machine="StarterFryer"},{id="P4",type="CrinkleFry",machine="StarterFryer"},
+            {id="P5",type="PaperCup",machine="StarterFryer"}},equippedPets={"P1","P2"}}
+    local owned={}
+    for _,pet in ipairs(sampleProfile.pets) do
+        local kind=PetConfig.Types[pet.type]; local bonuses={}
+        for _,stat in ipairs(PetConfig.StatOrder) do if kind.Bonuses[stat] then table.insert(bonuses,{stat=stat,amount=kind.Bonuses[stat]}) end end
+        local equipped=pet.id=="P1" or pet.id=="P2"
+        table.insert(owned,{id=pet.id,type=pet.type,name=kind.Name,rarity=kind.Rarity,rank=PetConfig.Rarities[kind.Rarity].Rank,bonuses=bonuses,equipped=equipped})
+    end
     for _, example in ipairs({{1280,720,true,12,"desktop"},{390,844,false,0,"phone"},{568,320,true,30,"landscape"},
         {1280,720,true,12,"desktop-shop",true},{390,844,true,12,"phone-shop",true},{568,320,true,12,"landscape-shop",true},
-        {1280,720,true,12,"desktop-rebirth","rebirth"},{390,844,true,12,"phone-rebirth","rebirth"},{568,320,true,12,"landscape-rebirth","rebirth"}}) do
+        {1280,720,true,12,"desktop-rebirth","rebirth"},{390,844,true,12,"phone-rebirth","rebirth"},{568,320,true,12,"landscape-rebirth","rebirth"},
+        {1280,720,true,12,"desktop-spin","gacha"},{390,844,true,12,"phone-spin","gacha"},{844,390,true,12,"wide-landscape",nil},
+        {1280,720,true,12,"desktop-pets","pets"},{390,844,true,12,"phone-pets","pets"}}) do
         local app=loadModule("client/ui/AppView").new(makeInstance("PlayerGui"),function() end)
         app:resize(Vector2.new(example[1],example[2]))
         app:update({hasStation=example[3],nearStation=example[3],volatile=true,
             profile={cash=1250,gems=12,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),rebirth=Rebirth.snapshot(sampleProfile),
+            machine=Gacha.snapshot(sampleProfile,"StarterFryer"),pets={owned=owned,equipped=2,slots=3,max=50},
+            spin={serial=1,id="P2",type="MayoJar"},
             stats={perClick=Pricing.click(sampleProfile),perSecond=0.5,perFry=Pricing.perFry(sampleProfile),
                 capacity=Pricing.capacity(sampleProfile),saleValue=Pricing.sale(sampleProfile)}})
-        if example[6] == "rebirth" then app.rebirth:toggle() elseif example[6] then app.shop:toggle() end
+        if example[6] == "rebirth" then app.rebirth:toggle() elseif example[6] == "gacha" then app.gacha:toggle()
+        elseif example[6] == "pets" then app.pets:toggle() elseif example[6] then app.shop:toggle() end
         print("UI_PREVIEW:"..encode({name=example[5],width=example[1],height=example[2],ui=capture(app.hud.frame.Parent)}))
     end
 end
@@ -125,7 +145,16 @@ def render(sample, output):
                 if item.get('align')=='TextXAlignment.Center': tx=x+(iw-draw.textlength(line,font=f))/2
                 draw.text((tx,ty),line,font=f,fill=tuple(int(c) for c in item.get('fg',(255,255,255))))
                 ty+=lh
-        for child in sorted(item.get('children',[]), key=lambda c: c.get('z',1)): node(child,(x,y,iw,ih),scale)
+        children=item.get('children',[])
+        if 'listPadding' in item:
+            # Stack children vertically like a UIListLayout, in LayoutOrder.
+            offset=0
+            for child in sorted(children, key=lambda c: c.get('order',0)):
+                child=dict(child); child['pos']=[0,0,0,offset]
+                node(child,(x,y,iw,ih),scale)
+                offset+=child['size'][3]+item['listPadding']
+            return
+        for child in sorted(children, key=lambda c: c.get('z',1)): node(child,(x,y,iw,ih),scale)
     for child in sorted(sample['ui']['children'], key=lambda c: c.get('z',1)): node(child,(0,36,w,h-60))
     image.save(output)
 

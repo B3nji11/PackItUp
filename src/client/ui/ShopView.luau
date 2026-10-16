@@ -11,9 +11,9 @@ local function describe(row)
     if row.id == "MoneyPerFry" then
         return string.format("$%.2f → $%.2f per fry", row.value, row.nextValue)
     elseif row.id == "FriesPerClick" then
-        return row.value .. " → " .. row.nextValue .. " fries/click"
+        return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries/click"
     end
-    return row.value .. " → " .. row.nextValue .. " fries per bag"
+    return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries per bag"
 end
 function ShopView.new(gui, send)
     local self = setmetatable({ send = send, rows = {}, data = {}, hasStation = false }, ShopView)
@@ -21,6 +21,7 @@ function ShopView.new(gui, send)
     self.button.Name, self.button.TextSize, self.button.TextColor3 = "UpgradesButton", 13, Theme.Gold
     self.button.Size = UDim2.fromOffset(218, 44)
     E.stroke(self.button, Theme.Gold, 1.5, 0.3)
+    E.fit(self.button, 8, 13)
 
     local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
     panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false

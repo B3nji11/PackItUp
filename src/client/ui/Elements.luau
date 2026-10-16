@@ -6,6 +6,19 @@ function Elements.count(value)
     return result
 end
 function Elements.money(value) return "$" .. Elements.count(value) end
+-- Whole numbers stay whole; pet bonuses can make stats fractional (1.05 fries per click).
+function Elements.number(value)
+    if math.abs(value - math.floor(value + 0.5)) < 1e-6 then return Elements.count(math.floor(value + 0.5)) end
+    local text = string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", "")
+    return text
+end
+-- Shrinks text to fit on one line, between min and max sizes.
+function Elements.fit(label, min, max)
+    label.TextScaled, label.TextWrapped = true, false
+    local constraint = Instance.new("UITextSizeConstraint")
+    constraint.Name, constraint.MinTextSize, constraint.MaxTextSize, constraint.Parent = "Fit", min, max, label
+    return constraint
+end
 function Elements.stroke(parent, color, thickness, transparency)
     local stroke = Instance.new("UIStroke")
     stroke.Color, stroke.Thickness, stroke.Transparency = color, thickness, transparency or 0

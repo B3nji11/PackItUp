@@ -203,8 +203,9 @@ test("joining leaves all restaurants available and production waits for claiming
 end)
 
 test("unclaimed players cannot pack sell or return to an arbitrary restaurant", function()
-    for _, action in ipairs({"Pack", "Sell", "Return", "Upgrade", "Rebirth"}) do
-        serverTime += 1; remote.OnServerEvent:Fire(first, action, if action == "Upgrade" then "FriesPerClick" else nil)
+    local arguments = { Upgrade = "FriesPerClick", Spin = "StarterFryer" }
+    for _, action in ipairs({"Pack", "Sell", "Return", "Upgrade", "Rebirth", "Spin"}) do
+        serverTime += 1; remote.OnServerEvent:Fire(first, action, arguments[action])
         eq(replicated.FriesRemotes.Notice.lastArgs[2], false)
     end
     eq(first.Character.HumanoidRootPart.Position.Magnitude, 0)
@@ -587,19 +588,20 @@ test("unavailable avatars retain a username fallback with bounded background ret
     players.GetUserThumbnailAsync = original
 end)
 
-test("client has click sell teleport the upgrade shop and rebirth with no other feature panels", function()
+test("client has click sell teleport and the upgrade rebirth spin and pets menus only", function()
     players.LocalPlayer=first
     loadModule("client/Main")
     local gui = first.PlayerGui:FindFirstChild("FriesInterface")
-    assert(gui and gui.Actions.Click and gui.Actions.Sell and gui.Teleport and gui.UpgradesButton and gui.RebirthButton)
+    assert(gui and gui.Actions.Click and gui.Actions.Sell and gui.Teleport and gui.UpgradesButton and gui.RebirthButton and gui.SpinButton and gui.PetsButton)
     eq(gui.UpgradeShop.Visible, false); eq(gui.RebirthPanel.Visible, false)
+    eq(gui.GachaPanel.Visible, false); eq(gui.PetsPanel.Visible, false)
     eq(gui:FindFirstChild("Panel"), nil); eq(gui:FindFirstChild("Navigation"), nil)
     local count = 0
     local function visit(node)
         if node.ClassName == "TextButton" then count += 1 end
         for _, child in ipairs(node._children or {}) do visit(child) end
     end
-    visit(gui); eq(count, 11) -- Click, Sell, Teleport, Upgrades, Rebirth, two Close, Confirm, and three Buy buttons
+    visit(gui); eq(count, 16) -- Click, Sell, Teleport, four menu buttons, four Close, Confirm, three Buy, and Spin
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Core loop ready", true)
     runService.RenderStepped:Fire(); drain()
@@ -625,7 +627,10 @@ test("permanent core controls fit portrait landscape and desktop", function()
         assert(gui.Guidance.Position.Y.Offset + gui.Guidance.Size.Y.Offset <= top)
         local cash = gui.CashCard
         eq(cash.AnchorPoint.Y, 0.5); eq(cash.Position.Y.Scale, 0.5); eq(cash.Position.X.Offset, 16)
-        if viewport.Y >= 500 then eq(cash.Position.Y.Offset, 0) end
+        -- Middle left; tall phones may lift it slightly to fit the menu grid below it.
+        assert(cash.Position.Y.Offset <= 0)
+        if viewport.Y >= 500 then assert(cash.Position.Y.Offset >= -40) end
+        if viewport.Y >= 700 then eq(cash.Position.Y.Offset, 0) end
         local cashBottom = (viewport.Y - 60) / 2 + cash.Position.Y.Offset + cash.Size.Y.Offset / 2
         assert(cashBottom + 12 <= top + 0.001)
         assert(gui.Actions.Click.Size.Y.Offset * scale >= 36)
@@ -642,20 +647,23 @@ test("permanent core controls fit portrait landscape and desktop", function()
             return { x, y, x + w, y + h }
         end
         local function apart(a, b) return a[3] <= b[1] or b[3] <= a[1] or a[4] <= b[2] or b[4] <= a[2] end
-        for _, button in ipairs({gui.UpgradesButton, gui.RebirthButton}) do
+        local menuButtons = {gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton}
+        for _, button in ipairs(menuButtons) do
             local box = rect(button)
             assert(box[1] >= 0 and box[2] >= 0 and box[3] <= viewport.X and box[4] <= height, button.Name)
             assert(box[4] + 12 <= top + 0.001 or apart(box, rect(gui.Actions, scale)), button.Name)
             for _, other in ipairs({gui.Teleport, gui.Guidance, cash}) do assert(apart(box, rect(other)), button.Name .. "/" .. other.Name) end
-            assert(button.Size.Y.Offset >= 36 and button.Size.X.Offset >= 96)
+            assert(button.Size.Y.Offset >= 36 and button.Size.X.Offset >= 56)
         end
-        assert(apart(rect(gui.UpgradesButton), rect(gui.RebirthButton)))
-        for _, other in ipairs({gui.UpgradesButton, gui.RebirthButton, gui.Teleport, cash}) do
+        for i = 1, #menuButtons do
+            for j = i + 1, #menuButtons do assert(apart(rect(menuButtons[i]), rect(menuButtons[j])), menuButtons[i].Name .. "/" .. menuButtons[j].Name) end
+        end
+        for _, other in ipairs({gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton, gui.Teleport, cash}) do
             assert(apart(rect(gui.Mode), rect(other)), "Mode/" .. other.Name)
         end
         assert(apart(rect(gui.Mode), rect(gui.Actions, scale)), "Mode/Actions")
-        eq(gui.UpgradeShop.ZIndex, 5); eq(gui.RebirthPanel.ZIndex, 5)
-        for _, panel in ipairs({gui.UpgradeShop, gui.RebirthPanel}) do
+        for _, panel in ipairs({gui.UpgradeShop, gui.RebirthPanel, gui.GachaPanel, gui.PetsPanel}) do
+            eq(panel.ZIndex, 5)
             local panelScale = panel:FindFirstChildOfClass("UIScale").Scale
             assert(panel.Size.X.Offset * panelScale <= viewport.X - 32 + 0.001)
             assert(panel.Size.Y.Offset * panelScale <= height - 24 + 0.001)
@@ -827,6 +835,109 @@ test("wallet shop and rebirth panel show server values and send only allowed req
     gui.RebirthButton.Activated:Fire(); eq(panel.Visible, true)
     state.hasStation = false
     replicated.FriesRemotes.State.OnClientEvent:Fire(state); eq(panel.Visible, false)
+    replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
+end)
+
+test("server spins charge Cash roll on the server and equip unequip and delete owned pets", function()
+    local State, Notice = replicated.FriesRemotes.State, replicated.FriesRemotes.Notice
+    local function sync() serverTime += 1; remote.OnServerEvent:Fire(first, "Sync"); return State.lastArgs[1] end
+    local function fill(capacity)
+        local state = sync()
+        while state.profile.bag.fries < capacity do
+            serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack"); state = sync()
+        end
+        return state
+    end
+    local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
+    local s = sync()
+    eq(s.machine.id, "StarterFryer"); eq(s.machine.price, 100); eq(#s.pets.owned, 0); eq(s.pets.slots, 3); eq(s.pets.max, 50)
+    eq(s.spin, nil)
+    act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Not enough Cash to spin."); eq(#sync().pets.owned, 0)
+    for _ = 1, 21 do fill(20); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
+    eq(sync().profile.cash, 210)
+    -- A second spin inside the cooldown is ignored.
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Spin", "StarterFryer"); remote.OnServerEvent:Fire(first, "Spin", "StarterFryer")
+    s = State.lastArgs[1]
+    eq(s.profile.cash, 110); eq(#s.pets.owned, 1); eq(s.spin.id, "P1"); eq(s.pets.owned[1].name, "Crinkle Fry")
+    eq(s.machine.pity, 1)
+    local serial = s.spin.serial
+    s = act("Spin", "StarterFryer"); eq(s.profile.cash, 10); eq(s.spin.id, "P2"); assert(s.spin.serial > serial)
+    act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Not enough Cash to spin.")
+    eq(sync().spin, nil) -- only the spin's own snapshot carries a result
+    s = act("Equip", "P1"); eq(s.pets.equipped, 1); eq(s.pets.owned[1].equipped, true); near(s.stats.perClick, 3.15)
+    act("Equip", "P1"); eq(Notice.lastArgs[1], "That pet is already equipped.")
+    act("Equip", "P99"); eq(Notice.lastArgs[1], "You do not own that pet.")
+    act("DeletePet", "P1"); eq(Notice.lastArgs[1], "Unequip this pet before deleting it.")
+    s = act("Unequip", "P1"); eq(s.pets.equipped, 0); eq(s.stats.perClick, 3)
+    s = act("DeletePet", "P1"); eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P2")
+    -- Forged arguments are dropped before dispatch.
+    for _, forged in ipairs({ "Nope", {}, 5, true }) do act("Spin", forged) end
+    for _, forged in ipairs({ "P2;", {id="P2"}, 2, "2" }) do act("Equip", forged); act("DeletePet", forged) end
+    act("Spin"); act("Equip")
+    s = sync(); eq(s.profile.cash, 10); eq(#s.pets.owned, 1); eq(s.pets.equipped, 0)
+    serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
+    eq(#State.lastArgs[1].pets.owned, 0); eq(State.lastArgs[1].machine.pity, 0)
+end)
+
+test("machine and pets panels show server data and send only spin equip and delete requests", function()
+    local gui = first.PlayerGui.FriesInterface
+    local machine, petsPanel = gui.GachaPanel, gui.PetsPanel
+    serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
+    local state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
+    local function show() replicated.FriesRemotes.State.OnClientEvent:Fire(state) end
+    show()
+    gui.PetsButton.Activated:Fire(); eq(petsPanel.Visible, true)
+    gui.SpinButton.Activated:Fire(); eq(machine.Visible, true); eq(petsPanel.Visible, false)
+    eq(machine.Title.Text, "STARTER FRYER")
+    eq(machine.Caption.Text, "$100 per spin  ·  Epic or better within 48 spins")
+    eq(machine.Odds.Common.Text, "COMMON  60%"); eq(machine.Odds.CommonPets.Text, "Crinkle Fry, Salt Shaker, Paper Cup")
+    eq(machine.Odds.Legendary.Text, "LEGENDARY  1%"); eq(machine.Odds.LegendaryPets.Text, "Fry King")
+    eq(machine.Count.Text, "PETS 1 / 50")
+    eq(machine.Spin.Text, "NEED $100"); eq(machine.Spin.Active, false)
+    remote.lastServerArgs = nil; machine.Spin.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    state.profile.cash = 500; show()
+    eq(machine.Spin.Text, "SPIN  $100"); eq(machine.Spin.Active, true)
+    remote.lastServerArgs = nil; machine.Spin.Activated:Fire()
+    eq(remote.lastServerArgs[1], "Spin"); eq(remote.lastServerArgs[2], "StarterFryer")
+    state.spin = { serial = 999, id = "P2", type = "CrinkleFry" }; show()
+    eq(machine.Result.PetName.Text, "You got Crinkle Fry!"); eq(machine.Result.Bonus.Text, "COMMON  ·  +5% fries per click")
+    state.spin = nil
+    local owned = state.pets.owned
+    local many = {}
+    for n = 1, 50 do local copy = table.clone(owned[1]); copy.id = "P" .. (100 + n); table.insert(many, copy) end
+    state.pets.owned = many; show()
+    eq(machine.Spin.Text, "INVENTORY FULL"); eq(machine.Spin.Active, false); eq(machine.Count.Text, "PETS 50 / 50  ·  inventory full")
+    state.pets.owned = owned; show()
+    -- Fractional stats from pet bonuses display cleanly.
+    state.stats.perClick = 3.15; show(); eq(gui.Actions.Click.Title.Text, "+3.15 fries/click")
+    eq(loadModule("client/ui/Elements").number(2.1), "2.1"); eq(loadModule("client/ui/Elements").number(20), "20")
+    -- Pets panel: equip, two-tap delete, unequip.
+    gui.PetsButton.Activated:Fire(); eq(petsPanel.Visible, true); eq(machine.Visible, false)
+    eq(petsPanel.Caption.Text, "Equipped 0 / 3  ·  1 / 50 pets"); eq(petsPanel.ListArea.Empty.Visible, false)
+    local row = petsPanel.ListArea.List.P2
+    eq(row.PetName.Text, "Crinkle Fry"); eq(row.Bonus.Text, "+5% fries/click"); eq(row.Equip.Text, "EQUIP")
+    remote.lastServerArgs = nil; row.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Equip"); eq(remote.lastServerArgs[2], "P2")
+    remote.lastServerArgs = nil; row.Delete.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    row = petsPanel.ListArea.List.P2; eq(row.Delete.Text, "SURE?")
+    row.Delete.Activated:Fire(); eq(remote.lastServerArgs[1], "DeletePet"); eq(remote.lastServerArgs[2], "P2")
+    owned[1].equipped = true; state.pets.equipped = 1; show()
+    row = petsPanel.ListArea.List.P2
+    eq(row.Equip.Text, "UNEQUIP"); eq(row:FindFirstChild("Delete"), nil)
+    remote.lastServerArgs = nil; row.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Unequip")
+    -- With all slots full, unequipped pets cannot be equipped.
+    owned[1].equipped = false
+    local function equippedCopy(id) local copy = table.clone(owned[1]); copy.id = id; copy.equipped = true; return copy end
+    state.pets.owned = { owned[1], equippedCopy("P7"), equippedCopy("P8"), equippedCopy("P9") }; state.pets.equipped = 3; show()
+    row = petsPanel.ListArea.List.P2
+    eq(row.Equip.Active, false); remote.lastServerArgs = nil; row.Equip.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    eq(petsPanel.Caption.Text, "Equipped 3 / 3  ·  4 / 50 pets")
+    state.pets.owned, state.pets.equipped = {}, 0; show(); eq(petsPanel.ListArea.Empty.Visible, true)
+    eq(petsPanel.ListArea.List:FindFirstChild("P2"), nil)
+    -- Unclaimed players cannot open either panel.
+    state.hasStation = false; show()
+    eq(petsPanel.Visible, false)
+    gui.SpinButton.Activated:Fire(); gui.PetsButton.Activated:Fire()
+    eq(machine.Visible, false); eq(petsPanel.Visible, false); eq(gui.SpinButton.Active, false); eq(gui.PetsButton.Active, false)
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
 end)
 

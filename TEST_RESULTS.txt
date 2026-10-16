@@ -1,4 +1,4 @@
-Compilation passed for 36 Luau files.
+Compilation passed for 44 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -42,13 +42,15 @@ PASS chevrons flow toward restaurants at the same speed across frame rates and l
 PASS restaurant guides handle death respawn missing characters and very short distances
 PASS restaurant markers clear on release and ignore late portraits from the previous owner
 PASS unavailable avatars retain a username fallback with bounded background retries
-PASS client has click sell teleport the upgrade shop and rebirth with no other feature panels
+PASS client has click sell teleport and the upgrade rebirth spin and pets menus only
 PASS permanent core controls fit portrait landscape and desktop
 PASS button and keyboard selling require a full bag at the counter
 PASS click packs while full bags and distance block further client packing
 PASS HUD highlights fries per click capacity and full-bag feedback inside the buttons
 PASS server rebirth needs the threshold resets Cash and the bag and awards gems once
 PASS wallet shop and rebirth panel show server values and send only allowed requests
+PASS server spins charge Cash roll on the server and equip unequip and delete owned pets
+PASS machine and pets panels show server data and send only spin equip and delete requests
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
 PASS gem upgrade costs follow the agreed curves and round to whole gems
@@ -63,4 +65,17 @@ PASS rebirth needs the threshold and resets only Cash and the bag
 PASS saves from before gems reset Cash-bought upgrades to level 0 once
 PASS saved upgrade levels gems and rebirths are validated
 PASS gems rebirths and upgrade levels save and load with Cash and the bag
-RESULT: 63 passed, 0 failed
+PASS starter machine odds sum to one and every pet belongs to a listed rarity
+PASS rolls map random numbers to rarities and share each rarity equally
+PASS many spins match the advertised odds
+PASS the fiftieth spin without an Epic is guaranteed Epic or better and resets pity
+PASS spins charge the fixed price add uniquely numbered pets and stop when full or broke
+PASS equipping up to three pets applies their bonuses to the stats
+PASS capacity pets round down to whole fries and unequipping trims an over-full bag
+PASS only unequipped pets can be deleted and IDs are never reused
+PASS rebirth keeps pets equipped pets and pity
+PASS upgrade shop values include equipped pet bonuses
+PASS old prototype equipment never counts as equipped pets
+PASS saved pets equipped pets and pity are validated
+PASS pets equipped pets and pity save and load
+RESULT: 78 passed, 0 failed

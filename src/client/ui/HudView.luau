@@ -75,7 +75,7 @@ function HudView:update(state)
     local canPack = state.hasStation and state.nearStation and not full
     local canSell = state.hasStation and state.nearStation and full
     local perClick = state.stats.perClick
-    local yieldText = "+" .. perClick .. (if perClick == 1 then " fry/click" else " fries/click")
+    local yieldText = "+" .. E.number(perClick) .. (if perClick == 1 then " fry/click" else " fries/click")
     self.pack.Active, self.pack.Selectable = canPack, canPack
     self.sell.Active, self.sell.Selectable = canSell, canSell
     self.pack.BackgroundColor3 = if canPack and self.hovered then Theme.GoldLight else Theme.Gold

@@ -1,5 +1,32 @@
 # Validation record
 
+## Increment 3: first Cash gacha machine
+
+Validation date: 16 October 2026.
+
+Scope: the Starter Fryer ($100 per spin), 10 pets with rarity odds and pity, a 50-pet inventory, 3 equip slots with stat bonuses, single delete, the SPIN and PETS panels, and the 2x2 menu grid.
+
+**78 tests passed, 0 failed.** All **44 Luau source/test files** compiled. The rebuilt place contains **39 game source files**. Output is in TEST_RESULTS.txt.
+
+New coverage:
+
+- Machine odds sum to 1; every pool pet has a listed rarity; random numbers map to the right rarity and pet; 40,000 seeded spins land within tolerance of the advertised odds.
+- Pity: 49 non-Epic spins, then a forced Epic or better (Epic 80%, Legendary 20%); natural and forced Epics reset the counter.
+- Spins charge exactly $100, add uniquely numbered pets (IDs never reused), and refuse when broke, full, or for an unknown machine.
+- Equipping: 3 slots, duplicate and unowned refusals, bonuses stacking within a stat and multiplying with upgrades (for example Fry King: $0.75 per fry, $15 per bag), capacity rounded down, and an over-full bag trimmed on unequip.
+- Delete refuses equipped pets; rebirth keeps pets, equipped pets, and pity; upgrade shop values include pet bonuses.
+- The old prototype's `equipped` equipment table never counts as equipped pets. That clash was caught by the existing legacy-save tests, so the new field is named `equippedPets`.
+- Pet, equipped, next-ID, and pity validation (16 corrupt cases rejected), plus save and load.
+- Server flow: Cash and cooldown checks, server-side rolls, result only in the spin's own snapshot, equip/unequip/delete with refusals, forged arguments dropped, separate state per player, and Spin rejected before claiming.
+- Client: machine title, pity countdown, odds rows, NEED / SPIN / INVENTORY FULL states, the result in rarity color, fractional stats (+3.15 fries/click), pets list rows, EQUIP / UNEQUIP, two-tap DELETE, full slots, the empty state, one panel open at a time, and everything inactive before claiming.
+- Calculated bounds for the four menu buttons and four panels at all five viewports.
+
+Bag size is now only sanity-checked in saves and trimmed to the current capacity on load, so changing pet or upgrade balance cannot make existing saves unloadable.
+
+Layout previews (including desktop/phone machine and pets panels and a wide short screen) were regenerated and inspected. The preview tool now stacks list rows like Roblox's list layout. That review led to fit-to-width odds labels, short bonus wording in pet rows, and UNEQUIP aligned right. The previews use approximate fonts and are not Roblox screenshots.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, Increment 3 section), real DataStore persistence, and owner review.
+
 ## Increment 2: gems and rebirth
 
 Validation date: 16 October 2026.
@@ -21,7 +48,7 @@ New coverage:
 
 Layout previews (including desktop/phone/landscape rebirth panels) were regenerated and inspected. That review found the REBIRTH button drawing over the open upgrade panel on phones; both panels now sit on a higher layer, and the preview tool respects that layering. It also found the Studio test label overlapping the Cash card on short screens. The previews use approximate fonts and are not Roblox screenshots.
 
-Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, Increment 2 section), real DataStore persistence and migration, and owner review.
+**Accepted by the project owner on 16 October 2026.**
 
 ## Increment 1: upgrade shop
 
