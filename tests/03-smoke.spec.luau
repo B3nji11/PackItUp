@@ -454,6 +454,57 @@ test("district decoration keeps the original spawn paths boundary and central pr
     end
 end)
 
+test("warm interiors soften illumination while keeping both rows clear and playable", function()
+    local lighting = services.Lighting
+    assert(lighting.Ambient.R < 0.4 and lighting.Ambient.G < 0.4 and lighting.Ambient.B < 0.4)
+    near(lighting.OutdoorAmbient.R,148/255); near(lighting.Brightness,1.5)
+    near(lighting.ClockTime,13.5); near(lighting.ExposureCompensation,-0.25)
+    local counts = {}
+    for i=1,6 do
+        local station=workspace.FriesRestaurant["Station"..i]
+        eq(station:GetAttribute("InteriorStyle"),"WarmDiner")
+        local art,direction=station.InteriorDecor,if i>3 then -1 else 1
+        local lamps,parts=0,0
+        for _, child in ipairs(art:GetChildren()) do
+            parts += 1
+            eq(child.ClassName,"Part")
+            assert(child.Anchored and not child.CanCollide and not child.CanTouch and not child.CanQuery and not child.CastShadow)
+            eq(child.Material,Enum.Material.SmoothPlastic)
+            local hx,hy,hz=halfExtents(child)
+            local x,y,z=(child.Position.X-station.Plot.Position.X)*direction,child.Position.Y,
+                (child.Position.Z-station.Plot.Position.Z)*direction
+            assert(math.abs(x)+hx <= 21 and z-hz >= -20 and z+hz <= 14,child.Name.." leaves the room")
+            assert(y+hy <= 18.5,child.Name.." protrudes through the ceiling")
+            local blocksRoute=x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+            assert(not blocksRoute,child.Name.." covers the counter approach")
+            for _, detail in ipairs(child:GetChildren()) do
+                if detail.ClassName=="SurfaceLight" then
+                    lamps += 1
+                    assert(detail.Enabled and not detail.Shadows and detail.Brightness <= 0.15)
+                    eq(detail.Face,Enum.NormalId.Left)
+                    local down=child.CFrame:PointToWorldSpace(Vector3.new(-1,0,0))-child.Position
+                    near(down.Y,-1)
+                    assert(child.Position.Y-hy >= 13)
+                else
+                    eq(detail.ClassName,"SurfaceGui"); eq(detail.AlwaysOnTop,false)
+                end
+            end
+        end
+        eq(lamps,2)
+        assert(parts > 100 and parts <= 260,"Keep the interior detail budget bounded")
+        counts[i]=parts; eq(counts[i],counts[1])
+        for n=1,4 do
+            local light=station["LightPanel"..n].InteriorLight
+            near(light.Brightness,0.32)
+            assert(light.Color.R > light.Color.B and light.Enabled)
+        end
+        eq(station.RestaurantDecor.HappyFriesPoster.WallArt.Enabled,false)
+        -- The kitchen/booths are visual skins; the original station remains the target.
+        assert(station.Counter.CanCollide and station.Bag.CanCollide)
+        for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
+    end
+end)
+
 test("admission reserves six player spaces even before restaurants are claimed", function()
     local extra = {}
     for id=401,404 do

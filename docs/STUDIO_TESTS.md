@@ -1,5 +1,15 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 3: warm diner interiors (20 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx and press Play. Compare with the M2 place in a separate Studio session. Check the warmer, lower interior light, warm stone floor, teal panels, muted coral/teal booth backs, ceiling beams, pendant shades, and framed graphics. The room should feel softer while the fryer, bag tips, NPC, and counter remain easy to see.
+2. Inspect all four ceiling panels and both pendants in plots from each row. Pendant light must point down after station rotation, with no blinding bloom, sharp artifacts, or excessively dark seats. Compare low/high graphics settings and normal avatar-eye-height views. Code checks of light brightness do not establish actual luminance.
+3. Inspect the detailed prep line, cupboard/cold-cabinet doors and handles, backsplash, shelf jars, cutting board, napkins, fryer vents/dial marks, and booth buttons. Check for flickering surfaces, visible seams, or camera clipping. These are decorations and must not suggest new interactive gameplay.
+4. Walk, jump, turn, and use Return to Counter near the booth backs, rug, cabinets, counter, and entrance. Check that the original furniture collision remains reasonable and the new geometry does not visually obstruct the working route. The four broad lights must still reach the room corners.
+5. Claim north and south plots with two players. Exercise packing/holding/F, live fry-tip fill, 0.5 fries/sec production, full/partial/repeated sales, all three Cash upgrades, respawn, release/reclaim, and owner-card rendering. Check that geometry does not cover the bag tips or avatar cards.
+6. Test desktop, portrait/landscape phone, and low/high graphics performance with all six restaurants present. The extra interior detail is budgeted but its real engine cost remains unmeasured. Confirm outside colors and daylight still suit the approved district.
+7. Stop/restart and check Output, memory-only test resets, and no duplicate art. Review the playable result before accepting this lighting pass. Do not publish as part of this review.
+
 ## Visual milestone 2: six restaurants and the district (19 October 2026)
 
 1. Open the rebuilt FriesGame.rbxlx and press Play. Check Output and confirm all six restaurants have the approved coral/gold storefront, striped canopy, mascot, mint equipment, rounded furniture, and friendly counter character. Inspect signs and canopy slopes on both rows; the southern row must face inward without mirrored text.

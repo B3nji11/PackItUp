@@ -1,5 +1,21 @@
 # Validation record
 
+## Visual milestone 3: warm diner interiors
+
+Validation date: 20 October 2026. Continues `5a31322` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.
+
+**64 tests passed, 0 failed; all 37 Luau source/test files compiled** with official Luau 0.743. The place builder verifies XML and all **33 embedded game modules**, entry-point counts, and the saved Soft LightingStyle.
+
+InteriorStyle applies the same warm finish to all six original stations: matte stone floor tiles, an entry runner, teal wainscoting and trim, upholstered booth backs and buttons, ceiling coffers, pendant shades, layered framed wall graphics, fryer vents/dial marks, and a prep line with cabinetry, handles, backsplash, cold cabinet, shelf jars, cutting board, and napkins. Existing restaurant surfaces are recolored; obsolete interior confetti and the previous poster are hidden, including disabling its SurfaceGui. The exterior shell and district geometry are retained. Added art remains anchored, non-colliding, touch/query-disabled, non-shadow-casting, and made from SmoothPlastic.
+
+Actual runtime light changes: indoor Ambient is RGB **83/75/69** instead of **136/146/162**. Each of the four existing broad ceiling SurfaceLights has brightness **0.32 instead of 0.8** (60% lower) and a warmer color, with its original position/range/cone coverage retained. Two unshadowed downward pendant SurfaceLights add brightness **0.12** each. OutdoorAmbient, sun brightness, ClockTime, exposure, and reflection settings retain their earlier values. No editor-only lighting property is written at runtime.
+
+The new regression check covers all six interiors, bounded room geometry and headroom, a clear entrance/counter route, a 260-part per-room interior-art budget, two correctly downward-facing pendant lights, reduced broad-light intensity, disabled old poster GUI, and preserved original station collision/fill indicators. Existing coverage passes for claiming, production, packing/selling, upgrades, saves, player isolation, owner cards, and HUD input. No game config, domain, services, storage, remotes, or client modules changed.
+
+Interior, booth, kitchen, exterior, and district previews were reviewed from the executed source geometry. The preview renderer also reads the actual light parameters but approximates their appearance; it cannot establish Roblox illumination, exposure, shadows, or graphics quality. This review refined the initial brown-heavy palette into warm stone, muted coral, and teal, and replaced large uniform wall text with smaller framed graphics. The exported district contains **3,248 visible parts**, not a measured engine frame-time result.
+
+**Pending:** Studio Play comparison with M2, actual indoor brightness on low/high graphics settings, camera clearance around booth backs, mobile controls, two-player rendering, and owner review. No live DataStore calls, merges, main-branch writes, or game publication occurred. Use the M3 checklist in docs/STUDIO_TESTS.md.
+
 ## Visual milestone 2: all restaurants and the district
 
 Validation date: 19 October 2026. Continues the approved visual direction from `ea8adbf` on `visual/restaurant-one-simulator`. Main remains at the original `45526d3` baseline.

@@ -64,7 +64,8 @@ return function(count)
     -- Dimmed on owner review (8 Oct 2026): the earlier values washed out the colors.
     -- LightingStyle is saved by the place builder/Rojo; runtime writes stop startup.
     Lighting.ClockTime, Lighting.Brightness = 13.5, 1.5
-    Lighting.Ambient = Color3.fromRGB(136, 146, 162)
+    -- Warm, deeper indoor shadows; outdoor fill, sun, and exposure stay unchanged.
+    Lighting.Ambient = Color3.fromRGB(83, 75, 69)
     Lighting.OutdoorAmbient = Color3.fromRGB(148, 159, 176)
     Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0.3, 0.12
     Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 1

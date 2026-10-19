@@ -2,6 +2,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Runtime = require(Shared.config.Runtime)
 local P = require(script.Parent.Primitives)
 local RestaurantStyle = require(script.Parent.RestaurantStyle)
+local InteriorStyle = require(script.Parent.InteriorStyle)
 return function(parent, index, origin, yaw)
     local model = Instance.new("Model")
     model.Name, model.Parent = "Station" .. index, parent
@@ -97,6 +98,7 @@ return function(parent, index, origin, yaw)
     end
     -- All six plots share the approved skin; every gameplay reference stays intact.
     RestaurantStyle(model, part)
+    InteriorStyle(model, part)
     return { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
         machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt }
 end
