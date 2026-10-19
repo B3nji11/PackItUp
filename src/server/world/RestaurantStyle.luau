@@ -52,9 +52,10 @@ return function(model, stationPart)
     -- Preserve the live ownership text, mounted below the canopy for readability.
     local plaqueGuide = piece("PlaqueGuide", Vector3.new(15, 2, 0.2), Vector3.new(0, 10.9, 20.35), red)
     model.RestaurantPlaque.CFrame = plaqueGuide.CFrame
+    model.RestaurantPlaque.Size = Vector3.new(16.2, 2.5, 0.2)
     model.RestaurantPlaque.Color, model.RestaurantPlaque.CanCollide = red, false
     plaqueGuide:Destroy()
-    rounded("PlaqueBorder", Vector3.new(15.6, 2.5, 0.6), Vector3.new(0, 10.9, 20), gold, 0.25)
+    rounded("PlaqueBorder", Vector3.new(16.9, 3, 0.6), Vector3.new(0, 10.9, 20), gold, 0.25)
 
     -- An original dimensional fries mascot, offset from the roof's owner card.
     rounded("SignCarton", Vector3.new(7.8, 5.5, 2.8), Vector3.new(-14.2, 22.8, 12.8), coral, 0.65)
@@ -95,7 +96,7 @@ return function(model, stationPart)
     end
     rounded("BasketHandle", Vector3.new(0.4, 0.3, 1.15), Vector3.new(-3.5, 6.15, 0.5), teal, 0.14)
     -- This badge sits on the existing bag and never covers the ten live fry tips.
-    local badge = piece("BagBadge", Vector3.new(1.25, 0.85, 0.08), Vector3.new(1, 4.55, -0.3), coral)
+    local badge = piece("BagBadge", Vector3.new(1.6, 1.15, 0.08), Vector3.new(1, 4.6, -0.3), coral)
     label(badge, "FRY!", cream)
 
     -- Give the existing counter character a friendly face and a small matching uniform.
@@ -149,8 +150,8 @@ return function(model, stationPart)
         ball("TopiaryCrown", Vector3.new(3.6, 3.6, 3.6), Vector3.new(x, 4.8, 21.5), mint)
         ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), colors.Lime)
     end
-    local welcome = piece("WelcomeMat", Vector3.new(10, 0.05, 3.6), Vector3.new(0, 0.41, 20.5), coral)
-    label(welcome, "HELLO, FRY FRIEND!", cream, Enum.NormalId.Top)
+    local welcome = piece("WelcomeMat", Vector3.new(11, 0.05, 4.6), Vector3.new(0, 0.41, 20.5), coral)
+    label(welcome, "HELLO,\nFRY FRIEND!", cream, Enum.NormalId.Top)
     for n = 1, 3 do
         piece("FloorConfetti", Vector3.new(0.65, 0.04, 1.8), Vector3.new(-2.6 + n * 1.3, 0.63, 10), gold)
     end

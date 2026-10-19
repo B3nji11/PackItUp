@@ -76,13 +76,13 @@ return function(model, stationPart)
         piece("CeilingCrossBeam", Vector3.new(40.4, 0.45, 0.4), Vector3.new(0, 18.15, z), wood)
     end
 
-    -- The four broad fixtures still cover the whole floor, at 60% lower intensity.
+    -- A middle ground between the washed-out original and the first dim diner pass.
     for n = 1, 4 do
         model["LightTrim" .. n].Color = wood
         local panel = model["LightPanel" .. n]
         panel.Color = Color3.fromRGB(224, 190, 146)
         local light = panel.InteriorLight
-        light.Color, light.Brightness = Color3.fromRGB(255, 220, 179), 0.32
+        light.Color, light.Brightness = Color3.fromRGB(255, 220, 179), 0.46
     end
     for _, x in ipairs({-14, 14}) do
         piece("PendantCord", Vector3.new(0.12, 4, 0.12), Vector3.new(x, 16.2, -11), ink)
@@ -93,7 +93,7 @@ return function(model, stationPart)
         local light = Instance.new("SurfaceLight")
         -- Disc local Left (-X) rotates downward with the cylinder's upright transform.
         light.Name, light.Face = "PendantLight", Enum.NormalId.Left
-        light.Color, light.Brightness, light.Range, light.Angle = Color3.fromRGB(255, 214, 167), 0.12, 16, 110
+        light.Color, light.Brightness, light.Range, light.Angle = Color3.fromRGB(255, 214, 167), 0.16, 16, 110
         light.Enabled, light.Shadows, light.Parent = true, false, diffuser
     end
 
@@ -154,21 +154,21 @@ return function(model, stationPart)
         return label(face,text,foreground)
     end
     board("HouseMenu",15,4.4,0,10.1)
-    board("LeftMenu",6,4.4,-13.5,10.1)
-    board("RightMenu",6,4.4,13.5,10.1)
-    caption("HouseTitle","FRY DAY!",12,1.25,0,11.25,ink,lettering)
-    caption("HouseSubtitle","HOT & CRISPY, ALWAYS",12,0.58,0,10.05,ink,brass)
-    piece("MenuDivider",Vector3.new(12.8,0.06,0.08),Vector3.new(0,9.45,-18.78),brass)
+    board("LeftMenu",6,5.3,-13.5,10.1)
+    board("RightMenu",6,5.3,13.5,10.1)
+    caption("HouseTitle","FRY DAY!",13.6,1.45,0,11.35,ink,lettering)
+    caption("HouseSubtitle","HOT & CRISPY",13.2,0.95,0,9.97,ink,lettering)
+    piece("MenuDivider",Vector3.new(12.8,0.06,0.08),Vector3.new(0,9.35,-18.78),brass)
     for n,text in ipairs({"PACK","SELL","REPEAT"}) do
-        caption("HouseStep",text,3.4,0.72,(n-2)*4.2,8.68,teal,lettering)
+        caption("HouseStep",text,3.9,0.98,(n-2)*4.2,8.6,teal,lettering)
     end
-    caption("GoldenCaption","GOLDEN BITES",5.3,0.72,-13.5,8.72,ink,lettering)
+    caption("GoldenCaption","GOLDEN\nBITES",5.4,2,-13.5,8.55,ink,lettering).TextWrapped = true
     rounded("MenuCarton",Vector3.new(1.85,1.2,0.35),Vector3.new(-13.5,10.3,-18.65),clay,0.12)
     for n=1,3 do
         piece("MenuFry",Vector3.new(0.3,1.2+(n%2)*0.22,0.18),Vector3.new(-14.1+n*0.3,11.18,-18.62),brass)
     end
-    caption("HappyTitle","MADE WITH",5.3,0.58,13.5,11.58,ink,brass)
-    caption("HappyCaption","HAPPINESS",5.3,0.72,13.5,8.72,ink,lettering)
+    caption("HappyTitle","MADE WITH",5.4,0.9,13.5,11.95,ink,lettering)
+    caption("HappyCaption","HAPPINESS",5.4,1.05,13.5,8.35,ink,lettering)
     for _,x in ipairs({13.15,13.85}) do
         ball("MenuHeartLobe",Vector3.new(0.95,0.95,0.2),Vector3.new(x,10.65,-18.65),clay)
     end

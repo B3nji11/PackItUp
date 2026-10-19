@@ -456,7 +456,9 @@ end)
 
 test("warm interiors soften illumination while keeping both rows clear and playable", function()
     local lighting = services.Lighting
-    assert(lighting.Ambient.R < 0.4 and lighting.Ambient.G < 0.4 and lighting.Ambient.B < 0.4)
+    assert(lighting.Ambient.R > 83/255 and lighting.Ambient.R < 136/255)
+    assert(lighting.Ambient.G > 75/255 and lighting.Ambient.G < 146/255)
+    assert(lighting.Ambient.B > 69/255 and lighting.Ambient.B < 162/255)
     near(lighting.OutdoorAmbient.R,148/255); near(lighting.Brightness,1.5)
     near(lighting.ClockTime,13.5); near(lighting.ExposureCompensation,-0.25)
     local counts = {}
@@ -480,7 +482,7 @@ test("warm interiors soften illumination while keeping both rows clear and playa
             for _, detail in ipairs(child:GetChildren()) do
                 if detail.ClassName=="SurfaceLight" then
                     lamps += 1
-                    assert(detail.Enabled and not detail.Shadows and detail.Brightness <= 0.15)
+                    assert(detail.Enabled and not detail.Shadows and detail.Brightness <= 0.18)
                     eq(detail.Face,Enum.NormalId.Left)
                     local down=child.CFrame:PointToWorldSpace(Vector3.new(-1,0,0))-child.Position
                     near(down.Y,-1)
@@ -495,13 +497,48 @@ test("warm interiors soften illumination while keeping both rows clear and playa
         counts[i]=parts; eq(counts[i],counts[1])
         for n=1,4 do
             local light=station["LightPanel"..n].InteriorLight
-            near(light.Brightness,0.32)
+            near(light.Brightness,0.46)
             assert(light.Color.R > light.Color.B and light.Enabled)
         end
         eq(station.RestaurantDecor.HappyFriesPoster.WallArt.Enabled,false)
         -- The kitchen/booths are visual skins; the original station remains the target.
         assert(station.Counter.CanCollide and station.Bag.CanCollide)
         for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
+    end
+end)
+
+test("world lettering scales past the default font cap and small item captions have room", function()
+    local world=workspace.FriesRestaurant
+    local labels=0
+    local function visit(node)
+        if node.ClassName=="SurfaceGui" then
+            local label=assert(node:FindFirstChildOfClass("TextLabel"))
+            local limit=assert(label:FindFirstChildOfClass("UITextSizeConstraint"),"World text needs an explicit scale limit")
+            eq(label.TextScaled,true); eq(limit.MinTextSize,9)
+            assert(limit.MaxTextSize >= 1000,"Large wall signs must be able to exceed 100 px")
+            eq(node.LightInfluence,0); eq(node.AlwaysOnTop,false)
+            near(label.Size.X.Scale,1); near(label.Size.Y.Scale,1)
+            labels += 1
+        end
+        for _,child in ipairs(node:GetChildren()) do visit(child) end
+    end
+    visit(world)
+    assert(labels >= 100)
+    -- The mural's two rows need more than the engine's unconstrained 100 px cap.
+    local mural=world.MuralWall
+    local expectedHeight=mural.Size.Y*mural.WallArt.PixelsPerStud/2
+    assert(expectedHeight > 100)
+    assert(mural.WallArt.TextLabel.WorldTextSize.MaxTextSize >= expectedHeight)
+    for i=1,6 do
+        local station=world["Station"..i]
+        assert(station.RestaurantPlaque.Size.Y >= 2.5)
+        assert(station.RestaurantDecor.BagBadge.Size.Y >= 1.15)
+        assert(station.RestaurantDecor.WelcomeMat.Size.Z >= 4.6)
+        eq(station.RestaurantDecor.WelcomeMat.WallArt.TextLabel.Text,"HELLO,\nFRY FRIEND!")
+        assert(station.InteriorDecor.HouseSubtitle.Size.Y >= 0.95)
+        eq(station.InteriorDecor.HouseSubtitle.WallArt.TextLabel.Text,"HOT & CRISPY")
+        assert(station.InteriorDecor.GoldenCaption.Size.Y >= 2)
+        assert(station.InteriorDecor.HappyCaption.Size.Y >= 1)
     end
 end)
 

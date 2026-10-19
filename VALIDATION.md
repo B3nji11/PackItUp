@@ -1,5 +1,23 @@
 # Validation record
 
+## Visual milestone 4: balanced light and readable lettering
+
+Validation date: 20 October 2026. Continues M3 `124cb92` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.
+
+**65 tests passed, 0 failed; all 37 Luau source/test files compiled** with official Luau 0.743. The rebuilt place verifies XML, all **33 embedded game modules**, entry-point counts, and the saved Soft LightingStyle.
+
+Indoor Ambient rises from M3 RGB **83/75/69** to **104/96/88**, below the original **136/146/162**. The four broad ceiling SurfaceLights rise from **0.32 to 0.46** each (original: 0.8); both pendant lights rise from **0.12 to 0.16**. Their warm colors, coverage, direction, and the room's detailed geometry remain in place. Outdoor fill, sun, exposure, and time of day retain their earlier values.
+
+The shared world-label helper now adds a UITextSizeConstraint with **MinTextSize 9 / MaxTextSize 1000** to each full-face TextScaled label, retaining 40 pixels per stud. Roblox documents a default 100-pixel maximum for TextScaled without a size constraint; large physical signs could therefore display undersized lettering. See the official [TextLabel reference](https://create.roblox.com/docs/reference/engine/classes/TextLabel) and [UITextSizeConstraint reference](https://create.roblox.com/docs/reference/engine/classes/UITextSizeConstraint). SurfaceGui LightInfluence is now 0 for printed-text contrast; AlwaysOnTop remains false so walls still occlude it.
+
+Smaller items also receive more physical lettering space: larger ownership plaques, bag badges, welcome mats, plot-number discs, and the central medallion text face. Menu captions grow, HOT & CRISPY is shortened, and GOLDEN BITES / HELLO, FRY FRIEND use two lines. All six restaurants use the same changes, including the rotated southern row. No gameplay, client, config, persistence, or remote module changes.
+
+The new regression check traverses all world SurfaceGuis, verifies explicit font bounds, full-face scaling, text contrast/occlusion settings, and caption room on all six plots. Existing tests cover the intermediate light levels, safe decoration bounds, original functional references/collision, claims, production, packing/selling, upgrades, saves, and HUD input.
+
+Interior, kitchen, exterior, and promenade geometry previews were reviewed. The separate preview renderer now reads actual source font constraints as well as light parameters. Earlier previews did not reproduce the default 100-pixel font limit and overstated some lettering. Current previews remain approximate: Arial substitutes for Gotham and the renderer cannot establish native Roblox text layout, illumination, performance, or device readability. The full district still exports **3,248 visible parts**.
+
+**Pending:** Studio Play comparison with M2/M3; normal viewing-distance checks of every sign/item; short/long owner names; low/high graphics, desktop/mobile and two-player review. Use the M4 checklist in docs/STUDIO_TESTS.md. No live DataStore calls, merges, main-branch writes, or game publication occurred.
+
 ## Visual milestone 3: warm diner interiors
 
 Validation date: 20 October 2026. Continues `5a31322` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.

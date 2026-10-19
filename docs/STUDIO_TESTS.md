@@ -1,5 +1,14 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 4: balanced light and readable lettering (20 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx and press Play. Compare the interior with M2 and M3 from the same avatar-eye-height angle. The room should be brighter than M3 while retaining warm stone, teal panels, muted booths, ceiling detail, and gentle pendants. Check fryer, bag tips, counter and seating on low/high graphics settings.
+2. Inspect every type of printed wording at a normal gameplay distance: facade branding, live ownership plaque, wall posters, back-wall menus, bag badge, welcome mat, plot number, central medallion, and district title wall. Text should fill its intended face without tiny type, clipping, awkward wraps, flicker, or letters extending past the board. Check both restaurant orientations and every plot.
+3. Claim/release with short and long display names. Check both lines of the enlarged ownership plaque and the existing roof avatar/@username card; confirm no overlap with the canopy or mascot. World lettering should retain contrast in the interior while being hidden correctly by solid walls.
+4. Check the captions HOT & CRISPY, PACK / SELL / REPEAT, GOLDEN BITES, MADE WITH / HAPPINESS, FRY!, and HELLO, FRY FRIEND! at avatar-eye height. The enlarged bag badge must not cover any of its ten live fry tips. Check desktop and portrait/landscape mobile; automated font bounds do not establish engine readability.
+5. Exercise claiming, hold/F packing, automatic production, partial/full/repeated sales, all Cash upgrades, Return to Counter, respawn and two-player ownership. Walk/jump near the widened mat and plaque. Stop/restart and check Output and memory-only resets. No new collision or gameplay behavior should appear.
+6. Review this brightness and lettering pass in Studio before accepting it. The separate geometry previews are not Studio screenshots. Do not publish as part of this review.
+
 ## Visual milestone 3: warm diner interiors (20 October 2026)
 
 1. Open the rebuilt FriesGame.rbxlx and press Play. Compare with the M2 place in a separate Studio session. Check the warmer, lower interior light, warm stone floor, teal panels, muted coral/teal booth backs, ceiling beams, pendant shades, and framed graphics. The room should feel softer while the fryer, bag tips, NPC, and counter remain easy to see.

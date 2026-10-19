@@ -34,6 +34,7 @@ PASS all six restaurants share the approved skin and keep their gameplay objects
 PASS both rows keep bounded noncolliding art and clear entrance and counter routes
 PASS district decoration keeps the original spawn paths boundary and central promenade clear
 PASS warm interiors soften illumination while keeping both rows clear and playable
+PASS world lettering scales past the default font cap and small item captions have room
 PASS admission reserves six player spaces even before restaurants are claimed
 PASS remote fill sell repeat loop awards cash once per full bag
 PASS server rejects work away from the counter and teleport returns its owner
@@ -64,4 +65,4 @@ PASS buying capacity with a full bag makes it partial without losing fries
 PASS shop snapshot rows show level value next value and cost in shop order
 PASS saved upgrade levels are validated
 PASS upgrade levels save and load with cash and the bag
-RESULT: 64 passed, 0 failed
+RESULT: 65 passed, 0 failed
