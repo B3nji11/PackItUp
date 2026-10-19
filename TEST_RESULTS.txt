@@ -34,6 +34,7 @@ PASS all six restaurants share the approved skin and keep their gameplay objects
 PASS both rows keep bounded noncolliding art and clear entrance and counter routes
 PASS district decoration keeps the original spawn paths boundary and central promenade clear
 PASS bright diner interiors keep both rows clear and playable
+PASS the shared art helper retains engine-coupled wrapping and automatic text sizing
 PASS world lettering fills an aspect-correct canvas below the native font cap
 PASS tripled menu lettering has separate bounded panels and clears prep equipment
 PASS admission reserves six player spaces even before restaurants are claimed
@@ -66,4 +67,4 @@ PASS buying capacity with a full bag makes it partial without losing fries
 PASS shop snapshot rows show level value next value and cost in shop order
 PASS saved upgrade levels are validated
 PASS upgrade levels save and load with cash and the bag
-RESULT: 66 passed, 0 failed
+RESULT: 67 passed, 0 failed

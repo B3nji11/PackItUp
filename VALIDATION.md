@@ -1,5 +1,19 @@
 # Validation record
 
+## Visual milestone 6: fix native world-text sizing
+
+Validation date: 20 October 2026. Continues M5 `c44f29c` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.
+
+The owner's Studio screenshot shows large M5 sign faces with tiny lettering. ArtPrimitives.label set TextWrapped=false after Primitives.surfaceLabel set TextScaled=true. Roblox links wrapping and scaling: scaled text enables wrapping; disabling wrapping also disables automatic scaling. The [official TextLabel documentation](https://create.roblox.com/docs/reference/engine/classes/TextLabel#TextScaled) describes the coupling, and this [first-hand developer report](https://devforum.roblox.com/t/decouple-textscaled-and-textwrapped/668734) describes the reverse toggle. The art helper override was therefore inconsistent with the full-face scaled labels it was meant to return. It is removed.
+
+The lightweight engine double previously stored these two properties independently, so it did not reproduce this behavior. It now enables TextWrapped when TextScaled is enabled, and disables TextScaled when TextWrapped is disabled. With that corrected model and a targeted helper regression, the unmodified M5 helper produces **65 passed / 2 failed**. Removing the override produces **67 passed / 0 failed**, with **all 37 Luau source/test files compiling** under official Luau 0.743. Every world SurfaceGui is checked for both TextScaled=true and TextWrapped=true after the complete world builds. The builder verifies XML, all **33 embedded game modules**, entry points and saved Soft LightingStyle.
+
+Only **ArtPrimitives.luau** changes among runtime modules. The other 32 sources, including lighting, geometry, gameplay, client, config, persistence and remotes, are identical to M5. No board enlargement, further light tuning, saved-data changes or extra geometry is part of this correction.
+
+Earlier previews and exports did not retain the actual TextScaled/TextWrapped flags and always rendered wording as fitted text. They therefore hid this bug and must not be treated as proof of native sizing. The local export now records both flags; the renderer respects TextScaled and the default TextSize when scaling is off. The M5 images remain historical geometry previews. No new substitute rendering is claimed as Studio verification.
+
+**Pending:** native Studio recheck of the supplied camera/view, normal-distance menu/item lettering, accidental word wraps, long ownership names, both rows, desktop/mobile and two-player behavior. The corrected model demonstrates the source regression; it does not replace an engine playtest. Use the M6 checklist in docs/STUDIO_TESTS.md. No live DataStore calls, main-branch writes, merges or publication occurred.
+
 ## Visual milestone 5: brighter rooms and oversized lettering
 
 Validation date: 20 October 2026. Continues M4 `0de5b3b` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.

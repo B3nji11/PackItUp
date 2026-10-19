@@ -104,6 +104,12 @@ local function makeInstance(class)
                 end
             end
             values[key]=value
+            -- Roblox couples wrapping/scaling: scaled text always wraps, and turning
+            -- wrapping off disables scaling. A plain property bag missed this bug.
+            if class == "TextLabel" or class == "TextButton" or class == "TextBox" then
+                if key == "TextScaled" and value then values.TextWrapped = true
+                elseif key == "TextWrapped" and not value then values.TextScaled = false end
+            end
             if key == "CFrame" then values.Position = value.Position end
         end,
     })
@@ -507,6 +513,21 @@ test("bright diner interiors keep both rows clear and playable", function()
     end
 end)
 
+test("the shared art helper retains engine-coupled wrapping and automatic text sizing", function()
+    local probe=Instance.new("TextLabel")
+    probe.TextScaled=true; eq(probe.TextWrapped,true)
+    probe.TextWrapped=false; eq(probe.TextScaled,false)
+    local art=loadModule("server/world/ArtPrimitives")
+    local model=Instance.new("Model")
+    local decor=art.new(model)
+    local face=decor.piece("CaptionProbe",Vector3.new(17.4,6,0.1),Vector3.zero,Color3.fromRGB(0,0,0))
+    local caption=decor.label(face,"GOLDEN\nBITES",Color3.fromRGB(255,255,255))
+    eq(caption.TextScaled,true,"The shared art helper must not disable scaling after creating a label")
+    eq(caption.TextWrapped,true)
+    local replacement=decor.label(face,"REPEAT",Color3.fromRGB(255,255,255))
+    eq(replacement.TextScaled,true); eq(replacement.TextWrapped,true)
+end)
+
 test("world lettering fills an aspect-correct canvas below the native font cap", function()
     local world=workspace.FriesRestaurant
     local labels=0
@@ -514,7 +535,7 @@ test("world lettering fills an aspect-correct canvas below the native font cap",
         if node.ClassName=="SurfaceGui" then
             local label=assert(node:FindFirstChildOfClass("TextLabel"))
             local limit=assert(label:FindFirstChildOfClass("UITextSizeConstraint"),"World text needs an explicit scale limit")
-            eq(label.TextScaled,true); eq(limit.MinTextSize,1)
+            eq(label.TextScaled,true); eq(label.TextWrapped,true); eq(limit.MinTextSize,1)
             near(node.CanvasSize.Y,96); eq(limit.MaxTextSize,96)
             eq(node.SizingMode,Enum.SurfaceGuiSizingMode.FixedSize)
             local size,face=node.Parent.Size,node.Face

@@ -1,5 +1,13 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 6: native text-sizing correction (20 October 2026)
+
+1. Open the rebuilt M6 place with File > Open from File and press Play. Revisit the supplied screenshot's interior camera position. GOLDEN BITES, HOT & CRISPY and PACK / SELL / REPEAT should fill their large text regions instead of appearing as tiny default-font captions. Lighting and room geometry should match M5.
+2. While playing, inspect a menu TextLabel in Explorer: both TextScaled and TextWrapped must be true after all art helpers finish. The SurfaceGui uses the existing 96-pixel-high fixed canvas. Stop/restart to confirm the flags persist through rebuilding.
+3. Inspect main/side menus, facade signs, ownership plaques, bag/apron FRY badges, mats, plot numbers and medallion from normal avatar distance on both rows. Check for unexpected wrapping, clipping, oversized smiles/dots, canopy overlap and covered live fry tips. Native TextScaled may wrap differently from the approximate preview font.
+4. Claim/release with short/long names and exercise packing/holding/F, automatic filling, full/partial/repeated sales, Cash upgrades, Return to Counter and respawn. Check desktop/mobile, two players and low/high graphics. Review Output and memory-only resets.
+5. Review the actual Studio result before accepting this fix. Earlier previews missed the wrapping/scaling interaction and are not native sizing evidence. Do not publish as part of this review.
+
 ## Visual milestone 5: brighter rooms and oversized lettering (20 October 2026)
 
 1. Open the rebuilt M5 place with File > Open from File and press Play. Compare with M4 from the same normal avatar-eye-height position. The ceiling, upper walls, tiles, counter, equipment and seating should be clearly brighter. Check low/high graphics, worktop/corners, and warm-white light without glare. Retain the diner details and readable teal/coral color blocks.

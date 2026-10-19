@@ -43,9 +43,9 @@ function Art.new(parent, partFactory)
         end
     end
     local function label(part, text, color, face)
-        local result = P.surfaceLabel(part, text, face or Enum.NormalId.Back, color)
-        result.TextWrapped = false
-        return result
+        -- Roblox disables TextScaled when TextWrapped is turned off. Keep the
+        -- shared helper's scaled/wrapped pair intact so letters fill the sign.
+        return P.surfaceLabel(part, text, face or Enum.NormalId.Back, color)
     end
     return {piece = piece, ball = ball, disc = disc, rounded = rounded, label = label}
 end
