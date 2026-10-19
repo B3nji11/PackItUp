@@ -1,5 +1,71 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 7: smaller signs and cute diner details (20 October 2026)
+
+1. Stop the current test, open the rebuilt M7 place using File > Open from File and press Play. Compare with M6 from the same camera position. Menu/caption/facade/item wording should have the earlier compact proportions, with TextScaled and TextWrapped both true. Check clipping, unexpected wrapping, long owner names, both rows and all six plots. Lighting should match M6.
+2. Inspect pastel garlands and cloud mobiles above the work/dining area, round fries/heart wall medallions, table flowers/cups/placemats, heart cushions, the bun on its display plate and corner plants. Check seams, faces, floating details and camera clearance. Outside, inspect lilac bows and smiling topiary from normal avatar height.
+3. Walk/jump/turn around the entrance, tables, plants, counter and bun plate. Decorations must not catch the character, cover bag/fryer interactions or hide any of the ten live fry tips. Return to Counter and claim prompts must target the same positions as before. Hanging props must leave comfortable headroom.
+4. Exercise claiming/releasing, hold/F packing, automatic production, full/partial/repeated sales, all Cash upgrades, Return to Counter, respawn and independent two-player ownership. Check desktop/portrait/landscape mobile and low/high graphics with all six detailed restaurants in view.
+5. Stop/restart and check Output, memory-only resets and no duplicate art. Review actual engine performance and the playable appearance before accepting this pass. Geometry previews approximate fonts and lighting; do not publish as part of this review.
+
+## Visual milestone 6: native text-sizing correction (20 October 2026)
+
+1. Open the rebuilt M6 place with File > Open from File and press Play. Revisit the supplied screenshot's interior camera position. GOLDEN BITES, HOT & CRISPY and PACK / SELL / REPEAT should fill their large text regions instead of appearing as tiny default-font captions. Lighting and room geometry should match M5.
+2. While playing, inspect a menu TextLabel in Explorer: both TextScaled and TextWrapped must be true after all art helpers finish. The SurfaceGui uses the existing 96-pixel-high fixed canvas. Stop/restart to confirm the flags persist through rebuilding.
+3. Inspect main/side menus, facade signs, ownership plaques, bag/apron FRY badges, mats, plot numbers and medallion from normal avatar distance on both rows. Check for unexpected wrapping, clipping, oversized smiles/dots, canopy overlap and covered live fry tips. Native TextScaled may wrap differently from the approximate preview font.
+4. Claim/release with short/long names and exercise packing/holding/F, automatic filling, full/partial/repeated sales, Cash upgrades, Return to Counter and respawn. Check desktop/mobile, two players and low/high graphics. Review Output and memory-only resets.
+5. Review the actual Studio result before accepting this fix. Earlier previews missed the wrapping/scaling interaction and are not native sizing evidence. Do not publish as part of this review.
+
+## Visual milestone 5: brighter rooms and oversized lettering (20 October 2026)
+
+1. Open the rebuilt M5 place with File > Open from File and press Play. Compare with M4 from the same normal avatar-eye-height position. The ceiling, upper walls, tiles, counter, equipment and seating should be clearly brighter. Check low/high graphics, worktop/corners, and warm-white light without glare. Retain the diner details and readable teal/coral color blocks.
+2. Inspect the much larger main menu: FRY DAY!, HOT & CRISPY and PACK / SELL / REPEAT. Turn toward the large GOLDEN BITES and MADE WITH / HAPPINESS side panels. Check letter size at normal gameplay distance, row spacing, no clipping/overlap, and readability while standing at the counter. Confirm the shelf jars do not cover the step captions.
+3. Inspect facade branding, live ownership plaque, bag/apron FRY badges, welcome mats, all six plot numbers, the central medallion and title wall. The canvas should fill each face without tiny text, unexpected wrapping, mirrored words or blur. Check both rows, each plot and short/long ownership names. Some physical items grow less than 3x to preserve equipment and shell clearance; assess actual letter readability rather than only board dimensions.
+4. Confirm the ownership plaque leaves headroom beneath it, sits below the canopy and does not cover roof avatar cards. All ten live fry tips must stay visible above the bag badge. Walk, jump, turn and Return to Counter around the expanded mats/signs with original collision intact.
+5. Check desktop, portrait/landscape mobile, low/high graphics and two players. Exercise claiming/releasing, hold/F packing, automatic production, partial/full/repeated sales, all Cash upgrades, respawn and memory-only resets. Stop/restart and check Output. No new gameplay or saved fields should appear.
+6. Review the actual Studio result before accepting this pass. Source-geometry previews are approximate and cannot establish native font sizing, illumination or performance. Do not publish as part of this review.
+
+## Visual milestone 4: balanced light and readable lettering (20 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx and press Play. Compare the interior with M2 and M3 from the same avatar-eye-height angle. The room should be brighter than M3 while retaining warm stone, teal panels, muted booths, ceiling detail, and gentle pendants. Check fryer, bag tips, counter and seating on low/high graphics settings.
+2. Inspect every type of printed wording at a normal gameplay distance: facade branding, live ownership plaque, wall posters, back-wall menus, bag badge, welcome mat, plot number, central medallion, and district title wall. Text should fill its intended face without tiny type, clipping, awkward wraps, flicker, or letters extending past the board. Check both restaurant orientations and every plot.
+3. Claim/release with short and long display names. Check both lines of the enlarged ownership plaque and the existing roof avatar/@username card; confirm no overlap with the canopy or mascot. World lettering should retain contrast in the interior while being hidden correctly by solid walls.
+4. Check the captions HOT & CRISPY, PACK / SELL / REPEAT, GOLDEN BITES, MADE WITH / HAPPINESS, FRY!, and HELLO, FRY FRIEND! at avatar-eye height. The enlarged bag badge must not cover any of its ten live fry tips. Check desktop and portrait/landscape mobile; automated font bounds do not establish engine readability.
+5. Exercise claiming, hold/F packing, automatic production, partial/full/repeated sales, all Cash upgrades, Return to Counter, respawn and two-player ownership. Walk/jump near the widened mat and plaque. Stop/restart and check Output and memory-only resets. No new collision or gameplay behavior should appear.
+6. Review this brightness and lettering pass in Studio before accepting it. The separate geometry previews are not Studio screenshots. Do not publish as part of this review.
+
+## Visual milestone 3: warm diner interiors (20 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx and press Play. Compare with the M2 place in a separate Studio session. Check the warmer, lower interior light, warm stone floor, teal panels, muted coral/teal booth backs, ceiling beams, pendant shades, and framed graphics. The room should feel softer while the fryer, bag tips, NPC, and counter remain easy to see.
+2. Inspect all four ceiling panels and both pendants in plots from each row. Pendant light must point down after station rotation, with no blinding bloom, sharp artifacts, or excessively dark seats. Compare low/high graphics settings and normal avatar-eye-height views. Code checks of light brightness do not establish actual luminance.
+3. Inspect the detailed prep line, cupboard/cold-cabinet doors and handles, backsplash, shelf jars, cutting board, napkins, fryer vents/dial marks, and booth buttons. Check for flickering surfaces, visible seams, or camera clipping. These are decorations and must not suggest new interactive gameplay.
+4. Walk, jump, turn, and use Return to Counter near the booth backs, rug, cabinets, counter, and entrance. Check that the original furniture collision remains reasonable and the new geometry does not visually obstruct the working route. The four broad lights must still reach the room corners.
+5. Claim north and south plots with two players. Exercise packing/holding/F, live fry-tip fill, 0.5 fries/sec production, full/partial/repeated sales, all three Cash upgrades, respawn, release/reclaim, and owner-card rendering. Check that geometry does not cover the bag tips or avatar cards.
+6. Test desktop, portrait/landscape phone, and low/high graphics performance with all six restaurants present. The extra interior detail is budgeted but its real engine cost remains unmeasured. Confirm outside colors and daylight still suit the approved district.
+7. Stop/restart and check Output, memory-only test resets, and no duplicate art. Review the playable result before accepting this lighting pass. Do not publish as part of this review.
+
+## Visual milestone 2: six restaurants and the district (19 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx and press Play. Check Output and confirm all six restaurants have the approved coral/gold storefront, striped canopy, mascot, mint equipment, rounded furniture, and friendly counter character. Inspect signs and canopy slopes on both rows; the southern row must face inward without mirrored text.
+2. Walk from the central welcome medallion along the brown pavers and all six numbered approach paths. Check path joins, flower planters, pastel benches, title-wall frame, hedge caps, and corner finials. No decoration should block the spawn, guides, claim prompts, or central circulation.
+3. Claim northern and southern plots in a two-player test. Verify the physical ownership plaques, public avatar/@username cards, per-player guides, repeated release/reclaim, respawn, and Return to Counter. Inspect card/mascot overlap from normal gameplay angles on each row.
+4. Test pack/hold/F, automatic 0.5 fries/sec filling, partial-sale rejection, a full $10 base sale, and all three Cash upgrades on plots from both rows. Confirm live bag tips remain visible above the badge and each player's progress stays separate.
+5. Check rounded furniture and character skins up close. Look for flickering caps, floating faces, camera snagging, or unintuitive collision around the preserved original furniture. Test the edges of the new benches and planters while walking and jumping.
+6. Compare low/high graphics settings and desktop/portrait/landscape mobile. Check performance with all six shops in view, SurfaceGui text readability, controls, lighting, character/camera clearance, owner cards, and the hedge perimeter. Automated part budgets do not establish real frame rates.
+7. Stop/restart to confirm art builds once and memory-only test progress resets. Review this expanded district before accepting it. Do not publish as part of this review.
+
+## Visual milestone 1: Restaurant 1 (19 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx from this branch with File > Open from File and press Play. An empty edit viewport is expected. Check Output for startup errors and confirm all six restaurants, HUD controls, availability guides, and claim prompts appear.
+2. Walk to the northern row's leftmost plot, with the oversized fries mascot (entrance `-64, 3, -42`). Confirm its coral/gold exterior, cream/coral scalloped canopy, physical FRY DAY! sign, and topiary. Restaurants 2-6 should match the original appearance.
+3. Press E or tap to claim Restaurant 1. Check its live ownership plaque below the canopy and the existing avatar/@username card above the roof from the plaza and both sides. The brand must remain readable; the fries mascot must not cover the owner card at normal gameplay angles.
+4. Walk through the entrance, turn, jump, and return to the counter. Verify no decorations catch the character or camera, no strips flicker on rounded surfaces, and the original collision envelopes feel acceptable around the rounded furniture. Inspect mint fryer, basket/handle, gold bag with ten live fry tips, cream tables, mint/pink benches, sauce bottles, and back-wall art. No floating equipment name tags should appear.
+5. Pack by clicking, holding, and holding F. The original bag tips must fill progressively without the new badge/skin covering them. Sell a full bag for $10 at base stats; reject partial bags and repeated sales. Leave the counter and confirm 0.5 fries/sec automatic production and Return to Counter behave as before.
+6. Earn Cash, buy each of the three existing upgrades, and check the displayed values, bag capacity, and sale value. No new gameplay, menus, rewards, or saved fields should appear.
+7. In a two-player local test, claim Restaurant 1 and a baseline plot. Confirm independent state, public ownership cards, release/reclaim, and respawn on each plot. Check owner-card thumbnails against the roof mascot and canopy from both players' views.
+8. Emulate desktop, portrait phone, and short landscape phone. Check the canopy/claim prompt from avatar eye height, camera clearance, readable wall signs, and low/high graphics quality. Confirm the visual additions do not cause noticeable frame-time regressions.
+9. Stop and restart: memory-mode progress resets and Restaurant 1 rebuilds once, without duplicate art. Review the playable result with the owner before accepting this milestone. Do not publish as part of this review.
+
 Current iteration: **Increment 1, upgrade shop**. Run its checks first. The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
 
 ## Upgrade shop (Increment 1)

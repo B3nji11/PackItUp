@@ -29,14 +29,29 @@ vectorMeta.__mul = function(a,b) return Vector3.new(a.X*b,a.Y*b,a.Z*b) end
 Vector3.zero = Vector3.new(0,0,0)
 Vector2 = { new = function(x,y) return {X=x,Y=y} end }
 local cfMeta = {}
-CFrame = { new = function(position) return setmetatable({Position=position, yaw=0}, cfMeta) end }
-function CFrame.Angles(_, yaw, _) return setmetatable({Position=Vector3.zero, yaw=yaw}, cfMeta) end
+local identity = {1,0,0, 0,1,0, 0,0,1}
+local function multiplyRotation(a, b)
+    local result = {}
+    for row=0,2 do
+        for col=1,3 do
+            result[row*3+col] = a[row*3+1]*b[col] + a[row*3+2]*b[3+col] + a[row*3+3]*b[6+col]
+        end
+    end
+    return result
+end
+CFrame = { new = function(position) return setmetatable({Position=position, rotation=identity}, cfMeta) end }
+function CFrame.Angles(x, y, z)
+    local cx,sx,cy,sy,cz,sz = math.cos(x),math.sin(x),math.cos(y),math.sin(y),math.cos(z),math.sin(z)
+    local rx,ry,rz = {1,0,0, 0,cx,-sx, 0,sx,cx}, {cy,0,sy, 0,1,0, -sy,0,cy}, {cz,-sz,0, sz,cz,0, 0,0,1}
+    return setmetatable({Position=Vector3.zero, rotation=multiplyRotation(multiplyRotation(rx,ry),rz)}, cfMeta)
+end
 cfMeta.__index = {PointToWorldSpace=function(cf, point)
-    return cf.Position + Vector3.new(math.cos(cf.yaw)*point.X + math.sin(cf.yaw)*point.Z,
-        point.Y, -math.sin(cf.yaw)*point.X + math.cos(cf.yaw)*point.Z)
+    local r=cf.rotation
+    return cf.Position + Vector3.new(r[1]*point.X+r[2]*point.Y+r[3]*point.Z,
+        r[4]*point.X+r[5]*point.Y+r[6]*point.Z, r[7]*point.X+r[8]*point.Y+r[9]*point.Z)
 end}
 cfMeta.__mul = function(a,b)
-    return setmetatable({Position=a:PointToWorldSpace(b.Position), yaw=a.yaw+b.yaw}, cfMeta)
+    return setmetatable({Position=a:PointToWorldSpace(b.Position), rotation=multiplyRotation(a.rotation,b.rotation)}, cfMeta)
 end
 Color3 = { fromRGB = function(r,g,b) return {R=r/255,G=g/255,B=b/255} end }
 ColorSequence = {new=function(value) return {Value=value} end}
@@ -56,6 +71,10 @@ local eventNames = { Activated=true, InputBegan=true, InputEnded=true, OnServerE
 local instanceMethods = {}
 local function makeInstance(class)
     local values = { ClassName=class, Name=class, Visible=true }
+    if class == "Part" then
+        values.CanCollide, values.CanTouch, values.CanQuery, values.CastShadow = true, true, true, true
+        values.Transparency, values.Shape = 0, Enum.PartType.Block
+    end
     local object = {}
     setmetatable(object, {
         __index = function(self,key)
@@ -85,6 +104,13 @@ local function makeInstance(class)
                 end
             end
             values[key]=value
+            -- Roblox couples wrapping/scaling: scaled text always wraps, and turning
+            -- wrapping off disables scaling. A plain property bag missed this bug.
+            if class == "TextLabel" or class == "TextButton" or class == "TextBox" then
+                if key == "TextScaled" and value then values.TextWrapped = true
+                elseif key == "TextWrapped" and not value then values.TextScaled = false end
+            end
+            if key == "CFrame" then values.Position = value.Position end
         end,
     })
     return object
@@ -93,6 +119,7 @@ function instanceMethods:FindFirstChild(name)
     for _, child in ipairs(self._children or {}) do if child.Name == name then return child end end
     return nil
 end
+function instanceMethods:GetChildren() return table.clone(self._children or {}) end
 function instanceMethods:WaitForChild(name) return assert(self:FindFirstChild(name), self.Name.." missing "..name) end
 function instanceMethods:FindFirstChildOfClass(class)
     for _, child in ipairs(self._children or {}) do if child.ClassName == class then return child end end
@@ -328,6 +355,276 @@ test("interior fixtures fit below the taller ceiling and reach the floor and wor
             end
             assert(reachable, "Interior sample is outside every ceiling light's range/cone")
         end
+    end
+end)
+
+test("all six restaurants share the approved skin and keep their gameplay objects", function()
+    local world = workspace.FriesRestaurant
+    local count = #world.Station1.RestaurantDecor:GetChildren()
+    for i=1,6 do
+        local station = world["Station"..i]
+        local origin, direction = station.Plot.Position, if i > 3 then -1 else 1
+        eq(station:GetAttribute("VisualStyle"), "CoralGold")
+        eq(#station.RestaurantDecor:GetChildren(), count)
+        near(station.Counter.Position.X, origin.X)
+        near(station.Counter.Position.Z, origin.Z - direction)
+        near(station.Machine.Position.Y, 4.9); near(station.Bag.Position.Y, 4.65)
+        near(station.ClaimPoint.Position.Z, origin.Z + 18 * direction)
+        eq(station.ClaimPoint.ClaimRestaurant.MaxActivationDistance, 10)
+        for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
+        near(station.RestaurantPlaque.Position.Y, 10.9)
+        near(station.RestaurantPlaque.Position.Z, origin.Z + 20.35 * direction)
+        assert(station.RestaurantPlaque.WallArt.TextLabel.Text ~= "")
+        -- South-facing plots rotate the sign and sloping canopy as one skin.
+        local brand=station.RestaurantDecor.BrandFace
+        local facing=brand.CFrame:PointToWorldSpace(Vector3.new(0,0,1))-brand.Position
+        near(facing.Z, direction)
+        local canopy=station.AwningStripe1
+        local slope=canopy.CFrame:PointToWorldSpace(Vector3.new(0,0,3))-canopy.Position
+        assert(slope.Y < 0 and slope.Z * direction > 0)
+    end
+end)
+
+local function halfExtents(part)
+    local r,s=part.CFrame.rotation,part.Size
+    return (math.abs(r[1])*s.X+math.abs(r[2])*s.Y+math.abs(r[3])*s.Z)/2,
+        (math.abs(r[4])*s.X+math.abs(r[5])*s.Y+math.abs(r[6])*s.Z)/2,
+        (math.abs(r[7])*s.X+math.abs(r[8])*s.Y+math.abs(r[9])*s.Z)/2
+end
+local function decorative(part)
+    eq(part.ClassName, "Part")
+    assert(part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery)
+    assert(not part.CastShadow)
+    eq(part.Material, Enum.Material.SmoothPlastic)
+    for _, gui in ipairs(part:GetChildren()) do
+        eq(gui.ClassName, "SurfaceGui"); eq(gui.AlwaysOnTop, false)
+    end
+end
+
+test("both rows keep bounded noncolliding art and clear entrance and counter routes", function()
+    for i=1,6 do
+        local station = workspace.FriesRestaurant["Station"..i]
+        local art, direction = station.RestaurantDecor, if i > 3 then -1 else 1
+        local count = 0
+        for _, child in ipairs(art:GetChildren()) do
+            decorative(child)
+            count += 1
+            local hx,hy,hz = halfExtents(child)
+            local x,y,z = (child.Position.X-station.Plot.Position.X)*direction, child.Position.Y,
+                (child.Position.Z-station.Plot.Position.Z)*direction
+            assert(math.abs(x)+hx <= 26 and math.abs(z)+hz <= 26, child.Name.." escapes the plot")
+            local blocksLane = x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+            assert(not blocksLane, child.Name.." covers the entrance/counter approach")
+        end
+        assert(count > 100 and count <= 260, "Keep the repeated skin within its art budget")
+        for n=1,10 do
+            local stripe=station["AwningStripe"..n]
+            assert(not stripe.CanCollide and not stripe.CanTouch and not stripe.CanQuery)
+            assert(stripe.Position.Y > 13)
+        end
+        local top = art.SignFry3Core
+        assert(top.Position.Y + top.Size.Y/2 > 30)
+        eq(art.BrandFace.WallArt.TextLabel.Text, "FRY DAY!")
+        assert(art.BrandFace.Position.Y + art.BrandFace.Size.Y/2 < station.RoofCap.Position.Y)
+    end
+end)
+
+test("district decoration keeps the original spawn paths boundary and central promenade clear", function()
+    local world=workspace.FriesRestaurant
+    eq(world:GetAttribute("DistrictStyle"), "CoralGold")
+    near(world.PlazaEntrance.Position.X,0); near(world.PlazaEntrance.Position.Z,0)
+    eq(world.PlazaEntrance.Neutral, true)
+    local count=0
+    for _, child in ipairs(world.PlazaDecor:GetChildren()) do
+        decorative(child); count += 1
+        local hx,hy,hz=halfExtents(child)
+        local x,y,z=child.Position.X,child.Position.Y,child.Position.Z
+        assert(math.abs(x)+hx <= 111 and math.abs(z)+hz <= 97, child.Name.." escapes district bounds")
+        local tall=y+hy > 0.7 and y-hy < 8
+        assert(not (tall and x+hx > -98 and x-hx < 98 and z+hz > -5.5 and z-hz < 5.5),
+            child.Name.." covers the central promenade")
+        for i=1,6 do
+            local path=world["PlotPath"..i]
+            assert(not (tall and math.abs(x-path.Position.X) < hx+6 and math.abs(z-path.Position.Z) < hz+6),
+                child.Name.." covers a restaurant approach")
+        end
+    end
+    assert(count > 150 and count <= 400, "Keep shared decoration within its art budget")
+    for _, side in ipairs({"North","South","East","West"}) do
+        assert(world.Boundary[side].CanCollide)
+    end
+    for _, child in ipairs(world:GetChildren()) do
+        if child.Name=="Planter" or child.Name=="PlazaBench" then
+            eq(child.Transparency,1); assert(child.CanCollide)
+        end
+    end
+end)
+
+test("bright diner interiors keep both rows clear and playable", function()
+    local lighting = services.Lighting
+    assert(lighting.Ambient.R >= 150/255)
+    assert(lighting.Ambient.G >= 148/255)
+    assert(lighting.Ambient.B >= 140/255)
+    near(lighting.OutdoorAmbient.R,148/255); near(lighting.Brightness,1.5)
+    near(lighting.ClockTime,13.5); near(lighting.ExposureCompensation,-0.25)
+    local counts = {}
+    for i=1,6 do
+        local station=workspace.FriesRestaurant["Station"..i]
+        eq(station:GetAttribute("InteriorStyle"),"WarmDiner")
+        local art,direction=station.InteriorDecor,if i>3 then -1 else 1
+        local lamps,parts=0,0
+        for _, child in ipairs(art:GetChildren()) do
+            parts += 1
+            eq(child.ClassName,"Part")
+            assert(child.Anchored and not child.CanCollide and not child.CanTouch and not child.CanQuery and not child.CastShadow)
+            eq(child.Material,Enum.Material.SmoothPlastic)
+            local hx,hy,hz=halfExtents(child)
+            local x,y,z=(child.Position.X-station.Plot.Position.X)*direction,child.Position.Y,
+                (child.Position.Z-station.Plot.Position.Z)*direction
+            assert(math.abs(x)+hx <= 21 and z-hz >= -20 and z+hz <= 14,child.Name.." leaves the room")
+            assert(y+hy <= 18.5,child.Name.." protrudes through the ceiling")
+            local blocksRoute=x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+            assert(not blocksRoute,child.Name.." covers the counter approach")
+            for _, detail in ipairs(child:GetChildren()) do
+                if detail.ClassName=="SurfaceLight" then
+                    lamps += 1
+                    assert(detail.Enabled and not detail.Shadows and detail.Brightness >= 0.45 and detail.Brightness <= 0.6)
+                    eq(detail.Face,Enum.NormalId.Left)
+                    local down=child.CFrame:PointToWorldSpace(Vector3.new(-1,0,0))-child.Position
+                    near(down.Y,-1)
+                    assert(child.Position.Y-hy >= 13)
+                else
+                    eq(detail.ClassName,"SurfaceGui"); eq(detail.AlwaysOnTop,false)
+                end
+            end
+        end
+        eq(lamps,2)
+        assert(parts > 100 and parts <= 260,"Keep the interior detail budget bounded")
+        counts[i]=parts; eq(counts[i],counts[1])
+        for n=1,4 do
+            local light=station["LightPanel"..n].InteriorLight
+            near(light.Brightness,1.2)
+            assert(light.Color.R > light.Color.B and light.Enabled)
+        end
+        eq(station.RestaurantDecor.HappyFriesPoster.WallArt.Enabled,false)
+        -- The kitchen/booths are visual skins; the original station remains the target.
+        assert(station.Counter.CanCollide and station.Bag.CanCollide)
+        for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
+    end
+end)
+
+test("the shared art helper retains engine-coupled wrapping and automatic text sizing", function()
+    local probe=Instance.new("TextLabel")
+    probe.TextScaled=true; eq(probe.TextWrapped,true)
+    probe.TextWrapped=false; eq(probe.TextScaled,false)
+    local art=loadModule("server/world/ArtPrimitives")
+    local model=Instance.new("Model")
+    local decor=art.new(model)
+    local face=decor.piece("CaptionProbe",Vector3.new(17.4,6,0.1),Vector3.zero,Color3.fromRGB(0,0,0))
+    local caption=decor.label(face,"GOLDEN\nBITES",Color3.fromRGB(255,255,255))
+    eq(caption.TextScaled,true,"The shared art helper must not disable scaling after creating a label")
+    eq(caption.TextWrapped,true)
+    local replacement=decor.label(face,"REPEAT",Color3.fromRGB(255,255,255))
+    eq(replacement.TextScaled,true); eq(replacement.TextWrapped,true)
+end)
+
+test("world lettering fills an aspect-correct canvas below the native font cap", function()
+    local world=workspace.FriesRestaurant
+    local labels=0
+    local function visit(node)
+        if node.ClassName=="SurfaceGui" then
+            local label=assert(node:FindFirstChildOfClass("TextLabel"))
+            local limit=assert(label:FindFirstChildOfClass("UITextSizeConstraint"),"World text needs an explicit scale limit")
+            eq(label.TextScaled,true); eq(label.TextWrapped,true); eq(limit.MinTextSize,1)
+            near(node.CanvasSize.Y,96); eq(limit.MaxTextSize,96)
+            eq(node.SizingMode,Enum.SurfaceGuiSizingMode.FixedSize)
+            local size,face=node.Parent.Size,node.Face
+            local width,height=size.X,size.Y
+            if face==Enum.NormalId.Left or face==Enum.NormalId.Right then width=size.Z
+            elseif face==Enum.NormalId.Top or face==Enum.NormalId.Bottom then height=size.Z end
+            near(node.CanvasSize.X/node.CanvasSize.Y,width/height)
+            eq(node.LightInfluence,0); eq(node.AlwaysOnTop,false)
+            near(label.Size.X.Scale,1); near(label.Size.Y.Scale,1)
+            labels += 1
+        end
+        for _,child in ipairs(node:GetChildren()) do visit(child) end
+    end
+    visit(world)
+    assert(labels >= 100)
+    -- Large murals and resized live plaques use the same full-face layout as small labels.
+    local mural=world.MuralWall
+    near(mural.WallArt.CanvasSize.X/mural.WallArt.CanvasSize.Y,38/14)
+    for i=1,6 do
+        local station=world["Station"..i]
+        near(station.RestaurantPlaque.Size.Y,2.5)
+        near(station.RestaurantDecor.BagBadge.Size.Y,1.15)
+        near(station.RestaurantDecor.WelcomeMat.Size.Z,4.6)
+        eq(station.RestaurantDecor.WelcomeMat.WallArt.TextLabel.Text,"HELLO,\nFRY FRIEND!")
+        near(station.InteriorDecor.HouseSubtitle.Size.Y,0.95)
+        eq(station.InteriorDecor.HouseSubtitle.WallArt.TextLabel.Text,"HOT & CRISPY")
+        near(station.InteriorDecor.GoldenCaption.Size.Y,2)
+        near(station.InteriorDecor.HappyCaption.Size.Y,1.05)
+    end
+end)
+
+test("restored sign proportions keep scaled text without the triple-size enlargement", function()
+    for i=1,6 do
+        local station=workspace.FriesRestaurant["Station"..i]
+        local art=station.InteriorDecor
+        near(art.HouseTitle.Size.Y,1.45)
+        near(art.HouseSubtitle.Size.Y,0.95)
+        near(art.HouseMenuFace.Size.X,15); near(art.HouseMenuFace.Size.Y,4.4)
+        near(station.RestaurantDecor.BrandFace.Size.X,24.5)
+        near(station.RestaurantDecor.BrandFace.Size.Y,2.9)
+        local titleBottom=art.HouseTitle.Position.Y-art.HouseTitle.Size.Y/2
+        local subtitleTop=art.HouseSubtitle.Position.Y+art.HouseSubtitle.Size.Y/2
+        assert(titleBottom > subtitleTop)
+        for _,child in ipairs(art:GetChildren()) do
+            if child.Name=="HouseStep" then
+                near(child.Size.Y,0.98); near(child.Size.X,3.9)
+                assert(child.Position.Y+child.Size.Y/2 < art.HouseSubtitle.Position.Y-art.HouseSubtitle.Size.Y/2)
+                assert(child.Position.Y-child.Size.Y/2 > art.PrepJarLid.Position.Y+art.PrepJarLid.Size.X/2)
+            end
+        end
+        local plaque=station.RestaurantDecor.PlaqueBorderCore
+        assert(plaque.Position.Y-plaque.Size.Y/2 > 8)
+        assert(plaque.Position.Y+plaque.Size.Y/2 < 12.425)
+        assert(station.RestaurantDecor.BagBadge.Position.Y+station.RestaurantDecor.BagBadge.Size.Y/2 < station.Fry1.Position.Y)
+        assert(station.Ceiling.Color.R > 0.85 and station.Ceiling.Color.G > 0.85)
+    end
+end)
+
+test("cute details decorate every plot without blocking play or increasing light intensity", function()
+    local firstCount
+    for i=1,6 do
+        local station=workspace.FriesRestaurant["Station"..i]
+        local art,direction=station.CuteDecor,if i>3 then -1 else 1
+        eq(station:GetAttribute("DetailStyle"),"FryFriends")
+        local count,clouds,flowers,pennants,bows=0,0,0,0,0
+        for _,child in ipairs(art:GetChildren()) do
+            decorative(child); count+=1
+            local hx,hy,hz=halfExtents(child)
+            local x,y,z=(child.Position.X-station.Plot.Position.X)*direction,child.Position.Y,
+                (child.Position.Z-station.Plot.Position.Z)*direction
+            assert(math.abs(x)+hx<=26 and math.abs(z)+hz<=26,child.Name.." leaves its plot")
+            assert(y-hy>=0.6 and y+hy<=18.5,child.Name.." breaks floor/ceiling clearance")
+            local blocksRoute=x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+            assert(not blocksRoute,child.Name.." covers the entrance/counter approach")
+            local bag=station.Bag
+            assert(not (math.abs(child.Position.X-bag.Position.X)<hx+1 and math.abs(child.Position.Z-bag.Position.Z)<hz+0.7 and y-hy<6.1 and y+hy>3.8),child.Name.." covers the live bag")
+            if child.Name=="CloudPuff" then clouds+=1 end
+            if child.Name=="TableFlowerCentre" then flowers+=1 end
+            if child.Name=="CandyPennant" then pennants+=1; assert(y-hy>12) end
+            if child.Name=="PillarBowKnot" then bows+=1 end
+        end
+        assert(count>=120 and count<=180,"Keep repeated props within a small fixed budget")
+        if not firstCount then firstCount=count end; eq(count,firstCount)
+        eq(clouds,6); eq(flowers,2); eq(pennants,9); eq(bows,2)
+        assert(art.BunBuddy and art.MascotMedallion and art.CornerPlantLeaf and art.BoothPillow)
+        local smile=art.TopiarySmile
+        local outward=smile.CFrame:PointToWorldSpace(Vector3.new(0,0,1))-smile.Position
+        near(outward.Z,direction)
+        near(station.LightPanel1.InteriorLight.Brightness,1.2)
     end
 end)
 

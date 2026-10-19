@@ -1,4 +1,4 @@
-Compilation passed for 33 Luau files.
+Compilation passed for 38 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -30,6 +30,14 @@ PASS claiming enforces distance life ownership and one restaurant per player
 PASS plots are separated and entrances face the central plaza
 PASS ceilings cover restaurants and the solid perimeter encloses all plots
 PASS interior fixtures fit below the taller ceiling and reach the floor and worktop
+PASS all six restaurants share the approved skin and keep their gameplay objects
+PASS both rows keep bounded noncolliding art and clear entrance and counter routes
+PASS district decoration keeps the original spawn paths boundary and central promenade clear
+PASS bright diner interiors keep both rows clear and playable
+PASS the shared art helper retains engine-coupled wrapping and automatic text sizing
+PASS world lettering fills an aspect-correct canvas below the native font cap
+PASS restored sign proportions keep scaled text without the triple-size enlargement
+PASS cute details decorate every plot without blocking play or increasing light intensity
 PASS admission reserves six player spaces even before restaurants are claimed
 PASS remote fill sell repeat loop awards cash once per full bag
 PASS server rejects work away from the counter and teleport returns its owner
@@ -60,4 +68,4 @@ PASS buying capacity with a full bag makes it partial without losing fries
 PASS shop snapshot rows show level value next value and cost in shop order
 PASS saved upgrade levels are validated
 PASS upgrade levels save and load with cash and the bag
-RESULT: 60 passed, 0 failed
+RESULT: 68 passed, 0 failed
