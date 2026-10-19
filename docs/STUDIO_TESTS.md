@@ -1,5 +1,17 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 1: Restaurant 1 (19 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx from this branch with File > Open from File and press Play. An empty edit viewport is expected. Check Output for startup errors and confirm all six restaurants, HUD controls, availability guides, and claim prompts appear.
+2. Walk to the northern row's leftmost plot, with the oversized fries mascot (entrance `-64, 3, -42`). Confirm its coral/gold exterior, cream/coral scalloped canopy, physical FRY DAY! sign, and topiary. Restaurants 2-6 should match the original appearance.
+3. Press E or tap to claim Restaurant 1. Check its live ownership plaque below the canopy and the existing avatar/@username card above the roof from the plaza and both sides. The brand must remain readable; the fries mascot must not cover the owner card at normal gameplay angles.
+4. Walk through the entrance, turn, jump, and return to the counter. Verify no decorations catch the character or camera, no strips flicker on rounded surfaces, and the original collision envelopes feel acceptable around the rounded furniture. Inspect mint fryer, basket/handle, gold bag with ten live fry tips, cream tables, mint/pink benches, sauce bottles, and back-wall art. No floating equipment name tags should appear.
+5. Pack by clicking, holding, and holding F. The original bag tips must fill progressively without the new badge/skin covering them. Sell a full bag for $10 at base stats; reject partial bags and repeated sales. Leave the counter and confirm 0.5 fries/sec automatic production and Return to Counter behave as before.
+6. Earn Cash, buy each of the three existing upgrades, and check the displayed values, bag capacity, and sale value. No new gameplay, menus, rewards, or saved fields should appear.
+7. In a two-player local test, claim Restaurant 1 and a baseline plot. Confirm independent state, public ownership cards, release/reclaim, and respawn on each plot. Check owner-card thumbnails against the roof mascot and canopy from both players' views.
+8. Emulate desktop, portrait phone, and short landscape phone. Check the canopy/claim prompt from avatar eye height, camera clearance, readable wall signs, and low/high graphics quality. Confirm the visual additions do not cause noticeable frame-time regressions.
+9. Stop and restart: memory-mode progress resets and Restaurant 1 rebuilds once, without duplicate art. Review the playable result with the owner before accepting this milestone. Do not publish as part of this review.
+
 Current iteration: **Increment 1, upgrade shop**. Run its checks first. The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
 
 ## Upgrade shop (Increment 1)

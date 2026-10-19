@@ -29,14 +29,29 @@ vectorMeta.__mul = function(a,b) return Vector3.new(a.X*b,a.Y*b,a.Z*b) end
 Vector3.zero = Vector3.new(0,0,0)
 Vector2 = { new = function(x,y) return {X=x,Y=y} end }
 local cfMeta = {}
-CFrame = { new = function(position) return setmetatable({Position=position, yaw=0}, cfMeta) end }
-function CFrame.Angles(_, yaw, _) return setmetatable({Position=Vector3.zero, yaw=yaw}, cfMeta) end
+local identity = {1,0,0, 0,1,0, 0,0,1}
+local function multiplyRotation(a, b)
+    local result = {}
+    for row=0,2 do
+        for col=1,3 do
+            result[row*3+col] = a[row*3+1]*b[col] + a[row*3+2]*b[3+col] + a[row*3+3]*b[6+col]
+        end
+    end
+    return result
+end
+CFrame = { new = function(position) return setmetatable({Position=position, rotation=identity}, cfMeta) end }
+function CFrame.Angles(x, y, z)
+    local cx,sx,cy,sy,cz,sz = math.cos(x),math.sin(x),math.cos(y),math.sin(y),math.cos(z),math.sin(z)
+    local rx,ry,rz = {1,0,0, 0,cx,-sx, 0,sx,cx}, {cy,0,sy, 0,1,0, -sy,0,cy}, {cz,-sz,0, sz,cz,0, 0,0,1}
+    return setmetatable({Position=Vector3.zero, rotation=multiplyRotation(multiplyRotation(rx,ry),rz)}, cfMeta)
+end
 cfMeta.__index = {PointToWorldSpace=function(cf, point)
-    return cf.Position + Vector3.new(math.cos(cf.yaw)*point.X + math.sin(cf.yaw)*point.Z,
-        point.Y, -math.sin(cf.yaw)*point.X + math.cos(cf.yaw)*point.Z)
+    local r=cf.rotation
+    return cf.Position + Vector3.new(r[1]*point.X+r[2]*point.Y+r[3]*point.Z,
+        r[4]*point.X+r[5]*point.Y+r[6]*point.Z, r[7]*point.X+r[8]*point.Y+r[9]*point.Z)
 end}
 cfMeta.__mul = function(a,b)
-    return setmetatable({Position=a:PointToWorldSpace(b.Position), yaw=a.yaw+b.yaw}, cfMeta)
+    return setmetatable({Position=a:PointToWorldSpace(b.Position), rotation=multiplyRotation(a.rotation,b.rotation)}, cfMeta)
 end
 Color3 = { fromRGB = function(r,g,b) return {R=r/255,G=g/255,B=b/255} end }
 ColorSequence = {new=function(value) return {Value=value} end}
@@ -56,6 +71,10 @@ local eventNames = { Activated=true, InputBegan=true, InputEnded=true, OnServerE
 local instanceMethods = {}
 local function makeInstance(class)
     local values = { ClassName=class, Name=class, Visible=true }
+    if class == "Part" then
+        values.CanCollide, values.CanTouch, values.CanQuery, values.CastShadow = true, true, true, true
+        values.Transparency, values.Shape = 0, Enum.PartType.Block
+    end
     local object = {}
     setmetatable(object, {
         __index = function(self,key)
@@ -85,6 +104,7 @@ local function makeInstance(class)
                 end
             end
             values[key]=value
+            if key == "CFrame" then values.Position = value.Position end
         end,
     })
     return object
@@ -93,6 +113,7 @@ function instanceMethods:FindFirstChild(name)
     for _, child in ipairs(self._children or {}) do if child.Name == name then return child end end
     return nil
 end
+function instanceMethods:GetChildren() return table.clone(self._children or {}) end
 function instanceMethods:WaitForChild(name) return assert(self:FindFirstChild(name), self.Name.." missing "..name) end
 function instanceMethods:FindFirstChildOfClass(class)
     for _, child in ipairs(self._children or {}) do if child.ClassName == class then return child end end
@@ -329,6 +350,65 @@ test("interior fixtures fit below the taller ceiling and reach the floor and wor
             assert(reachable, "Interior sample is outside every ceiling light's range/cone")
         end
     end
+end)
+
+test("the showcase skin is restricted to restaurant one and keeps the gameplay objects", function()
+    local world = workspace.FriesRestaurant
+    eq(world.Station1:GetAttribute("VisualStyle"), "CoralGold_Milestone1")
+    assert(world.Station1:FindFirstChild("VisualMilestone1"))
+    for i=2,6 do
+        local station = world["Station"..i]
+        eq(station:GetAttribute("VisualStyle"), nil)
+        eq(station:FindFirstChild("VisualMilestone1"), nil)
+        near(station.Machine.Color.R, 189/255)
+        near(station.RestaurantPlaque.Position.Y, 16.5)
+    end
+    local station = world.Station1
+    near(station.Counter.Position.X, -64); near(station.Counter.Position.Z, -61)
+    near(station.Machine.Position.Y, 4.9); near(station.Bag.Position.Y, 4.65)
+    near(station.ClaimPoint.Position.Z, -42)
+    eq(station.ClaimPoint.ClaimRestaurant.MaxActivationDistance, 10)
+    for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
+    -- Claim/release still update this very SurfaceGui; its face clears the border.
+    near(station.RestaurantPlaque.Position.Y, 10.9)
+    near(station.RestaurantPlaque.Position.Z + 0.1, -39.55)
+    assert(station.RestaurantPlaque.WallArt.TextLabel.Text ~= "")
+end)
+
+test("showcase decoration is bounded noncolliding and leaves the entrance and counter approach clear", function()
+    local station = workspace.FriesRestaurant.Station1
+    local art = station.VisualMilestone1
+    local count = 0
+    for _, child in ipairs(art:GetChildren()) do
+        eq(child.ClassName, "Part")
+        count += 1
+        assert(child.Anchored and not child.CanCollide and not child.CanTouch and not child.CanQuery)
+        assert(not child.CastShadow)
+        eq(child.Material, Enum.Material.SmoothPlastic)
+        -- Full rotation-aware box extents (including upright cylinders).
+        local r, s = child.CFrame.rotation, child.Size
+        local hx = (math.abs(r[1])*s.X + math.abs(r[2])*s.Y + math.abs(r[3])*s.Z)/2
+        local hy = (math.abs(r[4])*s.X + math.abs(r[5])*s.Y + math.abs(r[6])*s.Z)/2
+        local hz = (math.abs(r[7])*s.X + math.abs(r[8])*s.Y + math.abs(r[9])*s.Z)/2
+        local x,y,z = child.Position.X+64, child.Position.Y, child.Position.Z+60
+        assert(math.abs(x)+hx <= 26 and math.abs(z)+hz <= 26, child.Name.." escapes the plot")
+        local blocksLane = x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+        assert(not blocksLane, child.Name.." covers the entrance/counter approach")
+        for _, gui in ipairs(child:GetChildren()) do
+            eq(gui.ClassName, "SurfaceGui")
+            eq(gui.AlwaysOnTop, false)
+        end
+    end
+    assert(count > 100 and count <= 400, "Keep the single-plot art budget bounded")
+    for n=1,10 do
+        local stripe=station["AwningStripe"..n]
+        assert(not stripe.CanCollide and not stripe.CanTouch and not stripe.CanQuery)
+        assert(stripe.Position.Y > 13)
+    end
+    local top = art.SignFry3Core
+    assert(top.Position.Y + top.Size.Y/2 > 30, "Oversized fries must rise above the roof")
+    eq(art.BrandFace.WallArt.TextLabel.Text, "FRY DAY!")
+    assert(art.BrandFace.Position.Y + art.BrandFace.Size.Y/2 < station.RoofCap.Position.Y)
 end)
 
 test("admission reserves six player spaces even before restaurants are claimed", function()

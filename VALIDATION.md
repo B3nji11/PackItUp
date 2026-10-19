@@ -1,5 +1,19 @@
 # Validation record
 
+## Visual milestone 1: Restaurant 1
+
+Validation date: 19 October 2026. Base: `45526d39aeea5e2d27de527c8ab30d473cde18c2`. Branch: `visual/restaurant-one-simulator`.
+
+**62 tests passed, 0 failed; all 34 Luau source/test files compiled** using the official Luau 0.743 Windows tools. The baseline passed all 60 tests before editing. The rebuilt place contains **30 game source files**, with XML parsing, exact embedded-source round-tripping, one server entry point, one client entry point, and saved Soft LightingStyle verified by tools/build.py.
+
+Implementation: RestaurantStyle is applied only to Restaurant 1 after its baseline station is built. The skin adds coral/gold exterior treatment, striped/scalloped canopy, oversized fries mascot, physical facade and wall signs, mint fryer details, rounded furniture, sauce bottles, topiary, and a welcome mat. Original objects are retained; hidden furniture/equipment preserve their previous physical collision envelopes. Added art cannot collide, touch, or intercept queries, and has no shadow-casting overhead. No shared config, domain rules, services, persistence, network, or client modules changed.
+
+New regression checks cover the single-plot restriction, original gameplay positions/references, live ownership SurfaceGui, full rotation-aware decoration bounds, a clear central entrance/counter route, a bounded art budget (at most 400 added parts), non-colliding/query-disabled decoration, and the brand staying below the roof's owner-card anchor. The test CFrame double now handles all three rotation axes and synchronizes Position when CFrame is assigned. Existing tests still exercise claims/reclaims, owner markers, packing/selling, automatic production, upgrades, independent player state, saving, and input validation.
+
+Geometry review: exterior, front, interior, and roof/side-wall cutaway previews were inspected from an export of the executed runtime modules. This caught covered legacy equipment surfaces and space needed for the owner card. Previews use Three.js with approximate light, fonts, and materials. They do not reproduce Roblox rendering. No runtime write to editor-only lighting properties was added; the existing owner-approved lighting remains unchanged.
+
+**Pending:** actual Studio Play testing, desktop/mobile camera and touch checks, two-player rendering/ownership checks, performance at low graphics settings, and owner acceptance. Studio was installed, but this session had no supported native-app control surface for a verified engine playtest. No live DataStore calls or game publication occurred. Use docs/STUDIO_TESTS.md for the manual acceptance path.
+
 ## Increment 1: upgrade shop
 
 Validation date: 8 October 2026.

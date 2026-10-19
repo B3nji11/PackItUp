@@ -1,6 +1,7 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Runtime = require(Shared.config.Runtime)
 local P = require(script.Parent.Primitives)
+local RestaurantStyle = require(script.Parent.RestaurantStyle)
 return function(parent, index, origin, yaw)
     local model = Instance.new("Model")
     model.Name, model.Parent = "Station" .. index, parent
@@ -94,6 +95,8 @@ return function(parent, index, origin, yaw)
             part("DiningBench", Vector3.new(6, 1.6, 1.5), Vector3.new(x, 1.3, z), accent)
         end
     end
+    -- First art milestone: one showcase plot; every gameplay reference stays intact.
+    if index == 1 then RestaurantStyle(model, part) end
     return { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
         machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt }
 end
