@@ -153,38 +153,31 @@ return function(model, stationPart)
         local face=piece(name,Vector3.new(width,height,0.06),Vector3.new(x,y,-18.83),background)
         return label(face,text,foreground)
     end
-    -- Triple the lettering height; the full-width board gives it actual room to grow.
-    board("HouseMenu",35.8,10.8,0,12.7)
-    caption("HouseTitle","FRY DAY!",34,4.35,0,15.7,ink,lettering)
-    caption("HouseSubtitle","HOT & CRISPY",34,2.85,0,12,ink,lettering)
-    piece("MenuDivider",Vector3.new(34,0.06,0.08),Vector3.new(0,10.47,-18.78),brass)
+    board("HouseMenu",15,4.4,0,10.1)
+    board("LeftMenu",6,5.3,-13.5,10.1)
+    board("RightMenu",6,5.3,13.5,10.1)
+    caption("HouseTitle","FRY DAY!",13.6,1.45,0,11.35,ink,lettering)
+    caption("HouseSubtitle","HOT & CRISPY",13.2,0.95,0,9.97,ink,lettering)
+    piece("MenuDivider",Vector3.new(12.8,0.06,0.08),Vector3.new(0,9.35,-18.78),brass)
     for n,text in ipairs({"PACK","SELL","REPEAT"}) do
-        caption("HouseStep",text,11.7,2.94,(n-2)*11.9,8.94,teal,lettering)
+        caption("HouseStep",text,3.9,0.98,(n-2)*4.2,8.6,teal,lettering)
     end
-    -- Side menus use the long walls instead of squeezing beside the enlarged menu.
+    caption("GoldenCaption","GOLDEN\nBITES",5.4,2,-13.5,8.55,ink,lettering).TextWrapped = true
+    rounded("MenuCarton",Vector3.new(1.85,1.2,0.35),Vector3.new(-13.5,10.3,-18.65),clay,0.12)
+    for n=1,3 do
+        piece("MenuFry",Vector3.new(0.3,1.2+(n%2)*0.22,0.18),Vector3.new(-14.1+n*0.3,11.18,-18.62),brass)
+    end
+    caption("HappyTitle","MADE WITH",5.4,0.9,13.5,11.95,ink,lettering)
+    caption("HappyCaption","HAPPINESS",5.4,1.05,13.5,8.35,ink,lettering)
+    for _,x in ipairs({13.15,13.85}) do
+        ball("MenuHeartLobe",Vector3.new(0.95,0.95,0.2),Vector3.new(x,10.65,-18.65),clay)
+    end
+    piece("MenuHeartTip",Vector3.new(1,1,0.18),Vector3.new(13.5,10.27,-18.64),clay,nil,CFrame.Angles(0,0,math.pi/4))
     for _, side in ipairs({-1, 1}) do
         local x = side * 20.3
-        local faceId = if side < 0 then Enum.NormalId.Right else Enum.NormalId.Left
-        piece("SideArtFrame", Vector3.new(0.2, 10.8, 18.4), Vector3.new(x, 12.4, -8), brass)
-        piece("SideArtFace", Vector3.new(0.1, 10.4, 18), Vector3.new(x - side * 0.17, 12.4, -8), ink)
-        local function sideCaption(name, text, height, y)
-            local face = piece(name,Vector3.new(0.06,height,17.4),Vector3.new(x-side*0.24,y,-8),ink)
-            return label(face,text,lettering,faceId)
-        end
-        if side < 0 then
-            sideCaption("GoldenCaption","GOLDEN\nBITES",6,10.8).TextWrapped = true
-            -- A raised carton illustration keeps the side menu playful.
-            rounded("MenuCarton",Vector3.new(0.4,1.65,2.6),Vector3.new(x-side*0.35,15.1,-8),clay,0.12)
-            for n=1,3 do
-                piece("MenuFry",Vector3.new(0.18,1.6+(n%2)*0.2,0.4),Vector3.new(x-side*0.45,16.35,-8.8+n*0.4),brass)
-            end
-        else
-            sideCaption("HappyTitle","MADE WITH",2.7,15.8)
-            sideCaption("HappyCaption","HAPPINESS",3.15,9.3)
-            for _,z in ipairs({-8.5,-7.5}) do
-                ball("MenuHeartLobe",Vector3.new(0.2,1.4,1.4),Vector3.new(x-side*0.4,12.6,z),clay)
-            end
-            piece("MenuHeartTip",Vector3.new(0.18,1.4,1.4),Vector3.new(x-side*0.4,12.1,-8),clay,nil,CFrame.Angles(math.pi/4,0,0))
-        end
+        piece("SideArtFrame", Vector3.new(0.2, 5.2, 7.4), Vector3.new(x, 9, -11), brass)
+        local face = piece("SideArtFace", Vector3.new(0.1, 4.8, 7), Vector3.new(x - side * 0.17, 9, -11), clay)
+        label(face, if side < 0 then "GOOD FOOD\nGOOD MOOD" else "STAY\nGOLDEN", lettering,
+            if side < 0 then Enum.NormalId.Right else Enum.NormalId.Left).TextWrapped = true
     end
 end

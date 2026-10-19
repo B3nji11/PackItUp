@@ -1,5 +1,21 @@
 # Validation record
 
+## Visual milestone 7: smaller signs and cute diner details
+
+Validation date: 20 October 2026. Continues M6 `71ffbdc` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.
+
+Owner feedback says the now-working text is too large and asks for more cute decoration. Menu/sign/caption geometry returns to M4 `0de5b3b` proportions: main menu 15 x 4.4, title height 1.45, subtitle 0.95, steps 3.9 x 0.98, side captions and illustrated boards back on the rear wall, facade 24.5 x 2.9, ownership plaque 16.2 x 2.5, bag badge 1.6 x 1.15, mat 11 x 4.6, plot numbers 3.2 diameter and the earlier medallion/welcome sizes. The live plaque's fixed-canvas aspect is refreshed after resizing. Both the M6 scaling/wrapping fix and M5/M6 lighting/colors remain intact.
+
+CuteDecor adds **133 parts per plot**, repeated on all six stations with the station transform. The details include nine pastel hanging pennants, two smiling cloud mobiles, fries/heart wall medallions, two table flowers/drinks/placemats, heart cushions, a plated bun mascot, side-corner plants, two pillar bows and smiling outdoor topiary. All added pieces are anchored SmoothPlastic, non-colliding, touch/query-disabled and non-shadow-casting. Props stay within plot bounds, below the ceiling and outside the original central work approach and live bag volume. No new lights, interactions, remotes or saved fields are added.
+
+**68 tests passed, 0 failed; all 38 Luau source/test files compiled** with official Luau 0.743. The builder verifies XML, all **34 embedded game modules**, entry points and saved Soft LightingStyle. Existing regressions cover the coupled TextScaled/TextWrapped behavior, full-face canvas aspects, ownership, production, packing/sales, upgrades, saving and HUD inputs. Updated art checks verify restored sign sizes and separate menu rows. A new repeated-prop test checks a 180-part maximum, clear approaches, no live-bag overlap, floor/ceiling clearance, expected decoration groups, south-row orientation and unchanged broad-light brightness.
+
+Relative to M6, four visual-construction modules change (RestaurantStyle, InteriorStyle, PlazaStyle and the CuteDecor call in StationBuilder), and CuteDecor is added. The other **29 modules** are identical, including shared text helpers, WorldBuilder lighting, gameplay, client, config, persistence and remotes. The executed district exports **4,046 visible parts**; this count is not an engine performance measurement.
+
+Interior, booth, kitchen, exterior, district, promenade and southern-row previews were reviewed from source geometry using the corrected wrapping/scaling doubles. The export now records real TextScaled/TextWrapped flags and the separate renderer respects scaling state. Images still approximate Roblox fonts, wrapping, lighting and shadows, so they do not establish native visual acceptance. No substitute render is presented as a Studio screenshot.
+
+**Pending:** Studio review of the smaller signs with working scaling, long ownership names, prop/camera clearance, mobile controls, low/high graphics performance and two-player behavior using the M7 checklist. No live DataStore calls, main-branch writes, merges or game publication occurred.
+
 ## Visual milestone 6: fix native world-text sizing
 
 Validation date: 20 October 2026. Continues M5 `c44f29c` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.

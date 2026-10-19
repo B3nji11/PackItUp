@@ -24,15 +24,15 @@ return function(model)
         for _, edge in ipairs({-6.3, 6.3}) do
             piece("PlotPathEdge", Vector3.new(0.5, 0.16, 11.8), Vector3.new(x + edge, 0.31, z), c.Cream)
         end
-        disc("PlotNumberBorder", 9.8, 0.05, Vector3.new(x, 0.34, z), c.Gold)
-        local badge = disc("PlotNumber", 9.6, 0.05, Vector3.new(x, 0.38, z), c.Coral)
+        disc("PlotNumberBorder", 3.6, 0.05, Vector3.new(x, 0.34, z), c.Gold)
+        local badge = disc("PlotNumber", 3.2, 0.05, Vector3.new(x, 0.38, z), c.Coral)
         -- Cylinder caps face local Right, which the disc helper rotates upward.
         label(badge, string.format("%02d", index), c.Cream, Enum.NormalId.Right)
     end
-    disc("WelcomeBorder", 19.5, 0.05, Vector3.new(0, 0.54, 0), c.Gold)
-    disc("WelcomeCentre", 19, 0.055, Vector3.new(0, 0.57, 0), c.Cream)
+    disc("WelcomeBorder", 11.8, 0.05, Vector3.new(0, 0.54, 0), c.Gold)
+    disc("WelcomeCentre", 10.9, 0.055, Vector3.new(0, 0.57, 0), c.Cream)
     -- A flat sign keeps the spawn and the central sight lines open.
-    local welcome = piece("WelcomeLettering", Vector3.new(17, 0.05, 8), Vector3.new(0, 0.625, 0), c.Cream)
+    local welcome = piece("WelcomeLettering", Vector3.new(9.2, 0.05, 5), Vector3.new(0, 0.625, 0), c.Cream)
     label(welcome, "FRY DAY!\nDISTRICT", c.Red, Enum.NormalId.Top).TextWrapped = true
 
     -- Keep the original collision envelopes while replacing their blocky visible skin.
@@ -89,6 +89,6 @@ return function(model)
     for _, z in ipairs({-18.8, 18.8}) do
         piece("MuralFrame", Vector3.new(0.3, 14.4, 0.6), Vector3.new(-103.3, 7.2, z), c.Gold)
     end
-    local district = piece("DistrictSign", Vector3.new(0.2, 6.6, 36), Vector3.new(-103.2, 18.1, 0), c.Red)
-    label(district, "FRY DAY!", c.Cream, Enum.NormalId.Right)
+    local district = piece("DistrictSign", Vector3.new(0.2, 2.2, 30), Vector3.new(-103.2, 16.2, 0), c.Red)
+    label(district, "WELCOME TO FRY DAY!", c.Cream, Enum.NormalId.Right)
 end

@@ -1,5 +1,13 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 7: smaller signs and cute diner details (20 October 2026)
+
+1. Stop the current test, open the rebuilt M7 place using File > Open from File and press Play. Compare with M6 from the same camera position. Menu/caption/facade/item wording should have the earlier compact proportions, with TextScaled and TextWrapped both true. Check clipping, unexpected wrapping, long owner names, both rows and all six plots. Lighting should match M6.
+2. Inspect pastel garlands and cloud mobiles above the work/dining area, round fries/heart wall medallions, table flowers/cups/placemats, heart cushions, the bun on its display plate and corner plants. Check seams, faces, floating details and camera clearance. Outside, inspect lilac bows and smiling topiary from normal avatar height.
+3. Walk/jump/turn around the entrance, tables, plants, counter and bun plate. Decorations must not catch the character, cover bag/fryer interactions or hide any of the ten live fry tips. Return to Counter and claim prompts must target the same positions as before. Hanging props must leave comfortable headroom.
+4. Exercise claiming/releasing, hold/F packing, automatic production, full/partial/repeated sales, all Cash upgrades, Return to Counter, respawn and independent two-player ownership. Check desktop/portrait/landscape mobile and low/high graphics with all six detailed restaurants in view.
+5. Stop/restart and check Output, memory-only resets and no duplicate art. Review actual engine performance and the playable appearance before accepting this pass. Geometry previews approximate fonts and lighting; do not publish as part of this review.
+
 ## Visual milestone 6: native text-sizing correction (20 October 2026)
 
 1. Open the rebuilt M6 place with File > Open from File and press Play. Revisit the supplied screenshot's interior camera position. GOLDEN BITES, HOT & CRISPY and PACK / SELL / REPEAT should fill their large text regions instead of appearing as tiny default-font captions. Lighting and room geometry should match M5.

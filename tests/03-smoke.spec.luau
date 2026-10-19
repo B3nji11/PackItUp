@@ -372,7 +372,7 @@ test("all six restaurants share the approved skin and keep their gameplay object
         near(station.ClaimPoint.Position.Z, origin.Z + 18 * direction)
         eq(station.ClaimPoint.ClaimRestaurant.MaxActivationDistance, 10)
         for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
-        near(station.RestaurantPlaque.Position.Y, 10.2)
+        near(station.RestaurantPlaque.Position.Y, 10.9)
         near(station.RestaurantPlaque.Position.Z, origin.Z + 20.35 * direction)
         assert(station.RestaurantPlaque.WallArt.TextLabel.Text ~= "")
         -- South-facing plots rotate the sign and sloping canopy as one skin.
@@ -556,29 +556,32 @@ test("world lettering fills an aspect-correct canvas below the native font cap",
     near(mural.WallArt.CanvasSize.X/mural.WallArt.CanvasSize.Y,38/14)
     for i=1,6 do
         local station=world["Station"..i]
-        assert(station.RestaurantPlaque.Size.Y >= 3.8)
-        assert(station.RestaurantDecor.BagBadge.Size.Y >= 1.55)
-        assert(station.RestaurantDecor.WelcomeMat.Size.Z >= 7.5)
+        near(station.RestaurantPlaque.Size.Y,2.5)
+        near(station.RestaurantDecor.BagBadge.Size.Y,1.15)
+        near(station.RestaurantDecor.WelcomeMat.Size.Z,4.6)
         eq(station.RestaurantDecor.WelcomeMat.WallArt.TextLabel.Text,"HELLO,\nFRY FRIEND!")
-        assert(station.InteriorDecor.HouseSubtitle.Size.Y >= 0.95*3)
+        near(station.InteriorDecor.HouseSubtitle.Size.Y,0.95)
         eq(station.InteriorDecor.HouseSubtitle.WallArt.TextLabel.Text,"HOT & CRISPY")
-        assert(station.InteriorDecor.GoldenCaption.Size.Y >= 2*3)
-        near(station.InteriorDecor.HappyCaption.Size.Y/1.05,3)
+        near(station.InteriorDecor.GoldenCaption.Size.Y,2)
+        near(station.InteriorDecor.HappyCaption.Size.Y,1.05)
     end
 end)
 
-test("tripled menu lettering has separate bounded panels and clears prep equipment", function()
+test("restored sign proportions keep scaled text without the triple-size enlargement", function()
     for i=1,6 do
         local station=workspace.FriesRestaurant["Station"..i]
         local art=station.InteriorDecor
-        near(art.HouseTitle.Size.Y/1.45,3)
-        near(art.HouseSubtitle.Size.Y/0.95,3)
+        near(art.HouseTitle.Size.Y,1.45)
+        near(art.HouseSubtitle.Size.Y,0.95)
+        near(art.HouseMenuFace.Size.X,15); near(art.HouseMenuFace.Size.Y,4.4)
+        near(station.RestaurantDecor.BrandFace.Size.X,24.5)
+        near(station.RestaurantDecor.BrandFace.Size.Y,2.9)
         local titleBottom=art.HouseTitle.Position.Y-art.HouseTitle.Size.Y/2
         local subtitleTop=art.HouseSubtitle.Position.Y+art.HouseSubtitle.Size.Y/2
         assert(titleBottom > subtitleTop)
         for _,child in ipairs(art:GetChildren()) do
             if child.Name=="HouseStep" then
-                near(child.Size.Y/0.98,3); near(child.Size.X/3.9,3)
+                near(child.Size.Y,0.98); near(child.Size.X,3.9)
                 assert(child.Position.Y+child.Size.Y/2 < art.HouseSubtitle.Position.Y-art.HouseSubtitle.Size.Y/2)
                 assert(child.Position.Y-child.Size.Y/2 > art.PrepJarLid.Position.Y+art.PrepJarLid.Size.X/2)
             end
@@ -588,6 +591,40 @@ test("tripled menu lettering has separate bounded panels and clears prep equipme
         assert(plaque.Position.Y+plaque.Size.Y/2 < 12.425)
         assert(station.RestaurantDecor.BagBadge.Position.Y+station.RestaurantDecor.BagBadge.Size.Y/2 < station.Fry1.Position.Y)
         assert(station.Ceiling.Color.R > 0.85 and station.Ceiling.Color.G > 0.85)
+    end
+end)
+
+test("cute details decorate every plot without blocking play or increasing light intensity", function()
+    local firstCount
+    for i=1,6 do
+        local station=workspace.FriesRestaurant["Station"..i]
+        local art,direction=station.CuteDecor,if i>3 then -1 else 1
+        eq(station:GetAttribute("DetailStyle"),"FryFriends")
+        local count,clouds,flowers,pennants,bows=0,0,0,0,0
+        for _,child in ipairs(art:GetChildren()) do
+            decorative(child); count+=1
+            local hx,hy,hz=halfExtents(child)
+            local x,y,z=(child.Position.X-station.Plot.Position.X)*direction,child.Position.Y,
+                (child.Position.Z-station.Plot.Position.Z)*direction
+            assert(math.abs(x)+hx<=26 and math.abs(z)+hz<=26,child.Name.." leaves its plot")
+            assert(y-hy>=0.6 and y+hy<=18.5,child.Name.." breaks floor/ceiling clearance")
+            local blocksRoute=x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+            assert(not blocksRoute,child.Name.." covers the entrance/counter approach")
+            local bag=station.Bag
+            assert(not (math.abs(child.Position.X-bag.Position.X)<hx+1 and math.abs(child.Position.Z-bag.Position.Z)<hz+0.7 and y-hy<6.1 and y+hy>3.8),child.Name.." covers the live bag")
+            if child.Name=="CloudPuff" then clouds+=1 end
+            if child.Name=="TableFlowerCentre" then flowers+=1 end
+            if child.Name=="CandyPennant" then pennants+=1; assert(y-hy>12) end
+            if child.Name=="PillarBowKnot" then bows+=1 end
+        end
+        assert(count>=120 and count<=180,"Keep repeated props within a small fixed budget")
+        if not firstCount then firstCount=count end; eq(count,firstCount)
+        eq(clouds,6); eq(flowers,2); eq(pennants,9); eq(bows,2)
+        assert(art.BunBuddy and art.MascotMedallion and art.CornerPlantLeaf and art.BoothPillow)
+        local smile=art.TopiarySmile
+        local outward=smile.CFrame:PointToWorldSpace(Vector3.new(0,0,1))-smile.Position
+        near(outward.Z,direction)
+        near(station.LightPanel1.InteriorLight.Brightness,1.2)
     end
 end)
 

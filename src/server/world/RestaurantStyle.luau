@@ -51,13 +51,13 @@ return function(model, stationPart)
         ball("AwningScallop", Vector3.new(4.2, 1.15, 0.65), Vector3.new(-23.1 + n * 4.2, 13, 19.95), stripe.Color)
     end
     -- Preserve the live ownership text, mounted below the canopy for readability.
-    local plaqueGuide = piece("PlaqueGuide", Vector3.new(27, 3.8, 0.2), Vector3.new(0, 10.2, 20.35), red)
+    local plaqueGuide = piece("PlaqueGuide", Vector3.new(15, 2, 0.2), Vector3.new(0, 10.9, 20.35), red)
     model.RestaurantPlaque.CFrame = plaqueGuide.CFrame
-    model.RestaurantPlaque.Size = plaqueGuide.Size
+    model.RestaurantPlaque.Size = Vector3.new(16.2, 2.5, 0.2)
     P.fitSurfaceLabel(model.RestaurantPlaque, model.RestaurantPlaque.WallArt)
     model.RestaurantPlaque.Color, model.RestaurantPlaque.CanCollide = red, false
     plaqueGuide:Destroy()
-    rounded("PlaqueBorder", Vector3.new(27.7, 4.3, 0.6), Vector3.new(0, 10.2, 20), gold, 0.25)
+    rounded("PlaqueBorder", Vector3.new(16.9, 3, 0.6), Vector3.new(0, 10.9, 20), gold, 0.25)
 
     -- An original dimensional fries mascot, offset from the roof's owner card.
     rounded("SignCarton", Vector3.new(7.8, 5.5, 2.8), Vector3.new(-14.2, 22.8, 12.8), coral, 0.65)
@@ -73,8 +73,8 @@ return function(model, stationPart)
     local smile = piece("MascotSmile", Vector3.new(2, 0.8, 0.1), Vector3.new(-14.2, 22.2, 14.27), coral)
     label(smile, "u", cream)
     -- Brand below the roof leaves the existing central owner billboard clear.
-    rounded("BrandBorder", Vector3.new(38.2, 5.1, 1.4), Vector3.new(0, 16.65, 14.7), gold, 0.6)
-    local brand = piece("BrandFace", Vector3.new(37, 4.4, 0.12), Vector3.new(0, 16.65, 15.46), red)
+    rounded("BrandBorder", Vector3.new(26, 3.65, 1.4), Vector3.new(3.6, 16.85, 14.7), gold, 0.6)
+    local brand = piece("BrandFace", Vector3.new(24.5, 2.9, 0.12), Vector3.new(3.6, 16.85, 15.46), red)
     label(brand, "FRY DAY!", cream)
 
     -- Keep the central route and all gameplay objects in their original positions.
@@ -98,14 +98,14 @@ return function(model, stationPart)
     end
     rounded("BasketHandle", Vector3.new(0.4, 0.3, 1.15), Vector3.new(-3.5, 6.15, 0.5), teal, 0.14)
     -- This badge sits on the existing bag and never covers the ten live fry tips.
-    local badge = piece("BagBadge", Vector3.new(1.75, 1.55, 0.08), Vector3.new(1, 4.55, -0.3), coral)
-    label(badge, "FRY", cream)
+    local badge = piece("BagBadge", Vector3.new(1.6, 1.15, 0.08), Vector3.new(1, 4.6, -0.3), coral)
+    label(badge, "FRY!", cream)
 
     -- Give the existing counter character a friendly face and a small matching uniform.
     model.CustomerBody.Transparency = 1
     rounded("CustomerShirt", Vector3.new(1.9, 2.4, 1.1), Vector3.new(3.5, 2.8, -5), mint, 0.3)
-    local apron = piece("CustomerApron", Vector3.new(1.75, 1.9, 0.1), Vector3.new(3.5, 2.6, -4.4), cream)
-    label(apron, "FRY", red)
+    local apron = piece("CustomerApron", Vector3.new(1.25, 1.6, 0.1), Vector3.new(3.5, 2.5, -4.4), cream)
+    label(apron, "FRY!", red)
     for _, x in ipairs({3.25, 3.75}) do
         ball("CustomerEye", Vector3.new(0.13, 0.18, 0.1), Vector3.new(x, 4.85, -4.34), ink)
     end
@@ -152,7 +152,7 @@ return function(model, stationPart)
         ball("TopiaryCrown", Vector3.new(3.6, 3.6, 3.6), Vector3.new(x, 4.8, 21.5), mint)
         ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), colors.Lime)
     end
-    local welcome = piece("WelcomeMat", Vector3.new(12.5, 0.05, 7.5), Vector3.new(0, 0.41, 20.5), coral)
+    local welcome = piece("WelcomeMat", Vector3.new(11, 0.05, 4.6), Vector3.new(0, 0.41, 20.5), coral)
     label(welcome, "HELLO,\nFRY FRIEND!", cream, Enum.NormalId.Top)
     for n = 1, 3 do
         piece("FloorConfetti", Vector3.new(0.65, 0.04, 1.8), Vector3.new(-2.6 + n * 1.3, 0.63, 10), gold)
