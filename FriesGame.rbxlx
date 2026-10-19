@@ -846,22 +846,22 @@ return Art
 local Art = require(script.Parent.ArtPrimitives)
 
 return function(model, stationPart)
-    local plaster = Color3.fromRGB(197, 184, 163)
-    local stone = Color3.fromRGB(189, 175, 151)
-    local wood = Color3.fromRGB(124, 100, 80)
+    local plaster = Color3.fromRGB(225, 215, 194)
+    local stone = Color3.fromRGB(216, 202, 177)
+    local wood = Color3.fromRGB(151, 124, 96)
     local brass = Color3.fromRGB(189, 149, 83)
-    local teal = Color3.fromRGB(55, 112, 107)
-    local sage = Color3.fromRGB(117, 154, 143)
-    local clay = Color3.fromRGB(193, 103, 91)
-    local ink = Color3.fromRGB(48, 59, 61)
-    local lettering = Color3.fromRGB(233, 212, 174)
+    local teal = Color3.fromRGB(61, 132, 122)
+    local sage = Color3.fromRGB(143, 180, 165)
+    local clay = Color3.fromRGB(218, 125, 106)
+    local ink = Color3.fromRGB(31, 54, 57)
+    local lettering = Color3.fromRGB(255, 245, 219)
     local art = Instance.new("Model")
     art.Name, art.Parent = "InteriorDecor", model
     model:SetAttribute("InteriorStyle", "WarmDiner")
     local decor = Art.new(art, stationPart)
     local piece, ball, disc, rounded, label = decor.piece, decor.ball, decor.disc, decor.rounded, decor.label
 
-    model.Ceiling.Color = Color3.fromRGB(160, 145, 126)
+    model.Ceiling.Color = Color3.fromRGB(233, 223, 205)
     model.RestaurantFloor.Color = Color3.fromRGB(134, 117, 97)
     model.Bag.Color = Color3.fromRGB(211, 166, 98)
     -- Retain the approved exterior. Refinish only the existing interior skin.
@@ -895,7 +895,7 @@ return function(model, stationPart)
     for column = 0, 4 do
         for row = 0, 3 do
             piece("FloorTile", Vector3.new(7.86, 0.05, 7.86), Vector3.new(-16 + column * 8, 0.625, -15 + row * 8),
-                if (column + row) % 2 == 0 then Color3.fromRGB(166, 149, 126) else Color3.fromRGB(190, 174, 147))
+                if (column + row) % 2 == 0 then Color3.fromRGB(196, 180, 157) else Color3.fromRGB(218, 203, 177))
         end
     end
     piece("EntryRunnerBorder", Vector3.new(10.6, 0.05, 6.6), Vector3.new(0, 0.65, 8), brass)
@@ -920,24 +920,24 @@ return function(model, stationPart)
         piece("CeilingCrossBeam", Vector3.new(40.4, 0.45, 0.4), Vector3.new(0, 18.15, z), wood)
     end
 
-    -- A middle ground between the washed-out original and the first dim diner pass.
+    -- Stronger broad fill and a pale ceiling keep the detailed room clearly lit.
     for n = 1, 4 do
         model["LightTrim" .. n].Color = wood
         local panel = model["LightPanel" .. n]
-        panel.Color = Color3.fromRGB(224, 190, 146)
+        panel.Color = Color3.fromRGB(255, 241, 216)
         local light = panel.InteriorLight
-        light.Color, light.Brightness = Color3.fromRGB(255, 220, 179), 0.46
+        light.Color, light.Brightness = Color3.fromRGB(255, 240, 216), 1.2
     end
     for _, x in ipairs({-14, 14}) do
         piece("PendantCord", Vector3.new(0.12, 4, 0.12), Vector3.new(x, 16.2, -11), ink)
         disc("PendantMount", 0.65, 0.18, Vector3.new(x, 18.2, -11), brass)
         disc("PendantShade", 2.7, 0.6, Vector3.new(x, 14, -11), clay)
         disc("PendantLip", 2.95, 0.16, Vector3.new(x, 13.7, -11), brass)
-        local diffuser = disc("PendantDiffuser", 2.35, 0.1, Vector3.new(x, 13.57, -11), Color3.fromRGB(228, 196, 151))
+        local diffuser = disc("PendantDiffuser", 2.35, 0.1, Vector3.new(x, 13.57, -11), Color3.fromRGB(255, 237, 201))
         local light = Instance.new("SurfaceLight")
         -- Disc local Left (-X) rotates downward with the cylinder's upright transform.
         light.Name, light.Face = "PendantLight", Enum.NormalId.Left
-        light.Color, light.Brightness, light.Range, light.Angle = Color3.fromRGB(255, 214, 167), 0.16, 16, 110
+        light.Color, light.Brightness, light.Range, light.Angle = Color3.fromRGB(255, 233, 201), 0.45, 16, 110
         light.Enabled, light.Shadows, light.Parent = true, false, diffuser
     end
 
@@ -997,32 +997,39 @@ return function(model, stationPart)
         local face=piece(name,Vector3.new(width,height,0.06),Vector3.new(x,y,-18.83),background)
         return label(face,text,foreground)
     end
-    board("HouseMenu",15,4.4,0,10.1)
-    board("LeftMenu",6,5.3,-13.5,10.1)
-    board("RightMenu",6,5.3,13.5,10.1)
-    caption("HouseTitle","FRY DAY!",13.6,1.45,0,11.35,ink,lettering)
-    caption("HouseSubtitle","HOT &amp; CRISPY",13.2,0.95,0,9.97,ink,lettering)
-    piece("MenuDivider",Vector3.new(12.8,0.06,0.08),Vector3.new(0,9.35,-18.78),brass)
+    -- Triple the lettering height; the full-width board gives it actual room to grow.
+    board("HouseMenu",35.8,10.8,0,12.7)
+    caption("HouseTitle","FRY DAY!",34,4.35,0,15.7,ink,lettering)
+    caption("HouseSubtitle","HOT &amp; CRISPY",34,2.85,0,12,ink,lettering)
+    piece("MenuDivider",Vector3.new(34,0.06,0.08),Vector3.new(0,10.47,-18.78),brass)
     for n,text in ipairs({"PACK","SELL","REPEAT"}) do
-        caption("HouseStep",text,3.9,0.98,(n-2)*4.2,8.6,teal,lettering)
+        caption("HouseStep",text,11.7,2.94,(n-2)*11.9,8.94,teal,lettering)
     end
-    caption("GoldenCaption","GOLDEN\nBITES",5.4,2,-13.5,8.55,ink,lettering).TextWrapped = true
-    rounded("MenuCarton",Vector3.new(1.85,1.2,0.35),Vector3.new(-13.5,10.3,-18.65),clay,0.12)
-    for n=1,3 do
-        piece("MenuFry",Vector3.new(0.3,1.2+(n%2)*0.22,0.18),Vector3.new(-14.1+n*0.3,11.18,-18.62),brass)
-    end
-    caption("HappyTitle","MADE WITH",5.4,0.9,13.5,11.95,ink,lettering)
-    caption("HappyCaption","HAPPINESS",5.4,1.05,13.5,8.35,ink,lettering)
-    for _,x in ipairs({13.15,13.85}) do
-        ball("MenuHeartLobe",Vector3.new(0.95,0.95,0.2),Vector3.new(x,10.65,-18.65),clay)
-    end
-    piece("MenuHeartTip",Vector3.new(1,1,0.18),Vector3.new(13.5,10.27,-18.64),clay,nil,CFrame.Angles(0,0,math.pi/4))
+    -- Side menus use the long walls instead of squeezing beside the enlarged menu.
     for _, side in ipairs({-1, 1}) do
         local x = side * 20.3
-        piece("SideArtFrame", Vector3.new(0.2, 5.2, 7.4), Vector3.new(x, 9, -11), brass)
-        local face = piece("SideArtFace", Vector3.new(0.1, 4.8, 7), Vector3.new(x - side * 0.17, 9, -11), clay)
-        label(face, if side &lt; 0 then "GOOD FOOD\nGOOD MOOD" else "STAY\nGOLDEN", lettering,
-            if side &lt; 0 then Enum.NormalId.Right else Enum.NormalId.Left).TextWrapped = true
+        local faceId = if side &lt; 0 then Enum.NormalId.Right else Enum.NormalId.Left
+        piece("SideArtFrame", Vector3.new(0.2, 10.8, 18.4), Vector3.new(x, 12.4, -8), brass)
+        piece("SideArtFace", Vector3.new(0.1, 10.4, 18), Vector3.new(x - side * 0.17, 12.4, -8), ink)
+        local function sideCaption(name, text, height, y)
+            local face = piece(name,Vector3.new(0.06,height,17.4),Vector3.new(x-side*0.24,y,-8),ink)
+            return label(face,text,lettering,faceId)
+        end
+        if side &lt; 0 then
+            sideCaption("GoldenCaption","GOLDEN\nBITES",6,10.8).TextWrapped = true
+            -- A raised carton illustration keeps the side menu playful.
+            rounded("MenuCarton",Vector3.new(0.4,1.65,2.6),Vector3.new(x-side*0.35,15.1,-8),clay,0.12)
+            for n=1,3 do
+                piece("MenuFry",Vector3.new(0.18,1.6+(n%2)*0.2,0.4),Vector3.new(x-side*0.45,16.35,-8.8+n*0.4),brass)
+            end
+        else
+            sideCaption("HappyTitle","MADE WITH",2.7,15.8)
+            sideCaption("HappyCaption","HAPPINESS",3.15,9.3)
+            for _,z in ipairs({-8.5,-7.5}) do
+                ball("MenuHeartLobe",Vector3.new(0.2,1.4,1.4),Vector3.new(x-side*0.4,12.6,z),clay)
+            end
+            piece("MenuHeartTip",Vector3.new(0.18,1.4,1.4),Vector3.new(x-side*0.4,12.1,-8),clay,nil,CFrame.Angles(math.pi/4,0,0))
+        end
     end
 end
 </ProtectedString>
@@ -1057,15 +1064,15 @@ return function(model)
         for _, edge in ipairs({-6.3, 6.3}) do
             piece("PlotPathEdge", Vector3.new(0.5, 0.16, 11.8), Vector3.new(x + edge, 0.31, z), c.Cream)
         end
-        disc("PlotNumberBorder", 3.6, 0.05, Vector3.new(x, 0.34, z), c.Gold)
-        local badge = disc("PlotNumber", 3.2, 0.05, Vector3.new(x, 0.38, z), c.Coral)
+        disc("PlotNumberBorder", 9.8, 0.05, Vector3.new(x, 0.34, z), c.Gold)
+        local badge = disc("PlotNumber", 9.6, 0.05, Vector3.new(x, 0.38, z), c.Coral)
         -- Cylinder caps face local Right, which the disc helper rotates upward.
         label(badge, string.format("%02d", index), c.Cream, Enum.NormalId.Right)
     end
-    disc("WelcomeBorder", 11.8, 0.05, Vector3.new(0, 0.54, 0), c.Gold)
-    disc("WelcomeCentre", 10.9, 0.055, Vector3.new(0, 0.57, 0), c.Cream)
+    disc("WelcomeBorder", 19.5, 0.05, Vector3.new(0, 0.54, 0), c.Gold)
+    disc("WelcomeCentre", 19, 0.055, Vector3.new(0, 0.57, 0), c.Cream)
     -- A flat sign keeps the spawn and the central sight lines open.
-    local welcome = piece("WelcomeLettering", Vector3.new(9.2, 0.05, 5), Vector3.new(0, 0.625, 0), c.Cream)
+    local welcome = piece("WelcomeLettering", Vector3.new(17, 0.05, 8), Vector3.new(0, 0.625, 0), c.Cream)
     label(welcome, "FRY DAY!\nDISTRICT", c.Red, Enum.NormalId.Top).TextWrapped = true
 
     -- Keep the original collision envelopes while replacing their blocky visible skin.
@@ -1122,8 +1129,8 @@ return function(model)
     for _, z in ipairs({-18.8, 18.8}) do
         piece("MuralFrame", Vector3.new(0.3, 14.4, 0.6), Vector3.new(-103.3, 7.2, z), c.Gold)
     end
-    local district = piece("DistrictSign", Vector3.new(0.2, 2.2, 30), Vector3.new(-103.2, 16.2, 0), c.Red)
-    label(district, "WELCOME TO FRY DAY!", c.Cream, Enum.NormalId.Right)
+    local district = piece("DistrictSign", Vector3.new(0.2, 6.6, 36), Vector3.new(-103.2, 18.1, 0), c.Red)
+    label(district, "FRY DAY!", c.Cream, Enum.NormalId.Right)
 end
 </ProtectedString>
           </Properties>
@@ -1144,10 +1151,22 @@ function Primitives.part(parent, name, size, position, color, material)
     part.Parent = parent
     return part
 end
+function Primitives.fitSurfaceLabel(parent, gui)
+    local size, face = parent.Size, gui.Face
+    local width, height = size.X, size.Y
+    if face == Enum.NormalId.Top or face == Enum.NormalId.Bottom then
+        height = size.Z
+    elseif face == Enum.NormalId.Left or face == Enum.NormalId.Right then
+        width = size.Z
+    end
+    -- Normalize the canvas to the face aspect, independent of its world size.
+    gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+    gui.CanvasSize = Vector2.new(96 * width / height, 96)
+end
 function Primitives.surfaceLabel(parent, text, face, color)
     local gui = Instance.new("SurfaceGui")
     gui.Name, gui.Face = "WallArt", face
-    gui.SizingMode, gui.PixelsPerStud = Enum.SurfaceGuiSizingMode.PixelsPerStud, 40
+    Primitives.fitSurfaceLabel(parent, gui)
     -- Printed lettering stays readable under warm/dim light, with normal world occlusion.
     gui.AlwaysOnTop, gui.LightInfluence = false, 0
     gui.Parent = parent
@@ -1159,10 +1178,10 @@ function Primitives.surfaceLabel(parent, text, face, color)
     label.TextScaled = true
     label.TextWrapped = true
     label.Text = text
-    -- TextScaled otherwise stops at 100 px, making large SurfaceGui signs look tiny.
-    -- Keep the 40 px/stud detail and explicitly permit type to fill the physical face.
+    -- A 96px-high canvas fills any physical sign without requesting fonts over 100px.
+    -- Even a large mural stays below the native font ceiling, rather than shrinking.
     local textSize = Instance.new("UITextSizeConstraint")
-    textSize.Name, textSize.MinTextSize, textSize.MaxTextSize = "WorldTextSize", 9, 1000
+    textSize.Name, textSize.MinTextSize, textSize.MaxTextSize = "WorldTextSize", 1, 96
     textSize.Parent = label
     label.Parent = gui
     return label
@@ -1177,6 +1196,7 @@ return Primitives
             <ProtectedString name="Source">-- The shared restaurant skin. The original station owns all gameplay and collision.
 -- No external assets, remotes, timers, economy changes, or equipment billboards.
 local Art = require(script.Parent.ArtPrimitives)
+local P = require(script.Parent.Primitives)
 
 return function(model, stationPart)
     local colors = Art.Palette
@@ -1226,12 +1246,13 @@ return function(model, stationPart)
         ball("AwningScallop", Vector3.new(4.2, 1.15, 0.65), Vector3.new(-23.1 + n * 4.2, 13, 19.95), stripe.Color)
     end
     -- Preserve the live ownership text, mounted below the canopy for readability.
-    local plaqueGuide = piece("PlaqueGuide", Vector3.new(15, 2, 0.2), Vector3.new(0, 10.9, 20.35), red)
+    local plaqueGuide = piece("PlaqueGuide", Vector3.new(27, 3.8, 0.2), Vector3.new(0, 10.2, 20.35), red)
     model.RestaurantPlaque.CFrame = plaqueGuide.CFrame
-    model.RestaurantPlaque.Size = Vector3.new(16.2, 2.5, 0.2)
+    model.RestaurantPlaque.Size = plaqueGuide.Size
+    P.fitSurfaceLabel(model.RestaurantPlaque, model.RestaurantPlaque.WallArt)
     model.RestaurantPlaque.Color, model.RestaurantPlaque.CanCollide = red, false
     plaqueGuide:Destroy()
-    rounded("PlaqueBorder", Vector3.new(16.9, 3, 0.6), Vector3.new(0, 10.9, 20), gold, 0.25)
+    rounded("PlaqueBorder", Vector3.new(27.7, 4.3, 0.6), Vector3.new(0, 10.2, 20), gold, 0.25)
 
     -- An original dimensional fries mascot, offset from the roof's owner card.
     rounded("SignCarton", Vector3.new(7.8, 5.5, 2.8), Vector3.new(-14.2, 22.8, 12.8), coral, 0.65)
@@ -1247,8 +1268,8 @@ return function(model, stationPart)
     local smile = piece("MascotSmile", Vector3.new(2, 0.8, 0.1), Vector3.new(-14.2, 22.2, 14.27), coral)
     label(smile, "u", cream)
     -- Brand below the roof leaves the existing central owner billboard clear.
-    rounded("BrandBorder", Vector3.new(26, 3.65, 1.4), Vector3.new(3.6, 16.85, 14.7), gold, 0.6)
-    local brand = piece("BrandFace", Vector3.new(24.5, 2.9, 0.12), Vector3.new(3.6, 16.85, 15.46), red)
+    rounded("BrandBorder", Vector3.new(38.2, 5.1, 1.4), Vector3.new(0, 16.65, 14.7), gold, 0.6)
+    local brand = piece("BrandFace", Vector3.new(37, 4.4, 0.12), Vector3.new(0, 16.65, 15.46), red)
     label(brand, "FRY DAY!", cream)
 
     -- Keep the central route and all gameplay objects in their original positions.
@@ -1272,14 +1293,14 @@ return function(model, stationPart)
     end
     rounded("BasketHandle", Vector3.new(0.4, 0.3, 1.15), Vector3.new(-3.5, 6.15, 0.5), teal, 0.14)
     -- This badge sits on the existing bag and never covers the ten live fry tips.
-    local badge = piece("BagBadge", Vector3.new(1.6, 1.15, 0.08), Vector3.new(1, 4.6, -0.3), coral)
-    label(badge, "FRY!", cream)
+    local badge = piece("BagBadge", Vector3.new(1.75, 1.55, 0.08), Vector3.new(1, 4.55, -0.3), coral)
+    label(badge, "FRY", cream)
 
     -- Give the existing counter character a friendly face and a small matching uniform.
     model.CustomerBody.Transparency = 1
     rounded("CustomerShirt", Vector3.new(1.9, 2.4, 1.1), Vector3.new(3.5, 2.8, -5), mint, 0.3)
-    local apron = piece("CustomerApron", Vector3.new(1.25, 1.6, 0.1), Vector3.new(3.5, 2.5, -4.4), cream)
-    label(apron, "FRY!", red)
+    local apron = piece("CustomerApron", Vector3.new(1.75, 1.9, 0.1), Vector3.new(3.5, 2.6, -4.4), cream)
+    label(apron, "FRY", red)
     for _, x in ipairs({3.25, 3.75}) do
         ball("CustomerEye", Vector3.new(0.13, 0.18, 0.1), Vector3.new(x, 4.85, -4.34), ink)
     end
@@ -1326,7 +1347,7 @@ return function(model, stationPart)
         ball("TopiaryCrown", Vector3.new(3.6, 3.6, 3.6), Vector3.new(x, 4.8, 21.5), mint)
         ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), colors.Lime)
     end
-    local welcome = piece("WelcomeMat", Vector3.new(11, 0.05, 4.6), Vector3.new(0, 0.41, 20.5), coral)
+    local welcome = piece("WelcomeMat", Vector3.new(12.5, 0.05, 7.5), Vector3.new(0, 0.41, 20.5), coral)
     label(welcome, "HELLO,\nFRY FRIEND!", cream, Enum.NormalId.Top)
     for n = 1, 3 do
         piece("FloorConfetti", Vector3.new(0.65, 0.04, 1.8), Vector3.new(-2.6 + n * 1.3, 0.63, 10), gold)
@@ -1514,8 +1535,8 @@ return function(count)
     -- Dimmed on owner review (8 Oct 2026): the earlier values washed out the colors.
     -- LightingStyle is saved by the place builder/Rojo; runtime writes stop startup.
     Lighting.ClockTime, Lighting.Brightness = 13.5, 1.5
-    -- Warm, deeper indoor shadows; outdoor fill, sun, and exposure stay unchanged.
-    Lighting.Ambient = Color3.fromRGB(104, 96, 88)
+    -- Clearly lit interiors; local fixtures supply the stronger warm room fill.
+    Lighting.Ambient = Color3.fromRGB(150, 148, 140)
     Lighting.OutdoorAmbient = Color3.fromRGB(148, 159, 176)
     Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0.3, 0.12
     Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 1

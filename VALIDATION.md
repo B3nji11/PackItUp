@@ -1,5 +1,23 @@
 # Validation record
 
+## Visual milestone 5: brighter rooms and oversized lettering
+
+Validation date: 20 October 2026. Continues M4 `0de5b3b` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.
+
+**66 tests passed, 0 failed; all 37 Luau source/test files compiled** with official Luau 0.743. The rebuilt place verifies XML, all **33 embedded game modules**, entry-point counts, and saved Soft LightingStyle.
+
+Owner feedback established that M4 was still too dim and its lettering too small. Its proposed font-limit change did not establish native readability. M5 replaces that approach with fixed-canvas world text and physically larger sign layouts. The [official SurfaceGui documentation](https://create.roblox.com/docs/reference/engine/classes/SurfaceGui) describes FixedSize/CanvasSize independently of world dimensions. Each label now uses a **96-pixel-high canvas with the face's physical aspect ratio**, full-face TextScaled, and a font constraint of 1-96. No font above 100 pixels is requested. Left/right/top faces are mapped correctly, and resizing the live ownership plaque refreshes its canvas. LightInfluence 0 and AlwaysOnTop false retain printed-text contrast with normal world occlusion. The small logical minimum is used with a normalized canvas; it is not a target screen-pixel font size.
+
+The main menu title/subtitle/steps and side-menu caption regions are **three times their M4 height**. Action captions are also three times as wide. The main board grows to 35.8 x 10.8 studs; side menus move onto 18-stud-wide wall panels. Prior small side posters are replaced by these larger framed menu panels. Plot-number discs grow from 3.2 to 9.6 studs. Facade lettering, ownership plaques, mats, bag/apron badges and the central medallion expand within available space; bag/apron copy is shortened to FRY. Not every physical item can grow three times without covering working objects, so these remain bounded to their original item/shell while the full-face canvas avoids undersized text.
+
+Ambient rises from M4 RGB **104/96/88** to **150/148/140**. Each broad ceiling SurfaceLight rises from **0.46 to 1.2** (2.61x); pendants rise from **0.16 to 0.45** (2.81x). The pale cream ceiling, plaster, stone, sage and coral finishes are significantly lighter; light colors are closer to neutral warm white. Fixture positions, ranges, cones and downward faces remain unchanged. Outdoor fill, sun brightness, exposure and time of day are unchanged.
+
+Regression tests now verify all world-text canvas aspect ratios, including rotated side/top faces and resized ownership plaques. A new test checks 3x caption geometry, separate menu rows, clearance above prep jars, plaque headroom below the canopy, unobstructed live fry tips, and pale ceiling finishes. Existing geometry bounds, budgets, light coverage, ownership, production, sales, upgrades, saves and HUD input tests pass. Gameplay, client, config, persistence and remote modules remain unchanged.
+
+The executed-source export contains **3,224 visible district parts** (M4: 3,248). Updated previews use the exported canvas height and light parameters. Interior, booth, kitchen, exterior, district, promenade and south-row views were reviewed with a separate renderer. Fonts and illumination remain approximate; these are not Studio screenshots or an engine performance result.
+
+**Pending:** actual Studio brightness and normal-distance text comparison with M4, short/long ownership names, desktop/mobile, low/high graphics and two-player checks. Use the M5 checklist in docs/STUDIO_TESTS.md. No live DataStore calls, main-branch writes, merges, or game publication occurred.
+
 ## Visual milestone 4: balanced light and readable lettering
 
 Validation date: 20 October 2026. Continues M3 `124cb92` on `visual/restaurant-one-simulator`. Main remains at `45526d3`.

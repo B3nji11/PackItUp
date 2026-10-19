@@ -366,7 +366,7 @@ test("all six restaurants share the approved skin and keep their gameplay object
         near(station.ClaimPoint.Position.Z, origin.Z + 18 * direction)
         eq(station.ClaimPoint.ClaimRestaurant.MaxActivationDistance, 10)
         for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
-        near(station.RestaurantPlaque.Position.Y, 10.9)
+        near(station.RestaurantPlaque.Position.Y, 10.2)
         near(station.RestaurantPlaque.Position.Z, origin.Z + 20.35 * direction)
         assert(station.RestaurantPlaque.WallArt.TextLabel.Text ~= "")
         -- South-facing plots rotate the sign and sloping canopy as one skin.
@@ -454,11 +454,11 @@ test("district decoration keeps the original spawn paths boundary and central pr
     end
 end)
 
-test("warm interiors soften illumination while keeping both rows clear and playable", function()
+test("bright diner interiors keep both rows clear and playable", function()
     local lighting = services.Lighting
-    assert(lighting.Ambient.R > 83/255 and lighting.Ambient.R < 136/255)
-    assert(lighting.Ambient.G > 75/255 and lighting.Ambient.G < 146/255)
-    assert(lighting.Ambient.B > 69/255 and lighting.Ambient.B < 162/255)
+    assert(lighting.Ambient.R >= 150/255)
+    assert(lighting.Ambient.G >= 148/255)
+    assert(lighting.Ambient.B >= 140/255)
     near(lighting.OutdoorAmbient.R,148/255); near(lighting.Brightness,1.5)
     near(lighting.ClockTime,13.5); near(lighting.ExposureCompensation,-0.25)
     local counts = {}
@@ -482,7 +482,7 @@ test("warm interiors soften illumination while keeping both rows clear and playa
             for _, detail in ipairs(child:GetChildren()) do
                 if detail.ClassName=="SurfaceLight" then
                     lamps += 1
-                    assert(detail.Enabled and not detail.Shadows and detail.Brightness <= 0.18)
+                    assert(detail.Enabled and not detail.Shadows and detail.Brightness >= 0.45 and detail.Brightness <= 0.6)
                     eq(detail.Face,Enum.NormalId.Left)
                     local down=child.CFrame:PointToWorldSpace(Vector3.new(-1,0,0))-child.Position
                     near(down.Y,-1)
@@ -497,7 +497,7 @@ test("warm interiors soften illumination while keeping both rows clear and playa
         counts[i]=parts; eq(counts[i],counts[1])
         for n=1,4 do
             local light=station["LightPanel"..n].InteriorLight
-            near(light.Brightness,0.46)
+            near(light.Brightness,1.2)
             assert(light.Color.R > light.Color.B and light.Enabled)
         end
         eq(station.RestaurantDecor.HappyFriesPoster.WallArt.Enabled,false)
@@ -507,15 +507,21 @@ test("warm interiors soften illumination while keeping both rows clear and playa
     end
 end)
 
-test("world lettering scales past the default font cap and small item captions have room", function()
+test("world lettering fills an aspect-correct canvas below the native font cap", function()
     local world=workspace.FriesRestaurant
     local labels=0
     local function visit(node)
         if node.ClassName=="SurfaceGui" then
             local label=assert(node:FindFirstChildOfClass("TextLabel"))
             local limit=assert(label:FindFirstChildOfClass("UITextSizeConstraint"),"World text needs an explicit scale limit")
-            eq(label.TextScaled,true); eq(limit.MinTextSize,9)
-            assert(limit.MaxTextSize >= 1000,"Large wall signs must be able to exceed 100 px")
+            eq(label.TextScaled,true); eq(limit.MinTextSize,1)
+            near(node.CanvasSize.Y,96); eq(limit.MaxTextSize,96)
+            eq(node.SizingMode,Enum.SurfaceGuiSizingMode.FixedSize)
+            local size,face=node.Parent.Size,node.Face
+            local width,height=size.X,size.Y
+            if face==Enum.NormalId.Left or face==Enum.NormalId.Right then width=size.Z
+            elseif face==Enum.NormalId.Top or face==Enum.NormalId.Bottom then height=size.Z end
+            near(node.CanvasSize.X/node.CanvasSize.Y,width/height)
             eq(node.LightInfluence,0); eq(node.AlwaysOnTop,false)
             near(label.Size.X.Scale,1); near(label.Size.Y.Scale,1)
             labels += 1
@@ -524,21 +530,43 @@ test("world lettering scales past the default font cap and small item captions h
     end
     visit(world)
     assert(labels >= 100)
-    -- The mural's two rows need more than the engine's unconstrained 100 px cap.
+    -- Large murals and resized live plaques use the same full-face layout as small labels.
     local mural=world.MuralWall
-    local expectedHeight=mural.Size.Y*mural.WallArt.PixelsPerStud/2
-    assert(expectedHeight > 100)
-    assert(mural.WallArt.TextLabel.WorldTextSize.MaxTextSize >= expectedHeight)
+    near(mural.WallArt.CanvasSize.X/mural.WallArt.CanvasSize.Y,38/14)
     for i=1,6 do
         local station=world["Station"..i]
-        assert(station.RestaurantPlaque.Size.Y >= 2.5)
-        assert(station.RestaurantDecor.BagBadge.Size.Y >= 1.15)
-        assert(station.RestaurantDecor.WelcomeMat.Size.Z >= 4.6)
+        assert(station.RestaurantPlaque.Size.Y >= 3.8)
+        assert(station.RestaurantDecor.BagBadge.Size.Y >= 1.55)
+        assert(station.RestaurantDecor.WelcomeMat.Size.Z >= 7.5)
         eq(station.RestaurantDecor.WelcomeMat.WallArt.TextLabel.Text,"HELLO,\nFRY FRIEND!")
-        assert(station.InteriorDecor.HouseSubtitle.Size.Y >= 0.95)
+        assert(station.InteriorDecor.HouseSubtitle.Size.Y >= 0.95*3)
         eq(station.InteriorDecor.HouseSubtitle.WallArt.TextLabel.Text,"HOT & CRISPY")
-        assert(station.InteriorDecor.GoldenCaption.Size.Y >= 2)
-        assert(station.InteriorDecor.HappyCaption.Size.Y >= 1)
+        assert(station.InteriorDecor.GoldenCaption.Size.Y >= 2*3)
+        near(station.InteriorDecor.HappyCaption.Size.Y/1.05,3)
+    end
+end)
+
+test("tripled menu lettering has separate bounded panels and clears prep equipment", function()
+    for i=1,6 do
+        local station=workspace.FriesRestaurant["Station"..i]
+        local art=station.InteriorDecor
+        near(art.HouseTitle.Size.Y/1.45,3)
+        near(art.HouseSubtitle.Size.Y/0.95,3)
+        local titleBottom=art.HouseTitle.Position.Y-art.HouseTitle.Size.Y/2
+        local subtitleTop=art.HouseSubtitle.Position.Y+art.HouseSubtitle.Size.Y/2
+        assert(titleBottom > subtitleTop)
+        for _,child in ipairs(art:GetChildren()) do
+            if child.Name=="HouseStep" then
+                near(child.Size.Y/0.98,3); near(child.Size.X/3.9,3)
+                assert(child.Position.Y+child.Size.Y/2 < art.HouseSubtitle.Position.Y-art.HouseSubtitle.Size.Y/2)
+                assert(child.Position.Y-child.Size.Y/2 > art.PrepJarLid.Position.Y+art.PrepJarLid.Size.X/2)
+            end
+        end
+        local plaque=station.RestaurantDecor.PlaqueBorderCore
+        assert(plaque.Position.Y-plaque.Size.Y/2 > 8)
+        assert(plaque.Position.Y+plaque.Size.Y/2 < 12.425)
+        assert(station.RestaurantDecor.BagBadge.Position.Y+station.RestaurantDecor.BagBadge.Size.Y/2 < station.Fry1.Position.Y)
+        assert(station.Ceiling.Color.R > 0.85 and station.Ceiling.Color.G > 0.85)
     end
 end)
 

@@ -11,10 +11,22 @@ function Primitives.part(parent, name, size, position, color, material)
     part.Parent = parent
     return part
 end
+function Primitives.fitSurfaceLabel(parent, gui)
+    local size, face = parent.Size, gui.Face
+    local width, height = size.X, size.Y
+    if face == Enum.NormalId.Top or face == Enum.NormalId.Bottom then
+        height = size.Z
+    elseif face == Enum.NormalId.Left or face == Enum.NormalId.Right then
+        width = size.Z
+    end
+    -- Normalize the canvas to the face aspect, independent of its world size.
+    gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+    gui.CanvasSize = Vector2.new(96 * width / height, 96)
+end
 function Primitives.surfaceLabel(parent, text, face, color)
     local gui = Instance.new("SurfaceGui")
     gui.Name, gui.Face = "WallArt", face
-    gui.SizingMode, gui.PixelsPerStud = Enum.SurfaceGuiSizingMode.PixelsPerStud, 40
+    Primitives.fitSurfaceLabel(parent, gui)
     -- Printed lettering stays readable under warm/dim light, with normal world occlusion.
     gui.AlwaysOnTop, gui.LightInfluence = false, 0
     gui.Parent = parent
@@ -26,10 +38,10 @@ function Primitives.surfaceLabel(parent, text, face, color)
     label.TextScaled = true
     label.TextWrapped = true
     label.Text = text
-    -- TextScaled otherwise stops at 100 px, making large SurfaceGui signs look tiny.
-    -- Keep the 40 px/stud detail and explicitly permit type to fill the physical face.
+    -- A 96px-high canvas fills any physical sign without requesting fonts over 100px.
+    -- Even a large mural stays below the native font ceiling, rather than shrinking.
     local textSize = Instance.new("UITextSizeConstraint")
-    textSize.Name, textSize.MinTextSize, textSize.MaxTextSize = "WorldTextSize", 9, 1000
+    textSize.Name, textSize.MinTextSize, textSize.MaxTextSize = "WorldTextSize", 1, 96
     textSize.Parent = label
     label.Parent = gui
     return label

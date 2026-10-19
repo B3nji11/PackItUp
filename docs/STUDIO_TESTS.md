@@ -1,5 +1,14 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 5: brighter rooms and oversized lettering (20 October 2026)
+
+1. Open the rebuilt M5 place with File > Open from File and press Play. Compare with M4 from the same normal avatar-eye-height position. The ceiling, upper walls, tiles, counter, equipment and seating should be clearly brighter. Check low/high graphics, worktop/corners, and warm-white light without glare. Retain the diner details and readable teal/coral color blocks.
+2. Inspect the much larger main menu: FRY DAY!, HOT & CRISPY and PACK / SELL / REPEAT. Turn toward the large GOLDEN BITES and MADE WITH / HAPPINESS side panels. Check letter size at normal gameplay distance, row spacing, no clipping/overlap, and readability while standing at the counter. Confirm the shelf jars do not cover the step captions.
+3. Inspect facade branding, live ownership plaque, bag/apron FRY badges, welcome mats, all six plot numbers, the central medallion and title wall. The canvas should fill each face without tiny text, unexpected wrapping, mirrored words or blur. Check both rows, each plot and short/long ownership names. Some physical items grow less than 3x to preserve equipment and shell clearance; assess actual letter readability rather than only board dimensions.
+4. Confirm the ownership plaque leaves headroom beneath it, sits below the canopy and does not cover roof avatar cards. All ten live fry tips must stay visible above the bag badge. Walk, jump, turn and Return to Counter around the expanded mats/signs with original collision intact.
+5. Check desktop, portrait/landscape mobile, low/high graphics and two players. Exercise claiming/releasing, hold/F packing, automatic production, partial/full/repeated sales, all Cash upgrades, respawn and memory-only resets. Stop/restart and check Output. No new gameplay or saved fields should appear.
+6. Review the actual Studio result before accepting this pass. Source-geometry previews are approximate and cannot establish native font sizing, illumination or performance. Do not publish as part of this review.
+
 ## Visual milestone 4: balanced light and readable lettering (20 October 2026)
 
 1. Open the rebuilt FriesGame.rbxlx and press Play. Compare the interior with M2 and M3 from the same avatar-eye-height angle. The room should be brighter than M3 while retaining warm stone, teal panels, muted booths, ceiling detail, and gentle pendants. Check fryer, bag tips, counter and seating on low/high graphics settings.
