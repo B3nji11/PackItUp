@@ -1,55 +1,18 @@
--- Restaurant 1's visual skin. The original station owns all gameplay and collision.
+-- The shared restaurant skin. The original station owns all gameplay and collision.
 -- No external assets, remotes, timers, economy changes, or equipment billboards.
-local P = require(script.Parent.Primitives)
+local Art = require(script.Parent.ArtPrimitives)
 
 return function(model, stationPart)
-    local cream = Color3.fromRGB(255, 246, 222)
-    local coral = Color3.fromRGB(250, 104, 105)
-    local red = Color3.fromRGB(216, 69, 78)
-    local gold = Color3.fromRGB(255, 196, 63)
-    local honey = Color3.fromRGB(238, 155, 48)
-    local mint = Color3.fromRGB(77, 206, 182)
-    local teal = Color3.fromRGB(36, 120, 128)
-    local ink = Color3.fromRGB(64, 62, 91)
-    local pink = Color3.fromRGB(255, 163, 184)
+    local colors = Art.Palette
+    local cream, coral, red, gold, honey = colors.Cream, colors.Coral, colors.Red, colors.Gold, colors.Honey
+    local mint, teal, ink, pink = colors.Mint, colors.Teal, colors.Ink, colors.Pink
     local art = Instance.new("Model")
-    art.Name, art.Parent = "VisualMilestone1", model
+    art.Name, art.Parent = "RestaurantDecor", model
 
-    local function piece(name, size, offset, color, shape, rotation)
-        local object = stationPart(name, size, offset, color)
-        object.Parent = art
-        object.CanCollide, object.CanTouch, object.CanQuery = false, false, false
-        object.CastShadow = false
-        if shape then object.Shape = shape end
-        if rotation then object.CFrame = object.CFrame * rotation end
-        return object
-    end
-    local function ball(name, size, offset, color)
-        return piece(name, size, offset, color, Enum.PartType.Ball)
-    end
-    -- Cylinders run along local X; turn them upright for round table tops/corners.
-    local upright = CFrame.Angles(0, 0, math.pi / 2)
-    local function disc(name, diameter, height, offset, color)
-        return piece(name, Vector3.new(height, diameter, diameter), offset, color, Enum.PartType.Cylinder, upright)
-    end
-    local function rounded(name, size, offset, color, radius)
-        piece(name .. "Core", Vector3.new(size.X - 2 * radius, size.Y, size.Z), offset, color)
-        -- Tiny cap insets avoid overlapping coplanar faces flickering in the engine.
-        piece(name .. "Cross", Vector3.new(size.X, size.Y - 0.006, size.Z - 2 * radius), offset, color)
-        for _, x in ipairs({-1, 1}) do
-            for _, z in ipairs({-1, 1}) do
-                disc(name .. "Corner", 2 * radius, size.Y - 0.012,
-                    offset + Vector3.new(x * (size.X / 2 - radius), 0, z * (size.Z / 2 - radius)), color)
-            end
-        end
-    end
-    local function label(part, text, color, face)
-        local textLabel = P.surfaceLabel(part, text, face or Enum.NormalId.Back, color)
-        textLabel.TextWrapped = false
-        return textLabel
-    end
+    local decor = Art.new(art, stationPart)
+    local piece, ball, disc, rounded, label = decor.piece, decor.ball, decor.disc, decor.rounded, decor.label
 
-    model:SetAttribute("VisualStyle", "CoralGold_Milestone1")
+    model:SetAttribute("VisualStyle", "CoralGold")
     model.BackWall.Color, model.LeftWall.Color, model.RightWall.Color = coral, coral, coral
     model.Fascia.Color, model.RoofCap.Color = coral, gold
     model.Counter.Color, model.Worktop.Color = red, cream
@@ -135,6 +98,20 @@ return function(model, stationPart)
     local badge = piece("BagBadge", Vector3.new(1.25, 0.85, 0.08), Vector3.new(1, 4.55, -0.3), coral)
     label(badge, "FRY!", cream)
 
+    -- Give the existing counter character a friendly face and a small matching uniform.
+    model.CustomerBody.Transparency = 1
+    rounded("CustomerShirt", Vector3.new(1.9, 2.4, 1.1), Vector3.new(3.5, 2.8, -5), mint, 0.3)
+    local apron = piece("CustomerApron", Vector3.new(1.25, 1.6, 0.1), Vector3.new(3.5, 2.5, -4.4), cream)
+    label(apron, "FRY!", red)
+    for _, x in ipairs({3.25, 3.75}) do
+        ball("CustomerEye", Vector3.new(0.13, 0.18, 0.1), Vector3.new(x, 4.85, -4.34), ink)
+    end
+    local customerSmile = piece("CustomerSmile", Vector3.new(0.48, 0.3, 0.06), Vector3.new(3.5, 4.5, -4.31),
+        Color3.fromRGB(255, 205, 163))
+    label(customerSmile, "u", ink)
+    disc("CustomerCap", 1.7, 0.26, Vector3.new(3.5, 5.4, -5), gold)
+    ball("CustomerCapCrown", Vector3.new(1.5, 0.6, 1.4), Vector3.new(3.5, 5.6, -5), coral)
+
     -- Soft tabletops and capsule benches replace only the visible furniture skin.
     -- Original invisible furniture retains its previous collision envelope.
     for _, child in ipairs(model:GetChildren()) do
@@ -158,7 +135,7 @@ return function(model, stationPart)
         end
     end
 
-    -- Physical wall art, confetti tiles, and topiary complete this single plot.
+    -- Physical wall art, confetti tiles, and topiary complete each plot.
     local poster = piece("HappyFriesPoster", Vector3.new(12, 4.8, 0.18), Vector3.new(0, 9, -19.4), mint)
     label(poster, "GOOD FRIES.\nGREAT DAY.", cream).TextWrapped = true
     for n = 1, 7 do
@@ -170,7 +147,7 @@ return function(model, stationPart)
         rounded("WelcomePlanter", Vector3.new(3.6, 1.5, 3.6), Vector3.new(x, 1.15, 21.5), cream, 0.9)
         disc("TopiaryStem", 0.4, 2.3, Vector3.new(x, 2.9, 21.5), honey)
         ball("TopiaryCrown", Vector3.new(3.6, 3.6, 3.6), Vector3.new(x, 4.8, 21.5), mint)
-        ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), Color3.fromRGB(145, 230, 133))
+        ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), colors.Lime)
     end
     local welcome = piece("WelcomeMat", Vector3.new(10, 0.05, 3.6), Vector3.new(0, 0.41, 20.5), coral)
     label(welcome, "HELLO, FRY FRIEND!", cream, Enum.NormalId.Top)

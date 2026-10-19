@@ -782,6 +782,165 @@ return ProfileStore
         </Properties>
         <Item class="ModuleScript" referent="RBX00028">
           <Properties>
+            <string name="Name">ArtPrimitives</string>
+            <ProtectedString name="Source">-- Shared palette and anchored decorative geometry; collision belongs to the world builders.
+local P = require(script.Parent.Primitives)
+local Art = {}
+Art.Palette = table.freeze({
+    Cream = Color3.fromRGB(255, 246, 222), Coral = Color3.fromRGB(250, 104, 105),
+    Red = Color3.fromRGB(216, 69, 78), Gold = Color3.fromRGB(255, 196, 63),
+    Honey = Color3.fromRGB(238, 155, 48), Mint = Color3.fromRGB(77, 206, 182),
+    Teal = Color3.fromRGB(36, 120, 128), Ink = Color3.fromRGB(64, 62, 91),
+    Pink = Color3.fromRGB(255, 163, 184), Lime = Color3.fromRGB(145, 230, 133),
+})
+
+function Art.new(parent, partFactory)
+    local function piece(name, size, offset, color, shape, rotation)
+        local object
+        if partFactory then
+            object = partFactory(name, size, offset, color)
+        else
+            object = P.part(parent, name, size, offset, color)
+            object.CFrame = CFrame.new(offset)
+        end
+        object.Parent = parent
+        object.CanCollide, object.CanTouch, object.CanQuery, object.CastShadow = false, false, false, false
+        if shape then object.Shape = shape end
+        if rotation then object.CFrame = object.CFrame * rotation end
+        return object
+    end
+    local function ball(name, size, offset, color)
+        return piece(name, size, offset, color, Enum.PartType.Ball)
+    end
+    local upright = CFrame.Angles(0, 0, math.pi / 2)
+    local function disc(name, diameter, height, offset, color)
+        return piece(name, Vector3.new(height, diameter, diameter), offset, color, Enum.PartType.Cylinder, upright)
+    end
+    local function rounded(name, size, offset, color, radius)
+        piece(name .. "Core", Vector3.new(size.X - 2 * radius, size.Y, size.Z), offset, color)
+        -- Inset the caps slightly to prevent coplanar surface flicker.
+        piece(name .. "Cross", Vector3.new(size.X, size.Y - 0.006, size.Z - 2 * radius), offset, color)
+        for _, x in ipairs({-1, 1}) do
+            for _, z in ipairs({-1, 1}) do
+                disc(name .. "Corner", 2 * radius, size.Y - 0.012,
+                    offset + Vector3.new(x * (size.X / 2 - radius), 0, z * (size.Z / 2 - radius)), color)
+            end
+        end
+    end
+    local function label(part, text, color, face)
+        local result = P.surfaceLabel(part, text, face or Enum.NormalId.Back, color)
+        result.TextWrapped = false
+        return result
+    end
+    return {piece = piece, ball = ball, disc = disc, rounded = rounded, label = label}
+end
+
+return Art
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00029">
+          <Properties>
+            <string name="Name">PlazaStyle</string>
+            <ProtectedString name="Source">-- District art layers over the existing paths, plaza furniture, and solid boundary.
+local Art = require(script.Parent.ArtPrimitives)
+
+return function(model)
+    local c = Art.Palette
+    local art = Instance.new("Model")
+    art.Name, art.Parent = "PlazaDecor", model
+    model:SetAttribute("DistrictStyle", "CoralGold")
+    local decor = Art.new(art)
+    local piece, ball, disc, rounded, label = decor.piece, decor.ball, decor.disc, decor.rounded, decor.label
+
+    -- Keep the brown promenade, spawn, and six connecting paths exactly where they were.
+    for _, z in ipairs({-6.2, 6.2}) do
+        piece("PromenadeCreamEdge", Vector3.new(196, 0.16, 0.65), Vector3.new(0, 0.31, z), c.Cream)
+        piece("PromenadeGoldEdge", Vector3.new(196, 0.12, 0.22), Vector3.new(0, 0.3, z + (if z &lt; 0 then -0.5 else 0.5)), c.Gold)
+    end
+    for n = 0, 23 do
+        piece("PromenadePaver", Vector3.new(7.7, 0.05, 10.8), Vector3.new(-92 + n * 8, 0.3, 0),
+            if n % 2 == 0 then Color3.fromRGB(198, 146, 98) else Color3.fromRGB(190, 137, 88))
+    end
+    for index = 1, 6 do
+        local column, south = (index - 1) % 3, index &gt; 3
+        local x, z = (column - 1) * 64, if south then 30 else -30
+        for _, edge in ipairs({-6.3, 6.3}) do
+            piece("PlotPathEdge", Vector3.new(0.5, 0.16, 11.8), Vector3.new(x + edge, 0.31, z), c.Cream)
+        end
+        disc("PlotNumberBorder", 3.2, 0.05, Vector3.new(x, 0.34, z), c.Gold)
+        local badge = disc("PlotNumber", 2.8, 0.05, Vector3.new(x, 0.38, z), c.Coral)
+        -- Cylinder caps face local Right, which the disc helper rotates upward.
+        label(badge, string.format("%02d", index), c.Cream, Enum.NormalId.Right)
+    end
+    disc("WelcomeBorder", 11.8, 0.05, Vector3.new(0, 0.54, 0), c.Gold)
+    disc("WelcomeCentre", 10.9, 0.055, Vector3.new(0, 0.57, 0), c.Cream)
+    -- A flat sign keeps the spawn and the central sight lines open.
+    local welcome = piece("WelcomeLettering", Vector3.new(8.8, 0.05, 4.3), Vector3.new(0, 0.625, 0), c.Cream)
+    label(welcome, "FRY DAY!\nDISTRICT", c.Red, Enum.NormalId.Top).TextWrapped = true
+
+    -- Keep the original collision envelopes while replacing their blocky visible skin.
+    for _, child in ipairs(model:GetChildren()) do
+        if child.Name == "Planter" or child.Name == "Greenery" or child.Name == "PlazaBench" then
+            child.Transparency = 1
+        end
+    end
+    for _, x in ipairs({-84, -32, 32, 84}) do
+        for _, z in ipairs({-17, 17}) do
+            rounded("PlazaPlanter", Vector3.new(7, 1.1, 5), Vector3.new(x, 0.8, z), c.Cream, 1.1)
+            rounded("PlanterGoldRim", Vector3.new(7.2, 0.18, 5.2), Vector3.new(x, 1.4, z), c.Gold, 1.1)
+            ball("PlanterCrown", Vector3.new(6.3, 2.4, 4.1), Vector3.new(x, 2.5, z), c.Mint)
+            for _, side in ipairs({-1, 1}) do
+                ball("PlanterPuff", Vector3.new(3.3, 2.6, 3.3), Vector3.new(x + side * 1.5, 3, z), c.Lime)
+            end
+            local flowerZ = z + (if z &lt; 0 then 2.15 else -2.15)
+            for _, offset in ipairs({Vector3.new(-0.42, 0, 0), Vector3.new(0.42, 0, 0),
+                Vector3.new(0, 0.42, 0), Vector3.new(0, -0.42, 0)}) do
+                ball("FlowerPetal", Vector3.new(0.65, 0.65, 0.23), Vector3.new(x, 2.8, flowerZ) + offset, c.Pink)
+            end
+            ball("FlowerCentre", Vector3.new(0.5, 0.5, 0.3), Vector3.new(x, 2.8, flowerZ), c.Gold)
+        end
+    end
+    for _, x in ipairs({-48, 48}) do
+        local color = if x &lt; 0 then c.Mint else c.Pink
+        rounded("PlazaSeat", Vector3.new(8, 1.5, 2.5), Vector3.new(x, 1, 12), color, 0.9)
+        rounded("PlazaBackrest", Vector3.new(8, 1.7, 0.7), Vector3.new(x, 2.4, 13), color, 0.3)
+        for _, side in ipairs({-1, 1}) do
+            piece("PlazaBenchFoot", Vector3.new(0.65, 0.55, 2.1), Vector3.new(x + side * 2.6, 0.5, 12), c.Gold)
+        end
+    end
+
+    -- Puffy hedge caps soften the existing continuous solid perimeter.
+    for _, z in ipairs({-95, 95}) do
+        for x = -96, 96, 16 do
+            ball("BoundaryPuff", Vector3.new(16, 2.5, 3), Vector3.new(x, 13, z), c.Lime)
+        end
+    end
+    for _, x in ipairs({-109, 109}) do
+        for z = -80, 80, 16 do
+            ball("BoundaryPuff", Vector3.new(3, 2.5, 16), Vector3.new(x, 13, z), c.Lime)
+        end
+    end
+    for _, x in ipairs({-109, 109}) do
+        for _, z in ipairs({-95, 95}) do
+            ball("BoundaryFinial", Vector3.new(2.8, 2.8, 2.8), Vector3.new(x, 14.9, z), c.Coral)
+        end
+    end
+
+    -- Frame the original title wall without replacing its message or collision.
+    model.MuralWall.Color = c.Coral
+    rounded("MuralCap", Vector3.new(1.6, 0.9, 39), Vector3.new(-104, 14.3, 0), c.Gold, 0.65)
+    for _, z in ipairs({-18.8, 18.8}) do
+        piece("MuralFrame", Vector3.new(0.3, 14.4, 0.6), Vector3.new(-103.3, 7.2, z), c.Gold)
+    end
+    local district = piece("DistrictSign", Vector3.new(0.2, 2.2, 30), Vector3.new(-103.2, 16.2, 0), c.Red)
+    label(district, "WELCOME TO FRY DAY!", c.Cream, Enum.NormalId.Right)
+end
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00030">
+          <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
 function Primitives.part(parent, name, size, position, color, material)
@@ -817,61 +976,24 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00029">
+        <Item class="ModuleScript" referent="RBX00031">
           <Properties>
             <string name="Name">RestaurantStyle</string>
-            <ProtectedString name="Source">-- Restaurant 1's visual skin. The original station owns all gameplay and collision.
+            <ProtectedString name="Source">-- The shared restaurant skin. The original station owns all gameplay and collision.
 -- No external assets, remotes, timers, economy changes, or equipment billboards.
-local P = require(script.Parent.Primitives)
+local Art = require(script.Parent.ArtPrimitives)
 
 return function(model, stationPart)
-    local cream = Color3.fromRGB(255, 246, 222)
-    local coral = Color3.fromRGB(250, 104, 105)
-    local red = Color3.fromRGB(216, 69, 78)
-    local gold = Color3.fromRGB(255, 196, 63)
-    local honey = Color3.fromRGB(238, 155, 48)
-    local mint = Color3.fromRGB(77, 206, 182)
-    local teal = Color3.fromRGB(36, 120, 128)
-    local ink = Color3.fromRGB(64, 62, 91)
-    local pink = Color3.fromRGB(255, 163, 184)
+    local colors = Art.Palette
+    local cream, coral, red, gold, honey = colors.Cream, colors.Coral, colors.Red, colors.Gold, colors.Honey
+    local mint, teal, ink, pink = colors.Mint, colors.Teal, colors.Ink, colors.Pink
     local art = Instance.new("Model")
-    art.Name, art.Parent = "VisualMilestone1", model
+    art.Name, art.Parent = "RestaurantDecor", model
 
-    local function piece(name, size, offset, color, shape, rotation)
-        local object = stationPart(name, size, offset, color)
-        object.Parent = art
-        object.CanCollide, object.CanTouch, object.CanQuery = false, false, false
-        object.CastShadow = false
-        if shape then object.Shape = shape end
-        if rotation then object.CFrame = object.CFrame * rotation end
-        return object
-    end
-    local function ball(name, size, offset, color)
-        return piece(name, size, offset, color, Enum.PartType.Ball)
-    end
-    -- Cylinders run along local X; turn them upright for round table tops/corners.
-    local upright = CFrame.Angles(0, 0, math.pi / 2)
-    local function disc(name, diameter, height, offset, color)
-        return piece(name, Vector3.new(height, diameter, diameter), offset, color, Enum.PartType.Cylinder, upright)
-    end
-    local function rounded(name, size, offset, color, radius)
-        piece(name .. "Core", Vector3.new(size.X - 2 * radius, size.Y, size.Z), offset, color)
-        -- Tiny cap insets avoid overlapping coplanar faces flickering in the engine.
-        piece(name .. "Cross", Vector3.new(size.X, size.Y - 0.006, size.Z - 2 * radius), offset, color)
-        for _, x in ipairs({-1, 1}) do
-            for _, z in ipairs({-1, 1}) do
-                disc(name .. "Corner", 2 * radius, size.Y - 0.012,
-                    offset + Vector3.new(x * (size.X / 2 - radius), 0, z * (size.Z / 2 - radius)), color)
-            end
-        end
-    end
-    local function label(part, text, color, face)
-        local textLabel = P.surfaceLabel(part, text, face or Enum.NormalId.Back, color)
-        textLabel.TextWrapped = false
-        return textLabel
-    end
+    local decor = Art.new(art, stationPart)
+    local piece, ball, disc, rounded, label = decor.piece, decor.ball, decor.disc, decor.rounded, decor.label
 
-    model:SetAttribute("VisualStyle", "CoralGold_Milestone1")
+    model:SetAttribute("VisualStyle", "CoralGold")
     model.BackWall.Color, model.LeftWall.Color, model.RightWall.Color = coral, coral, coral
     model.Fascia.Color, model.RoofCap.Color = coral, gold
     model.Counter.Color, model.Worktop.Color = red, cream
@@ -957,6 +1079,20 @@ return function(model, stationPart)
     local badge = piece("BagBadge", Vector3.new(1.25, 0.85, 0.08), Vector3.new(1, 4.55, -0.3), coral)
     label(badge, "FRY!", cream)
 
+    -- Give the existing counter character a friendly face and a small matching uniform.
+    model.CustomerBody.Transparency = 1
+    rounded("CustomerShirt", Vector3.new(1.9, 2.4, 1.1), Vector3.new(3.5, 2.8, -5), mint, 0.3)
+    local apron = piece("CustomerApron", Vector3.new(1.25, 1.6, 0.1), Vector3.new(3.5, 2.5, -4.4), cream)
+    label(apron, "FRY!", red)
+    for _, x in ipairs({3.25, 3.75}) do
+        ball("CustomerEye", Vector3.new(0.13, 0.18, 0.1), Vector3.new(x, 4.85, -4.34), ink)
+    end
+    local customerSmile = piece("CustomerSmile", Vector3.new(0.48, 0.3, 0.06), Vector3.new(3.5, 4.5, -4.31),
+        Color3.fromRGB(255, 205, 163))
+    label(customerSmile, "u", ink)
+    disc("CustomerCap", 1.7, 0.26, Vector3.new(3.5, 5.4, -5), gold)
+    ball("CustomerCapCrown", Vector3.new(1.5, 0.6, 1.4), Vector3.new(3.5, 5.6, -5), coral)
+
     -- Soft tabletops and capsule benches replace only the visible furniture skin.
     -- Original invisible furniture retains its previous collision envelope.
     for _, child in ipairs(model:GetChildren()) do
@@ -980,7 +1116,7 @@ return function(model, stationPart)
         end
     end
 
-    -- Physical wall art, confetti tiles, and topiary complete this single plot.
+    -- Physical wall art, confetti tiles, and topiary complete each plot.
     local poster = piece("HappyFriesPoster", Vector3.new(12, 4.8, 0.18), Vector3.new(0, 9, -19.4), mint)
     label(poster, "GOOD FRIES.\nGREAT DAY.", cream).TextWrapped = true
     for n = 1, 7 do
@@ -992,7 +1128,7 @@ return function(model, stationPart)
         rounded("WelcomePlanter", Vector3.new(3.6, 1.5, 3.6), Vector3.new(x, 1.15, 21.5), cream, 0.9)
         disc("TopiaryStem", 0.4, 2.3, Vector3.new(x, 2.9, 21.5), honey)
         ball("TopiaryCrown", Vector3.new(3.6, 3.6, 3.6), Vector3.new(x, 4.8, 21.5), mint)
-        ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), Color3.fromRGB(145, 230, 133))
+        ball("TopiaryHighlight", Vector3.new(2.5, 2.5, 2.5), Vector3.new(x - 0.6, 5.5, 21.4), colors.Lime)
     end
     local welcome = piece("WelcomeMat", Vector3.new(10, 0.05, 3.6), Vector3.new(0, 0.41, 20.5), coral)
     label(welcome, "HELLO, FRY FRIEND!", cream, Enum.NormalId.Top)
@@ -1003,7 +1139,7 @@ end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00030">
+        <Item class="ModuleScript" referent="RBX00032">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1103,20 +1239,21 @@ return function(parent, index, origin, yaw)
             part("DiningBench", Vector3.new(6, 1.6, 1.5), Vector3.new(x, 1.3, z), accent)
         end
     end
-    -- First art milestone: one showcase plot; every gameplay reference stays intact.
-    if index == 1 then RestaurantStyle(model, part) end
+    -- All six plots share the approved skin; every gameplay reference stays intact.
+    RestaurantStyle(model, part)
     return { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
         machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt }
 end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00031">
+        <Item class="ModuleScript" referent="RBX00033">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
 local P = require(script.Parent.Primitives)
 local StationBuilder = require(script.Parent.StationBuilder)
+local PlazaStyle = require(script.Parent.PlazaStyle)
 return function(count)
     assert(count &lt;= 6, "Expand the plot layout before adding more restaurants.")
     local previous = workspace:FindFirstChild("FriesRestaurant")
@@ -1174,6 +1311,7 @@ return function(count)
     for _, x in ipairs({-48, 48}) do
         P.part(model, "PlazaBench", Vector3.new(8, 1.5, 2.5), Vector3.new(x, 1, 12), Color3.fromRGB(250, 183, 101))
     end
+    PlazaStyle(model)
     -- Broad, soft lighting keeps the solid cartoon colors readable indoors and out.
     -- Dimmed on owner review (8 Oct 2026): the earlier values washed out the colors.
     -- LightingStyle is saved by the place builder/Rojo; runtime writes stop startup.
@@ -1191,23 +1329,23 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00032">
+  <Item class="StarterPlayer" referent="RBX00034">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00033">
+    <Item class="StarterPlayerScripts" referent="RBX00035">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00034">
+      <Item class="Folder" referent="RBX00036">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="Folder" referent="RBX00035">
+        <Item class="Folder" referent="RBX00037">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00036">
+          <Item class="ModuleScript" referent="RBX00038">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1253,7 +1391,7 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="RBX00037">
+        <Item class="LocalScript" referent="RBX00039">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -1292,11 +1430,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00038">
+        <Item class="Folder" referent="RBX00040">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00039">
+          <Item class="ModuleScript" referent="RBX00041">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1392,7 +1530,7 @@ return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00040">
+          <Item class="ModuleScript" referent="RBX00042">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1487,7 +1625,7 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00041">
+          <Item class="ModuleScript" referent="RBX00043">
             <Properties>
               <string name="Name">HudView</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1593,7 +1731,7 @@ return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00042">
+          <Item class="ModuleScript" referent="RBX00044">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -1709,7 +1847,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00043">
+          <Item class="ModuleScript" referent="RBX00045">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -1827,7 +1965,7 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00044">
+          <Item class="ModuleScript" referent="RBX00046">
             <Properties>
               <string name="Name">ShopView</string>
               <ProtectedString name="Source">-- Upgrade shop: an UPGRADES button and a panel with one row per Cash upgrade track.
@@ -1932,7 +2070,7 @@ return ShopView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00045">
+          <Item class="ModuleScript" referent="RBX00047">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">return {
@@ -1956,23 +2094,23 @@ return ShopView
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00046">
+  <Item class="StarterGui" referent="RBX00048">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00047">
+  <Item class="Lighting" referent="RBX00049">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00048">
+  <Item class="Players" referent="RBX00050">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00049">
+  <Item class="SoundService" referent="RBX00051">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

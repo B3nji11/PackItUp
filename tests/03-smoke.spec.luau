@@ -352,63 +352,106 @@ test("interior fixtures fit below the taller ceiling and reach the floor and wor
     end
 end)
 
-test("the showcase skin is restricted to restaurant one and keeps the gameplay objects", function()
+test("all six restaurants share the approved skin and keep their gameplay objects", function()
     local world = workspace.FriesRestaurant
-    eq(world.Station1:GetAttribute("VisualStyle"), "CoralGold_Milestone1")
-    assert(world.Station1:FindFirstChild("VisualMilestone1"))
-    for i=2,6 do
+    local count = #world.Station1.RestaurantDecor:GetChildren()
+    for i=1,6 do
         local station = world["Station"..i]
-        eq(station:GetAttribute("VisualStyle"), nil)
-        eq(station:FindFirstChild("VisualMilestone1"), nil)
-        near(station.Machine.Color.R, 189/255)
-        near(station.RestaurantPlaque.Position.Y, 16.5)
+        local origin, direction = station.Plot.Position, if i > 3 then -1 else 1
+        eq(station:GetAttribute("VisualStyle"), "CoralGold")
+        eq(#station.RestaurantDecor:GetChildren(), count)
+        near(station.Counter.Position.X, origin.X)
+        near(station.Counter.Position.Z, origin.Z - direction)
+        near(station.Machine.Position.Y, 4.9); near(station.Bag.Position.Y, 4.65)
+        near(station.ClaimPoint.Position.Z, origin.Z + 18 * direction)
+        eq(station.ClaimPoint.ClaimRestaurant.MaxActivationDistance, 10)
+        for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
+        near(station.RestaurantPlaque.Position.Y, 10.9)
+        near(station.RestaurantPlaque.Position.Z, origin.Z + 20.35 * direction)
+        assert(station.RestaurantPlaque.WallArt.TextLabel.Text ~= "")
+        -- South-facing plots rotate the sign and sloping canopy as one skin.
+        local brand=station.RestaurantDecor.BrandFace
+        local facing=brand.CFrame:PointToWorldSpace(Vector3.new(0,0,1))-brand.Position
+        near(facing.Z, direction)
+        local canopy=station.AwningStripe1
+        local slope=canopy.CFrame:PointToWorldSpace(Vector3.new(0,0,3))-canopy.Position
+        assert(slope.Y < 0 and slope.Z * direction > 0)
     end
-    local station = world.Station1
-    near(station.Counter.Position.X, -64); near(station.Counter.Position.Z, -61)
-    near(station.Machine.Position.Y, 4.9); near(station.Bag.Position.Y, 4.65)
-    near(station.ClaimPoint.Position.Z, -42)
-    eq(station.ClaimPoint.ClaimRestaurant.MaxActivationDistance, 10)
-    for n=1,10 do assert(station:FindFirstChild("Fry"..n)) end
-    -- Claim/release still update this very SurfaceGui; its face clears the border.
-    near(station.RestaurantPlaque.Position.Y, 10.9)
-    near(station.RestaurantPlaque.Position.Z + 0.1, -39.55)
-    assert(station.RestaurantPlaque.WallArt.TextLabel.Text ~= "")
 end)
 
-test("showcase decoration is bounded noncolliding and leaves the entrance and counter approach clear", function()
-    local station = workspace.FriesRestaurant.Station1
-    local art = station.VisualMilestone1
-    local count = 0
-    for _, child in ipairs(art:GetChildren()) do
-        eq(child.ClassName, "Part")
-        count += 1
-        assert(child.Anchored and not child.CanCollide and not child.CanTouch and not child.CanQuery)
-        assert(not child.CastShadow)
-        eq(child.Material, Enum.Material.SmoothPlastic)
-        -- Full rotation-aware box extents (including upright cylinders).
-        local r, s = child.CFrame.rotation, child.Size
-        local hx = (math.abs(r[1])*s.X + math.abs(r[2])*s.Y + math.abs(r[3])*s.Z)/2
-        local hy = (math.abs(r[4])*s.X + math.abs(r[5])*s.Y + math.abs(r[6])*s.Z)/2
-        local hz = (math.abs(r[7])*s.X + math.abs(r[8])*s.Y + math.abs(r[9])*s.Z)/2
-        local x,y,z = child.Position.X+64, child.Position.Y, child.Position.Z+60
-        assert(math.abs(x)+hx <= 26 and math.abs(z)+hz <= 26, child.Name.." escapes the plot")
-        local blocksLane = x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
-        assert(not blocksLane, child.Name.." covers the entrance/counter approach")
-        for _, gui in ipairs(child:GetChildren()) do
-            eq(gui.ClassName, "SurfaceGui")
-            eq(gui.AlwaysOnTop, false)
+local function halfExtents(part)
+    local r,s=part.CFrame.rotation,part.Size
+    return (math.abs(r[1])*s.X+math.abs(r[2])*s.Y+math.abs(r[3])*s.Z)/2,
+        (math.abs(r[4])*s.X+math.abs(r[5])*s.Y+math.abs(r[6])*s.Z)/2,
+        (math.abs(r[7])*s.X+math.abs(r[8])*s.Y+math.abs(r[9])*s.Z)/2
+end
+local function decorative(part)
+    eq(part.ClassName, "Part")
+    assert(part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery)
+    assert(not part.CastShadow)
+    eq(part.Material, Enum.Material.SmoothPlastic)
+    for _, gui in ipairs(part:GetChildren()) do
+        eq(gui.ClassName, "SurfaceGui"); eq(gui.AlwaysOnTop, false)
+    end
+end
+
+test("both rows keep bounded noncolliding art and clear entrance and counter routes", function()
+    for i=1,6 do
+        local station = workspace.FriesRestaurant["Station"..i]
+        local art, direction = station.RestaurantDecor, if i > 3 then -1 else 1
+        local count = 0
+        for _, child in ipairs(art:GetChildren()) do
+            decorative(child)
+            count += 1
+            local hx,hy,hz = halfExtents(child)
+            local x,y,z = (child.Position.X-station.Plot.Position.X)*direction, child.Position.Y,
+                (child.Position.Z-station.Plot.Position.Z)*direction
+            assert(math.abs(x)+hx <= 26 and math.abs(z)+hz <= 26, child.Name.." escapes the plot")
+            local blocksLane = x+hx > -6 and x-hx < 6 and z+hz > 2 and z-hz < 24 and y+hy > 0.7 and y-hy < 8
+            assert(not blocksLane, child.Name.." covers the entrance/counter approach")
+        end
+        assert(count > 100 and count <= 260, "Keep the repeated skin within its art budget")
+        for n=1,10 do
+            local stripe=station["AwningStripe"..n]
+            assert(not stripe.CanCollide and not stripe.CanTouch and not stripe.CanQuery)
+            assert(stripe.Position.Y > 13)
+        end
+        local top = art.SignFry3Core
+        assert(top.Position.Y + top.Size.Y/2 > 30)
+        eq(art.BrandFace.WallArt.TextLabel.Text, "FRY DAY!")
+        assert(art.BrandFace.Position.Y + art.BrandFace.Size.Y/2 < station.RoofCap.Position.Y)
+    end
+end)
+
+test("district decoration keeps the original spawn paths boundary and central promenade clear", function()
+    local world=workspace.FriesRestaurant
+    eq(world:GetAttribute("DistrictStyle"), "CoralGold")
+    near(world.PlazaEntrance.Position.X,0); near(world.PlazaEntrance.Position.Z,0)
+    eq(world.PlazaEntrance.Neutral, true)
+    local count=0
+    for _, child in ipairs(world.PlazaDecor:GetChildren()) do
+        decorative(child); count += 1
+        local hx,hy,hz=halfExtents(child)
+        local x,y,z=child.Position.X,child.Position.Y,child.Position.Z
+        assert(math.abs(x)+hx <= 111 and math.abs(z)+hz <= 97, child.Name.." escapes district bounds")
+        local tall=y+hy > 0.7 and y-hy < 8
+        assert(not (tall and x+hx > -98 and x-hx < 98 and z+hz > -5.5 and z-hz < 5.5),
+            child.Name.." covers the central promenade")
+        for i=1,6 do
+            local path=world["PlotPath"..i]
+            assert(not (tall and math.abs(x-path.Position.X) < hx+6 and math.abs(z-path.Position.Z) < hz+6),
+                child.Name.." covers a restaurant approach")
         end
     end
-    assert(count > 100 and count <= 400, "Keep the single-plot art budget bounded")
-    for n=1,10 do
-        local stripe=station["AwningStripe"..n]
-        assert(not stripe.CanCollide and not stripe.CanTouch and not stripe.CanQuery)
-        assert(stripe.Position.Y > 13)
+    assert(count > 150 and count <= 400, "Keep shared decoration within its art budget")
+    for _, side in ipairs({"North","South","East","West"}) do
+        assert(world.Boundary[side].CanCollide)
     end
-    local top = art.SignFry3Core
-    assert(top.Position.Y + top.Size.Y/2 > 30, "Oversized fries must rise above the roof")
-    eq(art.BrandFace.WallArt.TextLabel.Text, "FRY DAY!")
-    assert(art.BrandFace.Position.Y + art.BrandFace.Size.Y/2 < station.RoofCap.Position.Y)
+    for _, child in ipairs(world:GetChildren()) do
+        if child.Name=="Planter" or child.Name=="PlazaBench" then
+            eq(child.Transparency,1); assert(child.CanCollide)
+        end
+    end
 end)
 
 test("admission reserves six player spaces even before restaurants are claimed", function()

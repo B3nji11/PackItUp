@@ -1,6 +1,7 @@
 local Lighting = game:GetService("Lighting")
 local P = require(script.Parent.Primitives)
 local StationBuilder = require(script.Parent.StationBuilder)
+local PlazaStyle = require(script.Parent.PlazaStyle)
 return function(count)
     assert(count <= 6, "Expand the plot layout before adding more restaurants.")
     local previous = workspace:FindFirstChild("FriesRestaurant")
@@ -58,6 +59,7 @@ return function(count)
     for _, x in ipairs({-48, 48}) do
         P.part(model, "PlazaBench", Vector3.new(8, 1.5, 2.5), Vector3.new(x, 1, 12), Color3.fromRGB(250, 183, 101))
     end
+    PlazaStyle(model)
     -- Broad, soft lighting keeps the solid cartoon colors readable indoors and out.
     -- Dimmed on owner review (8 Oct 2026): the earlier values washed out the colors.
     -- LightingStyle is saved by the place builder/Rojo; runtime writes stop startup.

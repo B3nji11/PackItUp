@@ -1,5 +1,15 @@
 # Roblox Studio acceptance checks
 
+## Visual milestone 2: six restaurants and the district (19 October 2026)
+
+1. Open the rebuilt FriesGame.rbxlx and press Play. Check Output and confirm all six restaurants have the approved coral/gold storefront, striped canopy, mascot, mint equipment, rounded furniture, and friendly counter character. Inspect signs and canopy slopes on both rows; the southern row must face inward without mirrored text.
+2. Walk from the central welcome medallion along the brown pavers and all six numbered approach paths. Check path joins, flower planters, pastel benches, title-wall frame, hedge caps, and corner finials. No decoration should block the spawn, guides, claim prompts, or central circulation.
+3. Claim northern and southern plots in a two-player test. Verify the physical ownership plaques, public avatar/@username cards, per-player guides, repeated release/reclaim, respawn, and Return to Counter. Inspect card/mascot overlap from normal gameplay angles on each row.
+4. Test pack/hold/F, automatic 0.5 fries/sec filling, partial-sale rejection, a full $10 base sale, and all three Cash upgrades on plots from both rows. Confirm live bag tips remain visible above the badge and each player's progress stays separate.
+5. Check rounded furniture and character skins up close. Look for flickering caps, floating faces, camera snagging, or unintuitive collision around the preserved original furniture. Test the edges of the new benches and planters while walking and jumping.
+6. Compare low/high graphics settings and desktop/portrait/landscape mobile. Check performance with all six shops in view, SurfaceGui text readability, controls, lighting, character/camera clearance, owner cards, and the hedge perimeter. Automated part budgets do not establish real frame rates.
+7. Stop/restart to confirm art builds once and memory-only test progress resets. Review this expanded district before accepting it. Do not publish as part of this review.
+
 ## Visual milestone 1: Restaurant 1 (19 October 2026)
 
 1. Open the rebuilt FriesGame.rbxlx from this branch with File > Open from File and press Play. An empty edit viewport is expected. Check Output for startup errors and confirm all six restaurants, HUD controls, availability guides, and claim prompts appear.

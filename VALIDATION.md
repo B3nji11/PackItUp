@@ -1,5 +1,19 @@
 # Validation record
 
+## Visual milestone 2: all restaurants and the district
+
+Validation date: 19 October 2026. Continues the approved visual direction from `ea8adbf` on `visual/restaurant-one-simulator`. Main remains at the original `45526d3` baseline.
+
+**63 tests passed, 0 failed; all 36 Luau source/test files compiled** with the official Luau 0.743 tools. The rebuilt place contains **32 game source files**. XML, exact embedded-source round-tripping, entry-point counts, and saved Soft LightingStyle pass the existing builder checks.
+
+All six plots use the same restaurant skin. The southern row rotates its signs, facade, canopy slope, furniture, and equipment with the original station transform. ArtPrimitives centralizes the unchanged palette and rounded-part construction. The original counter character gains decorative face, cap, and apron details. PlazaStyle adds cream/gold path edges, brown pavers, flat plot-number badges and a welcome medallion, flowering planters, pastel rounded benches, puffy hedge caps, corner finials, and a title-wall frame. Added art is anchored, non-colliding, touch/query-disabled, and non-shadow-casting. Original invisible furniture retains its collision. No config, domain, service, persistence, remotes, client UI, or global lighting module changed.
+
+The previous art checks now cover all six plots, both facade directions, downward canopy slopes, live plaque references, unchanged functional positions, full rotation-aware art bounds, and open entrance/counter routes. A district check covers spawn position, solid boundary collision, clear central and restaurant approach lanes, preserved plaza furniture collision, and a shared-art budget of 400 parts. Restaurant art remains below 260 added parts per plot. The complete initial world export has 2,072 visible parts; real-engine performance still needs checking.
+
+Full-district, promenade, southern-row, and updated restaurant previews were inspected from the executed source modules. They use a separate renderer with approximate lighting and fonts, and show geometry rather than an engine playtest. Both rows' signs face inward and the central circulation space remains open. Existing regression tests continue to pass for claims, ownership/release/respawn, production, packing, selling, upgrades, player isolation, saving, and HUD input.
+
+**Pending:** Studio desktop/mobile and two-player playtesting, real owner-card/guide rendering, camera clearance, low/high graphics performance, and review of this expanded result. No live DataStore calls, main-branch writes, merges, or game publication occurred. See docs/STUDIO_TESTS.md for the manual checks.
+
 ## Visual milestone 1: Restaurant 1
 
 Validation date: 19 October 2026. Base: `45526d39aeea5e2d27de527c8ab30d473cde18c2`. Branch: `visual/restaurant-one-simulator`.

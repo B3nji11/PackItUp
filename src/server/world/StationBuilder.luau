@@ -95,8 +95,8 @@ return function(parent, index, origin, yaw)
             part("DiningBench", Vector3.new(6, 1.6, 1.5), Vector3.new(x, 1.3, z), accent)
         end
     end
-    -- First art milestone: one showcase plot; every gameplay reference stays intact.
-    if index == 1 then RestaurantStyle(model, part) end
+    -- All six plots share the approved skin; every gameplay reference stays intact.
+    RestaurantStyle(model, part)
     return { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
         machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt }
 end
