@@ -87,14 +87,14 @@ do
     local Rebirth=loadModule("shared/domain/Rebirth")
     local Gacha=loadModule("shared/domain/Gacha")
     local PetConfig=loadModule("shared/config/Pets")
-    local sampleProfile={cash=1250,gems=12,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2},pity={StarterFryer=7},
+    local sampleProfile={cash=1250000,gems=12,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2},pity={StarterFryer=7},
         pets={{id="P1",type="FryKing",machine="StarterFryer"},{id="P2",type="MayoJar",machine="StarterFryer"},
             {id="P3",type="PotatoPup",machine="StarterFryer"},{id="P4",type="CrinkleFry",machine="StarterFryer"},
             {id="P5",type="PaperCup",machine="StarterFryer"}},equippedPets={"P1","P2"}}
     local owned={}
     for _,pet in ipairs(sampleProfile.pets) do
         local kind=PetConfig.Types[pet.type]; local bonuses={}
-        for _,stat in ipairs(PetConfig.StatOrder) do if kind.Bonuses[stat] then table.insert(bonuses,{stat=stat,amount=kind.Bonuses[stat]}) end end
+        for _,stat in ipairs(PetConfig.StatOrder) do table.insert(bonuses,{stat=stat,amount=kind.Stats[stat]}) end
         local equipped=pet.id=="P1" or pet.id=="P2"
         local golden=pet.id=="P2"
         if golden then for _,b in ipairs(bonuses) do b.amount*=2 end end
@@ -109,7 +109,7 @@ do
         local app=loadModule("client/ui/AppView").new(makeInstance("PlayerGui"),function() end)
         app:resize(Vector2.new(example[1],example[2]))
         app:update({hasStation=example[3],nearStation=example[3],volatile=true,
-            profile={cash=1250,gems=12,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),rebirth=Rebirth.snapshot(sampleProfile),
+            profile={cash=1250000,gems=12,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),rebirth=Rebirth.snapshot(sampleProfile),
             machine=Gacha.snapshot(sampleProfile,"StarterFryer"),pets={owned=owned,equipped=2,slots=3,max=50,mergeCount=5,
                 mergeable={{type="CrinkleFry",name="Crinkle Fry",count=5,rank=1}},autoDelete={Common=true}},
             settings={PetsFollow=true,ShowOtherPets=false},

@@ -19,18 +19,18 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | shared/config/Economy | Base capacity, base click, fryer rate, base money per fry, and currency bound |
 | shared/config/Upgrades | Upgrade tracks in shop order: names, gem cost curves, and per-level steps |
 | shared/config/Rebirth | Rebirth threshold curve and gem rewards |
-| shared/config/Pets | Pet types, rarities, bonuses, inventory size, and equip slots |
+| shared/config/Pets | Pet types with flat stats (fries per click, money per fry in dollars, bag), rarities, inventory size, and equip slots |
 | shared/config/Machines | Gacha machines as data: price, odds, pet pool, and pity |
 | shared/config/Settings | Setting names, hints, and defaults |
 | shared/config/Icons | Uploaded icon asset IDs (empty until uploaded) |
 | shared/config/Runtime | Server, replication, and persistence settings |
 | shared/config/Actions | Closed action vocabulary and each action's allowed argument |
 | shared/domain/Profile | Core defaults and validation, including upgradeLevels, gems, and rebirths; one-time migration of pre-gem saves; v1 save compatibility |
-| shared/domain/Pricing | Effective stats from base values, upgrade levels, and equipped pet bonuses; sale value; bounded currency credits |
+| shared/domain/Pricing | Effective stats: (base + equipped pets) x (1 + upgrade percent); sale value; currency credits under the 1e300 safety limit |
 | shared/domain/Upgrades | Gem upgrade costs, purchases, and server-computed shop rows |
 | shared/domain/Rebirth | Threshold, reward, and the rebirth reset |
 | shared/domain/Gacha | Odds with pity, rolls from an injected random source, and spins |
-| shared/domain/Pets | Owned pets, unique IDs, equipping, deleting, Golden merges, bulk delete, auto-delete, and equipped bonuses |
+| shared/domain/Pets | Owned pets, unique IDs, equipping, deleting, Golden merges, bulk delete, auto-delete, and equipped stat totals |
 | shared/domain/Settings | Saved settings with defaults |
 | shared/domain/Packing | Fill a bag and execute a sale |
 | shared/util/Copy | Deep-copy saved tables |
@@ -53,7 +53,8 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | client/ui/RebirthView | REBIRTH button and confirmation panel; displays server values and requests a rebirth |
 | client/ui/GachaView | SPIN button and machine panel; displays the result, pity, and each pet's chance (from the snapshot's `odds[].types`), and requests spins |
 | client/ui/PetsView | PETS button and inventory panel; requests equip, unequip, and delete |
-| client/ui/PetText | Shared pet bonus text and rarity colors |
+| client/ui/PetText | Shared pet stat text (one line or one per stat) and rarity colors |
+| shared/util/Format | Short number text for Cash, prices, and stats (1.25K ... 1.2Dc, then 1.2e36); used by the client through Elements |
 | client/ui/Icons | Uploaded icon images, or code-built fallbacks when no asset ID is set |
 | client/ui/SettingsView | Gear button and settings panel; requests setting toggles |
 | client/ui/PetModels | Code-built cartoon pet models (one recipe per pet plus a shared face; Golden variant) |

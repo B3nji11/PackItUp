@@ -36,7 +36,7 @@ test("old v1 profiles preserve core progress and inactive stored fields", functi
     db.records["1"] = {data=Copy(old)}
     local p = store:load("1", "A")
     eq(p.cash, 75); eq(p.bag.fries, 12.5)
-    eq(loadModule("shared/domain/Pricing").click(p), 1)
+    eq(loadModule("shared/domain/Pricing").click(p), 2)
     eq(store:save("1", "A", p, true), true)
     eq(db.records["1"].data.tickets, 9); eq(db.records["1"].data.owned.ufo, true)
 end)

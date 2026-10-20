@@ -12,7 +12,9 @@ local PanelWidth, PanelHeight = 380, 350
 local TrackIcons = { FriesPerClick = "upgrade-fries-per-click", MoneyPerFry = "upgrade-money-per-fry", BagCapacity = "upgrade-bag-capacity" }
 local function describe(row)
     if row.id == "MoneyPerFry" then
-        return string.format("$%.2f » $%.2f per fry", row.value, row.nextValue)
+        -- Cents matter below $1,000 ($1.00 » $1.10); larger amounts use the short format.
+        local function dollars(v) return if v < 1000 then string.format("$%.2f", v) else E.money(v) end
+        return dollars(row.value) .. " » " .. dollars(row.nextValue) .. " per fry"
     elseif row.id == "FriesPerClick" then
         return E.number(row.value) .. " » " .. E.number(row.nextValue) .. " fries/click"
     end
@@ -65,7 +67,9 @@ function ShopView:update(state)
         if view then
             local affordable = state.hasStation and (state.profile.gems or 0) >= row.cost
             self.data[row.id] = { affordable = affordable }
-            view.level.Text = "LEVEL " .. row.level
+            -- Each level adds the track's percent to that stat (levels add up).
+            local percent = math.floor(row.level * Upgrades.Tracks[row.id].Percent * 100 + 0.5)
+            view.level.Text = "LEVEL " .. row.level .. (if percent > 0 then "  ·  +" .. E.count(percent) .. "%" else "")
             view.value.Text = describe(row)
             view.buy.Text = E.count(row.cost) .. (if row.cost == 1 then " GEM" else " GEMS")
             view.buy.TextSize = if #view.buy.Text > 10 then 11 else 14

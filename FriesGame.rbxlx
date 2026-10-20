@@ -35,13 +35,15 @@ return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "non
             <string name="Name">Economy</string>
             <ProtectedString name="Source">-- Base balance for the core filling-and-selling loop, before upgrades.
 return table.freeze({
-    BaseCapacity = 20,
-    -- Money per fry, in cents. A bag sells for capacity x this value ($0.50 x 20 = $10).
-    MoneyPerFryCents = 50,
-    BaseClick = 1,
+    BaseCapacity = 40,
+    -- Money per fry, in cents. A bag sells for capacity x this value ($1.00 x 40 = $40).
+    MoneyPerFryCents = 100,
+    BaseClick = 2,
     BasicFryerPerSecond = 0.5,
     ClicksPerSecond = 4,
-    MaxCurrency = 1e12,
+    -- No practical cap (owner, 20 October 2026). This safety limit only stops a number ever
+    -- becoming infinity, which would corrupt a save; no player can reach it.
+    MaxCurrency = 1e300,
 })
 </ProtectedString>
           </Properties>
@@ -82,10 +84,10 @@ return table.freeze({
 local Machines = {
     StarterFryer = table.freeze({
         Name = "Starter Fryer",
-        Price = 100,
+        Price = 150,
         Odds = table.freeze({ Common = 0.60, Uncommon = 0.25, Rare = 0.10, Epic = 0.04, Legendary = 0.01 }),
-        Pool = table.freeze({ "CrinkleFry", "SaltShaker", "PaperCup", "PotatoPup", "KetchupPacket", "NapkinGhost",
-            "CurlyFryCat", "MayoJar", "FryerBot", "FryKing" }),
+        Pool = table.freeze({ "CrinkleFry", "SaltShaker", "PaperCup", "PotatoPup", "KetchupPacket", "MayoJar",
+            "FryerBot", "FryKing" }),
         -- The PityEvery-th spin in a row without PityRarity or better is guaranteed PityRarity or better.
         PityEvery = 50,
         PityRarity = "Epic",
@@ -98,8 +100,9 @@ return table.freeze({ Order = table.freeze({ "StarterFryer" }), Machines = table
         <Item class="ModuleScript" referent="RBX00008">
           <Properties>
             <string name="Name">Pets</string>
-            <ProtectedString name="Source">-- Fry Buddies (placeholder names). Each bonus is a fraction added to one stat:
--- effective value = (base + upgrade levels) x (1 + total equipped bonus for that stat).
+            <ProtectedString name="Source">-- Fry Buddies (placeholder names). Every pet adds all three stats as flat amounts, with a lean
+-- (click, money, or bag): effective stat = (base + equipped pets) x (1 + upgrade percent).
+-- MoneyPerFry is in dollars. Golden pets give GoldenMultiplier x these stats.
 local Rarities = {
     -- Colours are dark enough to read on cream and white (Diner Sticker style).
     Common = table.freeze({ Rank = 1, Name = "Common", Color = { 128, 108, 88 } }),
@@ -108,20 +111,24 @@ local Rarities = {
     Epic = table.freeze({ Rank = 4, Name = "Epic", Color = { 123, 44, 191 } }),
     Legendary = table.freeze({ Rank = 5, Name = "Legendary", Color = { 176, 118, 0 } }),
 }
-local function pet(name, rarity, bonuses)
-    return table.freeze({ Name = name, Rarity = rarity, Bonuses = table.freeze(bonuses) })
+local function pet(name, rarity, click, money, bag)
+    return table.freeze({ Name = name, Rarity = rarity,
+        Stats = table.freeze({ FriesPerClick = click, MoneyPerFry = money, BagCapacity = bag }) })
 end
+-- Numbers from tools/simulate.py (agreed 20 October 2026).
 local Types = {
-    CrinkleFry = pet("Crinkle Fry", "Common", { FriesPerClick = 0.05 }),
-    SaltShaker = pet("Salt Shaker", "Common", { MoneyPerFry = 0.05 }),
-    PaperCup = pet("Paper Cup", "Common", { BagCapacity = 0.05 }),
-    PotatoPup = pet("Potato Pup", "Uncommon", { FriesPerClick = 0.10 }),
-    KetchupPacket = pet("Ketchup Packet", "Uncommon", { MoneyPerFry = 0.10 }),
-    NapkinGhost = pet("Napkin Ghost", "Uncommon", { BagCapacity = 0.10 }),
-    CurlyFryCat = pet("Curly Fry Cat", "Rare", { FriesPerClick = 0.20 }),
-    MayoJar = pet("Mayo Jar", "Rare", { MoneyPerFry = 0.20 }),
-    FryerBot = pet("Fryer Bot", "Epic", { BagCapacity = 0.40 }),
-    FryKing = pet("Fry King", "Legendary", { FriesPerClick = 0.50, MoneyPerFry = 0.50 }),
+    -- Starter Fryer
+    CrinkleFry = pet("Crinkle Fry", "Common", 4, 1.00, 10),
+    SaltShaker = pet("Salt Shaker", "Common", 2, 2.00, 10),
+    PaperCup = pet("Paper Cup", "Common", 2, 1.00, 20),
+    PotatoPup = pet("Potato Pup", "Uncommon", 6, 1.50, 15),
+    KetchupPacket = pet("Ketchup Packet", "Uncommon", 3, 3.00, 15),
+    MayoJar = pet("Mayo Jar", "Rare", 4, 4.00, 20),
+    FryerBot = pet("Fryer Bot", "Epic", 6, 3.00, 60),
+    FryKing = pet("Fry King", "Legendary", 12, 6.00, 60),
+    -- Deluxe Fryer (restaurant tier 2, not built yet). Kept here so existing saves stay valid.
+    NapkinGhost = pet("Napkin Ghost", "Common", 8, 4.00, 80),
+    CurlyFryCat = pet("Curly Fry Cat", "Rare", 16, 16.00, 80),
 }
 return table.freeze({
     RarityOrder = table.freeze({ "Common", "Uncommon", "Rare", "Epic", "Legendary" }),
@@ -145,8 +152,8 @@ return table.freeze({
             <ProtectedString name="Source">-- Rebirth balance. Threshold = BaseThreshold x Growth ^ rebirths (rounded, in Cash).
 -- Gems = BaseGems + GemsPerRebirth x rebirths. Rebirth resets Cash and the current bag only.
 return table.freeze({
-    BaseThreshold = 1000,
-    Growth = 1.6,
+    BaseThreshold = 250000,
+    Growth = 2.0,
     BaseGems = 10,
     GemsPerRebirth = 5,
 })
@@ -192,12 +199,13 @@ return table.freeze({
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade tracks, in shop order. Cost in gems = round(BaseCost x Growth ^ level).
--- Each level adds Step to the track's base value in Economy. There are no level caps;
+-- Each level adds Percent to the track's multiplier: stat = (base + pets) x (1 + Percent x level).
+-- Levels add up (level 5 = +50%), they do not compound. There are no level caps;
 -- MaxLevel only bounds saved data, far beyond any affordable level.
 local Tracks = {
-    FriesPerClick = table.freeze({ Name = "Fries per click", BaseCost = 3, Growth = 1.25, Step = 1 }),
-    MoneyPerFry = table.freeze({ Name = "Money per fry", BaseCost = 4, Growth = 1.25, Step = 5 }), -- cents
-    BagCapacity = table.freeze({ Name = "Bag capacity", BaseCost = 5, Growth = 1.25, Step = 5 }),
+    FriesPerClick = table.freeze({ Name = "Fries per click", BaseCost = 3, Growth = 1.25, Percent = 0.10 }),
+    MoneyPerFry = table.freeze({ Name = "Money per fry", BaseCost = 4, Growth = 1.25, Percent = 0.10 }),
+    BagCapacity = table.freeze({ Name = "Bag capacity", BaseCost = 5, Growth = 1.25, Percent = 0.10 }),
 }
 return table.freeze({
     Order = table.freeze({ "FriesPerClick", "MoneyPerFry", "BagCapacity" }),
@@ -337,18 +345,19 @@ function Pets.isEquipped(p, id)
     return false
 end
 function Pets.isPetId(id) return type(id) == "string" and #id &lt;= 16 and string.match(id, "^P%d+$") ~= nil end
--- Golden pets give GoldenMultiplier x their normal bonus.
+-- Golden pets give GoldenMultiplier x their normal stats.
 function Pets.multiplier(owned) return if owned.golden then Config.GoldenMultiplier else 1 end
-function Pets.petBonus(owned, stat)
+-- One pet's flat amount for a stat (fries per click, dollars per fry, or bag slots).
+function Pets.petStat(owned, stat)
     local kind = Config.Types[owned.type]
-    return if kind then (kind.Bonuses[stat] or 0) * Pets.multiplier(owned) else 0
+    return if kind then (kind.Stats[stat] or 0) * Pets.multiplier(owned) else 0
 end
--- Total equipped bonus for a stat, as a fraction (0.15 = +15%).
-function Pets.bonus(p, stat)
+-- Total flat amount the equipped pets add to a stat.
+function Pets.total(p, stat)
     local total = 0
     for _, id in ipairs(Pets.equipped(p)) do
         local owned = Pets.find(p, id)
-        if owned then total += Pets.petBonus(owned, stat) end
+        if owned then total += Pets.petStat(owned, stat) end
     end
     return total
 end
@@ -449,7 +458,7 @@ return Pets
         <Item class="ModuleScript" referent="RBX00017">
           <Properties>
             <string name="Name">Pricing</string>
-            <ProtectedString name="Source">-- Effective stats: (base + upgrade levels) x (1 + equipped pet bonus). Old prototype
+            <ProtectedString name="Source">-- Effective stats: (base + equipped pets' flat stats) x (1 + upgrade percent). Old prototype
 -- fields (such as `upgrades`) are never read; only `upgradeLevels` and equipped pets count.
 local Economy = require(script.Parent.Parent.config.Economy)
 local Upgrades = require(script.Parent.Parent.config.Upgrades)
@@ -460,11 +469,14 @@ function Pricing.level(p, id)
     local level = type(levels) == "table" and levels[id]
     return if type(level) == "number" then level else 0
 end
-local function stepped(p, id, base)
-    return (base + Pricing.level(p, id) * Upgrades.Tracks[id].Step) * (1 + Pets.bonus(p, id))
+-- The upgrade multiplier for a track: 1 + Percent x level (levels add up, they do not compound).
+function Pricing.multiplier(p, id) return 1 + Pricing.level(p, id) * Upgrades.Tracks[id].Percent end
+local function stepped(p, id, base, petScale)
+    return (base + Pets.total(p, id) * (petScale or 1)) * Pricing.multiplier(p, id)
 end
 function Pricing.click(p) return stepped(p, "FriesPerClick", Economy.BaseClick) end
-function Pricing.perFryCents(p) return stepped(p, "MoneyPerFry", Economy.MoneyPerFryCents) end
+-- Pets list money in dollars; Economy keeps it in cents.
+function Pricing.perFryCents(p) return stepped(p, "MoneyPerFry", Economy.MoneyPerFryCents, 100) end
 function Pricing.perFry(p) return Pricing.perFryCents(p) / 100 end
 -- Capacity is whole fries.
 function Pricing.capacity(p) return math.floor(stepped(p, "BagCapacity", Economy.BaseCapacity) + 1e-9) end
@@ -719,6 +731,52 @@ return copy
         </Item>
         <Item class="ModuleScript" referent="RBX00024">
           <Properties>
+            <string name="Name">Format</string>
+            <ProtectedString name="Source">-- Short number text for Cash, prices, and stats: 950, 1.25K, 12.5K, 125K, 1.25M, ... 1.2Dc, then
+-- scientific notation (1.2e36). Three significant digits, trailing zeros dropped. Pure.
+local Format = {}
+local Suffixes = { "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc" }
+Format.Suffixes = Suffixes
+local function trim(text)
+    if string.find(text, "%.") then text = string.gsub(string.gsub(text, "0+$", ""), "%.$", "") end
+    return text
+end
+-- Three significant digits for a value from 1 to 999.9...
+local function significant(v)
+    if v &lt; 10 then return trim(string.format("%.2f", v)) end
+    if v &lt; 100 then return trim(string.format("%.1f", v)) end
+    return string.format("%.0f", v)
+end
+-- `decimals` is used below 1,000 for values that are not whole (2 for money, else up to 2).
+function Format.short(value, decimals)
+    if type(value) ~= "number" or value ~= value then return "0" end
+    if value == math.huge or value == -math.huge then return "MAX" end
+    local sign = if value &lt; 0 then "-" else ""
+    local n = math.abs(value)
+    if n &lt; 1000 then
+        if math.abs(n - math.floor(n + 0.5)) &lt; 1e-6 then return sign .. string.format("%d", math.floor(n + 0.5)) end
+        local text = string.format("%." .. (decimals or 2) .. "f", n)
+        return sign .. (if decimals then text else trim(text))
+    end
+    local tier = math.floor(math.log10(n) / 3 + 1e-9)
+    local v = n / 1000 ^ tier
+    -- 999.96K rounds to 1000K; show it as 1M instead.
+    if tonumber(significant(v)) &gt;= 1000 then tier += 1; v = n / 1000 ^ tier end
+    if tier &gt; #Suffixes then
+        local text = string.format("%.2e", n)
+        local mantissa, exponent = string.match(text, "^([%d%.]+)e%+?(%-?%d+)$")
+        return sign .. trim(mantissa) .. "e" .. tostring(tonumber(exponent))
+    end
+    return sign .. significant(v) .. Suffixes[tier]
+end
+-- Dollars: "$40", "$1.50", "$1.25K", "$3.4B".
+function Format.money(value) return "$" .. Format.short(value, 2) end
+return Format
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00025">
+          <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
 local RateLimiter = {}
@@ -743,15 +801,15 @@ return RateLimiter
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00025">
+  <Item class="ServerScriptService" referent="RBX00026">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00026">
+    <Item class="Folder" referent="RBX00027">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00027">
+      <Item class="Script" referent="RBX00028">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -866,7 +924,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00028">
+      <Item class="ModuleScript" referent="RBX00029">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -892,11 +950,11 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00029">
+      <Item class="Folder" referent="RBX00030">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00030">
+        <Item class="ModuleScript" referent="RBX00031">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1001,7 +1059,7 @@ return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00031">
+        <Item class="ModuleScript" referent="RBX00032">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -1105,7 +1163,7 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00032">
+        <Item class="ModuleScript" referent="RBX00033">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1129,7 +1187,7 @@ local function petRows(p)
         local kind = PetConfig.Types[owned.type]
         local bonuses = {}
         for _, stat in ipairs(PetConfig.StatOrder) do
-            if kind.Bonuses[stat] then table.insert(bonuses, { stat = stat, amount = Pets.petBonus(owned, stat) }) end
+            if kind.Stats[stat] then table.insert(bonuses, { stat = stat, amount = Pets.petStat(owned, stat) }) end
         end
         table.insert(rows, { id = owned.id, type = owned.type, name = (if owned.golden then "Golden " else "") .. kind.Name,
             rarity = kind.Rarity, golden = owned.golden == true,
@@ -1172,7 +1230,7 @@ return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00033">
+        <Item class="ModuleScript" referent="RBX00034">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1242,11 +1300,11 @@ return StationService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00034">
+      <Item class="Folder" referent="RBX00035">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00035">
+        <Item class="ModuleScript" referent="RBX00036">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -1331,11 +1389,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00036">
+      <Item class="Folder" referent="RBX00037">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00037">
+        <Item class="ModuleScript" referent="RBX00038">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -1372,7 +1430,7 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00038">
+        <Item class="ModuleScript" referent="RBX00039">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1477,7 +1535,7 @@ end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00039">
+        <Item class="ModuleScript" referent="RBX00040">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
@@ -1567,19 +1625,19 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00040">
+  <Item class="StarterPlayer" referent="RBX00041">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00041">
+    <Item class="StarterPlayerScripts" referent="RBX00042">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00042">
+      <Item class="Folder" referent="RBX00043">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="LocalScript" referent="RBX00043">
+        <Item class="LocalScript" referent="RBX00044">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -1622,11 +1680,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00044">
+        <Item class="Folder" referent="RBX00045">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00045">
+          <Item class="ModuleScript" referent="RBX00046">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1672,11 +1730,11 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="Folder" referent="RBX00046">
+        <Item class="Folder" referent="RBX00047">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00047">
+          <Item class="ModuleScript" referent="RBX00048">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">-- Screen layout in the Diner Sticker style: a receipt-style wallet (Cash and Gems) at the top
@@ -1871,25 +1929,19 @@ return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00048">
+          <Item class="ModuleScript" referent="RBX00049">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">-- Shared widgets in the Diner Sticker style: white sticker borders, solid ink shadows
 -- offset down and right, Luckiest Guy labels on buttons, and one panel frame.
 local Theme = require(script.Parent.Theme)
+local Format = require(game:GetService("ReplicatedStorage"):WaitForChild("FriesShared").util.Format)
 local Elements = {}
-function Elements.count(value)
-    local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
-    local result = string.reverse(grouped):gsub("^,", "")
-    return result
-end
-function Elements.money(value) return "$" .. Elements.count(value) end
--- Whole numbers stay whole; pet bonuses can make stats fractional (1.05 fries per click).
-function Elements.number(value)
-    if math.abs(value - math.floor(value + 0.5)) &lt; 1e-6 then return Elements.count(math.floor(value + 0.5)) end
-    local text = string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", "")
-    return text
-end
+-- Numbers use the shared short format: 950, 1.25K, 3.4M, 1.25B, 2T, ... (see shared/util/Format).
+function Elements.count(value) return Format.short(value) end
+function Elements.money(value) return Format.money(value) end
+-- Whole numbers stay whole; upgrade percentages can make stats fractional (2.2 fries per click).
+function Elements.number(value) return Format.short(value) end
 -- Shrinks text to fit on one line, between min and max sizes.
 function Elements.fit(label, min, max)
     label.TextScaled, label.TextWrapped = true, false
@@ -2168,7 +2220,7 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00049">
+          <Item class="ModuleScript" referent="RBX00050">
             <Properties>
               <string name="Name">GachaView</string>
               <ProtectedString name="Source">-- Gacha machine: the last pull (live portrait, rarity tag, bonus), a pity progress bar, the
@@ -2363,7 +2415,7 @@ return GachaView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00050">
+          <Item class="ModuleScript" referent="RBX00051">
             <Properties>
               <string name="Name">HudView</string>
               <ProtectedString name="Source">-- Pack and Sell: two big Diner Sticker buttons at the bottom centre.
@@ -2468,7 +2520,7 @@ return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00051">
+          <Item class="ModuleScript" referent="RBX00052">
             <Properties>
               <string name="Name">Icons</string>
               <ProtectedString name="Source">-- Icons: an uploaded image when shared/config/Icons has an asset ID, otherwise a simple
@@ -2602,7 +2654,7 @@ return Icons
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00052">
+          <Item class="ModuleScript" referent="RBX00053">
             <Properties>
               <string name="Name">PetFollower</string>
               <ProtectedString name="Source">-- Draws every player's equipped pets locally, following and bobbing behind their character.
@@ -2679,7 +2731,7 @@ return PetFollower
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00053">
+          <Item class="ModuleScript" referent="RBX00054">
             <Properties>
               <string name="Name">PetModels</string>
               <ProtectedString name="Source">-- Code-built cartoon pet models (no uploaded assets). Each pet is a short recipe of smooth
@@ -2868,7 +2920,7 @@ return PetModels
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00054">
+          <Item class="ModuleScript" referent="RBX00055">
             <Properties>
               <string name="Name">PetPortrait</string>
               <ProtectedString name="Source">-- Live 3D pet portraits for the UI: a ViewportFrame showing the same code-built model the
@@ -2915,23 +2967,27 @@ return PetPortrait
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00055">
+          <Item class="ModuleScript" referent="RBX00056">
             <Properties>
               <string name="Name">PetText</string>
               <ProtectedString name="Source">-- Shared pet display text and rarity colors.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local PetConfig = require(Shared.config.Pets)
+local Format = require(Shared.util.Format)
 local PetText = {}
-local StatNames = { FriesPerClick = "fries per click", MoneyPerFry = "money per fry", BagCapacity = "bag capacity" }
-local ShortNames = { FriesPerClick = "fries/click", MoneyPerFry = "money/fry", BagCapacity = "bag size" }
--- `short` uses compact stat names for narrow rows.
+-- Pets add flat amounts: fries per click, dollars per fry, and bag slots.
+local function amount(bonus)
+    if bonus.stat == "MoneyPerFry" then return "+" .. Format.money(bonus.amount) end
+    return "+" .. Format.short(bonus.amount)
+end
+local Long = { FriesPerClick = " fries/click", MoneyPerFry = "/fry", BagCapacity = " bag" }
+local Short = { FriesPerClick = " fries", MoneyPerFry = "/fry", BagCapacity = " bag" }
+-- "+4 fries/click  ·  +$1/fry  ·  +10 bag"; `short` is one line per stat for pet tiles.
 function PetText.bonus(bonuses, short)
-    local names = if short then ShortNames else StatNames
+    local names = if short then Short else Long
     local parts = {}
-    for _, bonus in ipairs(bonuses) do
-        table.insert(parts, "+" .. math.floor(bonus.amount * 100 + 0.5) .. "% " .. names[bonus.stat])
-    end
-    return table.concat(parts, ", ")
+    for _, bonus in ipairs(bonuses) do table.insert(parts, amount(bonus) .. names[bonus.stat]) end
+    return table.concat(parts, if short then "\n" else "  ·  ")
 end
 function PetText.color(rarity)
     local c = PetConfig.Rarities[rarity].Color
@@ -2941,7 +2997,7 @@ return PetText
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00056">
+          <Item class="ModuleScript" referent="RBX00057">
             <Properties>
               <string name="Name">PetsView</string>
               <ProtectedString name="Source">-- Pet inventory: a grid of pet tiles (live 3D portrait, rarity band, name, bonus, equipped
@@ -2961,7 +3017,7 @@ PetsView.__index = PetsView
 PetsView.Accent = Theme.Blue
 local MinWidth, MaxWidth, MinHeight, MaxHeight = 340, 680, 400, 580
 local GridTop, DetailHeight = 202, 86
-local TileWidth, TileHeight = 92, 124
+local TileWidth, TileHeight = 92, 148
 local ConfirmSeconds = 3
 local function accentOf(pet) return if pet.golden then PetText.color("Legendary") else PetText.color(pet.rarity) end
 local function chipRow(self, parent, name, label, y, onPress)
@@ -3025,6 +3081,8 @@ function PetsView.new(gui, send)
     self.detailBonus = E.label(detail, "", 18, Theme.Accent)
     self.detailBonus.Name, self.detailBonus.Position, self.detailBonus.Size, self.detailBonus.TextSize = "Bonus", UDim2.fromOffset(88, 56), UDim2.new(1, -290, 0, 18), 13
     E.fit(self.detailBonus, 7, 13)
+    -- Three stats can wrap onto a second line on narrow panels.
+    self.detailBonus.TextWrapped, self.detailBonus.Size = true, UDim2.new(1, -290, 0, 26)
     self.equip = E.button(detail, "EQUIP", function() self:equipSelected() end, Theme.Gold)
     self.equip.Name, self.equip.AnchorPoint = "Equip", Vector2.new(1, 0.5)
     self.equip.Position, self.equip.Size, self.equip.TextSize = UDim2.new(1, -96, 0.5, -1), UDim2.fromOffset(104, 44), 15
@@ -3086,10 +3144,10 @@ function PetsView:tile(pet)
     name.Name, name.Position, name.Size = "PetName", UDim2.new(0, 4, 0, 84), UDim2.new(1, -8, 0, 18)
     name.Font, name.TextSize, name.TextXAlignment = Theme.Display, 13, Enum.TextXAlignment.Center
     E.fit(name, 7, 13)
-    local bonus = E.label(tile, PetText.bonus(pet.bonuses, true), 14, Theme.Accent)
-    bonus.Name, bonus.Position, bonus.Size = "Bonus", UDim2.new(0, 4, 0, 104), UDim2.new(1, -8, 0, 14)
-    bonus.TextSize, bonus.TextXAlignment = 10, Enum.TextXAlignment.Center
-    E.fit(bonus, 6, 10)
+    -- One line per stat: fries, money, bag.
+    local bonus = E.label(tile, PetText.bonus(pet.bonuses, true), 40, Theme.Accent)
+    bonus.Name, bonus.Position, bonus.Size = "Bonus", UDim2.new(0, 4, 0, 103), UDim2.new(1, -8, 0, 40)
+    bonus.TextSize, bonus.TextXAlignment, bonus.LineHeight = 11, Enum.TextXAlignment.Center, 1.05
     local badge = E.box(tile, "Equipped", UDim2.new(1, -20, 0, -6), UDim2.fromOffset(26, 26), Theme.Green, 13)
     E.stroke(badge, Theme.White, 2, 0)
     badge.ZIndex = 3
@@ -3181,7 +3239,7 @@ function PetsView:resize(viewport)
     -- Short, wide screens (phone landscape): both chip rows share one line so a full row of
     -- pet tiles still fits above the detail bar.
     local compact = width &gt;= 600 and availableHeight &lt; 480
-    local height = math.clamp(availableHeight, if compact then 410 else MinHeight, MaxHeight)
+    local height = math.clamp(availableHeight, if compact then 440 else MinHeight, MaxHeight)
     self.panel.Size = UDim2.fromOffset(width, height)
     self.scale.Scale = math.min(1, availableWidth / width, availableHeight / height)
     local groupWidth = if compact then math.floor((width - 32 - 16) / 2) else width - 32
@@ -3222,7 +3280,7 @@ return PetsView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00057">
+          <Item class="ModuleScript" referent="RBX00058">
             <Properties>
               <string name="Name">RebirthView</string>
               <ProtectedString name="Source">-- Rebirth: a REBIRTH menu button and a confirmation panel. The server checks the threshold,
@@ -3304,7 +3362,7 @@ return RebirthView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00058">
+          <Item class="ModuleScript" referent="RBX00059">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -3420,7 +3478,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00059">
+          <Item class="ModuleScript" referent="RBX00060">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -3538,7 +3596,7 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00060">
+          <Item class="ModuleScript" referent="RBX00061">
             <Properties>
               <string name="Name">SettingsView</string>
               <ProtectedString name="Source">-- Settings: a gear button beside Return to Counter and a panel of saved ON/OFF toggles.
@@ -3600,7 +3658,7 @@ return SettingsView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00061">
+          <Item class="ModuleScript" referent="RBX00062">
             <Properties>
               <string name="Name">ShopView</string>
               <ProtectedString name="Source">-- Upgrade shop: an UPGRADES menu button and a panel with one row per gem upgrade track.
@@ -3617,7 +3675,9 @@ local PanelWidth, PanelHeight = 380, 350
 local TrackIcons = { FriesPerClick = "upgrade-fries-per-click", MoneyPerFry = "upgrade-money-per-fry", BagCapacity = "upgrade-bag-capacity" }
 local function describe(row)
     if row.id == "MoneyPerFry" then
-        return string.format("$%.2f » $%.2f per fry", row.value, row.nextValue)
+        -- Cents matter below $1,000 ($1.00 » $1.10); larger amounts use the short format.
+        local function dollars(v) return if v &lt; 1000 then string.format("$%.2f", v) else E.money(v) end
+        return dollars(row.value) .. " » " .. dollars(row.nextValue) .. " per fry"
     elseif row.id == "FriesPerClick" then
         return E.number(row.value) .. " » " .. E.number(row.nextValue) .. " fries/click"
     end
@@ -3670,7 +3730,9 @@ function ShopView:update(state)
         if view then
             local affordable = state.hasStation and (state.profile.gems or 0) &gt;= row.cost
             self.data[row.id] = { affordable = affordable }
-            view.level.Text = "LEVEL " .. row.level
+            -- Each level adds the track's percent to that stat (levels add up).
+            local percent = math.floor(row.level * Upgrades.Tracks[row.id].Percent * 100 + 0.5)
+            view.level.Text = "LEVEL " .. row.level .. (if percent &gt; 0 then "  ·  +" .. E.count(percent) .. "%" else "")
             view.value.Text = describe(row)
             view.buy.Text = E.count(row.cost) .. (if row.cost == 1 then " GEM" else " GEMS")
             view.buy.TextSize = if #view.buy.Text &gt; 10 then 11 else 14
@@ -3688,7 +3750,7 @@ return ShopView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00062">
+          <Item class="ModuleScript" referent="RBX00063">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">-- Diner Sticker palette and type (agreed 17 October 2026). See docs/STYLE_GUIDE.md.
@@ -3735,23 +3797,23 @@ return {
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00063">
+  <Item class="StarterGui" referent="RBX00064">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00064">
+  <Item class="Lighting" referent="RBX00065">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00065">
+  <Item class="Players" referent="RBX00066">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00066">
+  <Item class="SoundService" referent="RBX00067">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

@@ -19,7 +19,7 @@ local function petRows(p)
         local kind = PetConfig.Types[owned.type]
         local bonuses = {}
         for _, stat in ipairs(PetConfig.StatOrder) do
-            if kind.Bonuses[stat] then table.insert(bonuses, { stat = stat, amount = Pets.petBonus(owned, stat) }) end
+            if kind.Stats[stat] then table.insert(bonuses, { stat = stat, amount = Pets.petStat(owned, stat) }) end
         end
         table.insert(rows, { id = owned.id, type = owned.type, name = (if owned.golden then "Golden " else "") .. kind.Name,
             rarity = kind.Rarity, golden = owned.golden == true,

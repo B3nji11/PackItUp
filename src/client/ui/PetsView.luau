@@ -15,7 +15,7 @@ PetsView.__index = PetsView
 PetsView.Accent = Theme.Blue
 local MinWidth, MaxWidth, MinHeight, MaxHeight = 340, 680, 400, 580
 local GridTop, DetailHeight = 202, 86
-local TileWidth, TileHeight = 92, 124
+local TileWidth, TileHeight = 92, 148
 local ConfirmSeconds = 3
 local function accentOf(pet) return if pet.golden then PetText.color("Legendary") else PetText.color(pet.rarity) end
 local function chipRow(self, parent, name, label, y, onPress)
@@ -79,6 +79,8 @@ function PetsView.new(gui, send)
     self.detailBonus = E.label(detail, "", 18, Theme.Accent)
     self.detailBonus.Name, self.detailBonus.Position, self.detailBonus.Size, self.detailBonus.TextSize = "Bonus", UDim2.fromOffset(88, 56), UDim2.new(1, -290, 0, 18), 13
     E.fit(self.detailBonus, 7, 13)
+    -- Three stats can wrap onto a second line on narrow panels.
+    self.detailBonus.TextWrapped, self.detailBonus.Size = true, UDim2.new(1, -290, 0, 26)
     self.equip = E.button(detail, "EQUIP", function() self:equipSelected() end, Theme.Gold)
     self.equip.Name, self.equip.AnchorPoint = "Equip", Vector2.new(1, 0.5)
     self.equip.Position, self.equip.Size, self.equip.TextSize = UDim2.new(1, -96, 0.5, -1), UDim2.fromOffset(104, 44), 15
@@ -140,10 +142,10 @@ function PetsView:tile(pet)
     name.Name, name.Position, name.Size = "PetName", UDim2.new(0, 4, 0, 84), UDim2.new(1, -8, 0, 18)
     name.Font, name.TextSize, name.TextXAlignment = Theme.Display, 13, Enum.TextXAlignment.Center
     E.fit(name, 7, 13)
-    local bonus = E.label(tile, PetText.bonus(pet.bonuses, true), 14, Theme.Accent)
-    bonus.Name, bonus.Position, bonus.Size = "Bonus", UDim2.new(0, 4, 0, 104), UDim2.new(1, -8, 0, 14)
-    bonus.TextSize, bonus.TextXAlignment = 10, Enum.TextXAlignment.Center
-    E.fit(bonus, 6, 10)
+    -- One line per stat: fries, money, bag.
+    local bonus = E.label(tile, PetText.bonus(pet.bonuses, true), 40, Theme.Accent)
+    bonus.Name, bonus.Position, bonus.Size = "Bonus", UDim2.new(0, 4, 0, 103), UDim2.new(1, -8, 0, 40)
+    bonus.TextSize, bonus.TextXAlignment, bonus.LineHeight = 11, Enum.TextXAlignment.Center, 1.05
     local badge = E.box(tile, "Equipped", UDim2.new(1, -20, 0, -6), UDim2.fromOffset(26, 26), Theme.Green, 13)
     E.stroke(badge, Theme.White, 2, 0)
     badge.ZIndex = 3
@@ -235,7 +237,7 @@ function PetsView:resize(viewport)
     -- Short, wide screens (phone landscape): both chip rows share one line so a full row of
     -- pet tiles still fits above the detail bar.
     local compact = width >= 600 and availableHeight < 480
-    local height = math.clamp(availableHeight, if compact then 410 else MinHeight, MaxHeight)
+    local height = math.clamp(availableHeight, if compact then 440 else MinHeight, MaxHeight)
     self.panel.Size = UDim2.fromOffset(width, height)
     self.scale.Scale = math.min(1, availableWidth / width, availableHeight / height)
     local groupWidth = if compact then math.floor((width - 32 - 16) / 2) else width - 32

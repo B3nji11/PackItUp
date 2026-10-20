@@ -1,5 +1,25 @@
 # Validation record
 
+## Rebalance: flat three-stat pets, percentage upgrades, short numbers, no Cash cap
+
+Validation date: 20 October 2026.
+
+Scope: every pet adds flat fries per click, money per fry, and bag size (with a lean); upgrades give +10% per level (added); base player 2 fries per click, $1 per fry, 40-fry bag; Starter Fryer cut to 8 pets at $150 (Napkin Ghost and Curly Fry Cat kept as pet types for the Deluxe Fryer); rebirth $250K x2; short number text (K to Dc, then scientific); Cash cap raised from $1 trillion to a hidden 1e300 safety limit. Numbers come from the new `tools/simulate.py`, approved by the owner.
+
+**95 tests passed, 0 failed.** All **55 Luau source/test files** compiled. Output is in TEST_RESULTS.txt.
+
+New or changed coverage:
+
+- Formula: (base + pets) x (1 + 10% per level), additive not compounding (level 10 = 2x); money pets in dollars on a cents base; capacity and sale rounding.
+- Pets: every type has three positive stats and no percentage bonuses; each machine has 6-8 pets with one Common per lean; leans hold; sale value rises with rarity; Golden doubles all three stats; moved pets still load from saves.
+- Short numbers from 0 to 5e120, rounding at suffix edges (999,949 shows as 1M), negatives, NaN and infinity, and money with cents.
+- No cap: Cash beyond $1 trillion credits and validates; Cash stays finite at the safety limit; infinity is still rejected.
+- All earlier tests updated to the new numbers. The server rebirth test still earns the $250K threshold by real packing and selling (6,247 bags).
+
+The preview review led to pet tiles with one line per stat (taller tiles), wrapping detail-bar stats, a taller compact PETS panel on short landscape screens, and cents for money per fry in the upgrade shop.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, rebalance) and owner review, especially whether the first world feels fast enough in real play.
+
 ## Visual overhaul 2: pet models, gacha, and inventory panels
 
 Validation date: 18 October 2026.

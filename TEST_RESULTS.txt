@@ -1,4 +1,4 @@
-Compilation passed for 53 Luau files.
+Compilation passed for 55 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -75,15 +75,15 @@ PASS rolls map random numbers to rarities and share each rarity equally
 PASS many spins match the advertised odds
 PASS the fiftieth spin without an Epic is guaranteed Epic or better and resets pity
 PASS spins charge the fixed price add uniquely numbered pets and stop when full or broke
-PASS equipping up to three pets applies their bonuses to the stats
+PASS equipping up to three pets adds their flat stats before upgrade percentages
 PASS capacity pets round down to whole fries and unequipping trims an over-full bag
 PASS only unequipped pets can be deleted and IDs are never reused
 PASS rebirth keeps pets equipped pets and pity
-PASS upgrade shop values include equipped pet bonuses
+PASS upgrade shop values include equipped pet stats
 PASS old prototype equipment never counts as equipped pets
 PASS saved pets equipped pets and pity are validated
 PASS pets equipped pets and pity save and load
-PASS five unequipped copies merge into one Golden pet with double bonus
+PASS five unequipped copies merge into one Golden pet with double stats
 PASS Golden pets are never merged again and mergeable lists rarest first
 PASS delete all removes only unequipped non-golden pets of a bulk rarity
 PASS auto-deleted rarities still cost the spin and count for pity but are not kept
@@ -91,4 +91,8 @@ PASS settings default on toggle and reject unknown names
 PASS the public follow text lists equipped pets and respects Pets follow me
 PASS golden flags settings and auto-delete are validated
 PASS golden pets settings and auto-delete save and load
-RESULT: 91 passed, 0 failed
+PASS short numbers use K M B T and longer suffixes then scientific notation
+PASS Cash has no practical cap but can never become infinity
+PASS every pet adds all three stats and each machine has six to eight pets
+PASS Starter pets lean towards one stat and rarer pets are stronger
+RESULT: 95 passed, 0 failed

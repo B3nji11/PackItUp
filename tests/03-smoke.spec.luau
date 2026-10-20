@@ -210,7 +210,7 @@ test("joining leaves all restaurants available and production waits for claiming
     local state = replicated.FriesRemotes.State.lastArgs[1]
     eq(state.profile.cash, 0); eq(state.nearStation, false); eq(state.hasStation, false)
     eq(state.profile.bag.fries, 0)
-    eq(state.stats.perClick, 1); eq(state.stats.perSecond, 0.5); eq(state.stats.saleValue, 10)
+    eq(state.stats.perClick, 2); eq(state.stats.perSecond, 0.5); eq(state.stats.saleValue, 40)
     eq(state.rush, nil); eq(state.foldStart, nil); eq(state.profile.tickets, nil)
 end)
 
@@ -370,14 +370,14 @@ test("remote fill sell repeat loop awards cash once per full bag", function()
         for _ = 1, 20 do serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack") end
         serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
         local state = replicated.FriesRemotes.State.lastArgs[1]
-        eq(state.profile.cash, round * 10); eq(state.profile.bag.fries, 0)
+        eq(state.profile.cash, round * 40); eq(state.profile.bag.fries, 0)
         serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
-        eq(replicated.FriesRemotes.State.lastArgs[1].profile.cash, round * 10)
+        eq(replicated.FriesRemotes.State.lastArgs[1].profile.cash, round * 40)
     end
     serverTime += 1; remote.OnServerEvent:Fire(first, "Pack")
     serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
-    eq(replicated.FriesRemotes.State.lastArgs[1].profile.cash, 20)
-    eq(replicated.FriesRemotes.State.lastArgs[1].profile.bag.fries, 1)
+    eq(replicated.FriesRemotes.State.lastArgs[1].profile.cash, 80)
+    eq(replicated.FriesRemotes.State.lastArgs[1].profile.bag.fries, 2)
     serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
     eq(replicated.FriesRemotes.State.lastArgs[1].profile.cash, 0)
 end)
@@ -402,7 +402,7 @@ test("basic fryer fills online and stops at capacity", function()
     for _ = 1, 20 do serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack") end
     runService.Heartbeat:Fire(0.5)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Sync")
-    eq(replicated.FriesRemotes.State.lastArgs[1].profile.bag.fries, 20)
+    eq(replicated.FriesRemotes.State.lastArgs[1].profile.bag.fries, 40)
 end)
 
 test("removed actions and malformed core arguments are rejected before dispatch", function()
@@ -431,9 +431,9 @@ test("legacy progression stays out of snapshots and cannot change basic stats", 
         {State={FireClient=function(_, _, value) state=value end}})
     snapshots:send(first)
     eq(state.profile.upgrades, nil); eq(state.profile.tickets, nil); eq(state.profile.equipped, nil)
-    eq(state.stats.perClick, 1); eq(state.stats.perSecond, 0.5); eq(state.stats.saleValue, 10)
-    eq(state.stats.capacity, 20); for _, row in ipairs(state.shop) do eq(row.level, 0) end
-    state.profile.bag.fries=20; eq(p.bag.fries, 0)
+    eq(state.stats.perClick, 2); eq(state.stats.perSecond, 0.5); eq(state.stats.saleValue, 40)
+    eq(state.stats.capacity, 40); for _, row in ipairs(state.shop) do eq(row.level, 0) end
+    state.profile.bag.fries=40; eq(p.bag.fries, 0)
 end)
 
 test("available restaurant arrows are personal and owner cards use account usernames", function()
@@ -625,7 +625,7 @@ test("client has click sell teleport settings and the upgrade rebirth spin and p
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Core loop ready", true)
     runService.RenderStepped:Fire(); drain()
-    eq(gui.CashCard.Cash.Text, "$20")
+    eq(gui.CashCard.Cash.Text, "$80")
     assert(gui.CashCard.Coin)
     remote.lastServerArgs = nil; gui.Teleport.Activated:Fire()
     eq(remote.lastServerArgs[1], "Return")
@@ -743,7 +743,7 @@ end)
 test("button and keyboard selling require a full bag at the counter", function()
     local gui = first.PlayerGui.FriesInterface
     local state = loadModule("shared/util/Copy")(replicated.FriesRemotes.State.lastArgs[1])
-    for _, example in ipairs({{19,true,false}, {20,false,false}, {20,true,true}}) do
+    for _, example in ipairs({{39,true,false}, {40,false,false}, {40,true,true}}) do
         state.profile.bag.fries, state.nearStation = example[1], example[2]
         replicated.FriesRemotes.State.OnClientEvent:Fire(state)
         eq(gui.Actions.Sell.Active, example[3])
@@ -763,7 +763,7 @@ test("click packs while full bags and distance block further client packing", fu
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
     remote.lastServerArgs=nil; gui.Actions.Click.InputBegan:Fire(click)
     eq(remote.lastServerArgs[1], "Pack"); inputService.InputEnded:Fire(click)
-    for _, example in ipairs({{20,true}, {0,false}}) do
+    for _, example in ipairs({{40,true}, {0,false}}) do
         state.profile.bag.fries, state.nearStation=example[1],example[2]
         replicated.FriesRemotes.State.OnClientEvent:Fire(state)
         remote.lastServerArgs=nil; gui.Actions.Click.InputBegan:Fire(click)
@@ -777,24 +777,24 @@ test("HUD highlights fries per click capacity and full-bag feedback inside the b
     state.hasStation, state.nearStation, state.profile.bag.fries = true, true, 12
     state.profile.cash = 1234567
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
-    eq(gui.CashCard.Cash.Text, "$1,234,567")
-    eq(gui.Actions.Click.Title.Text, "+1 fry/click")
-    eq(gui.Actions.Sell.Title.Text, "12 / 20")
+    eq(gui.CashCard.Cash.Text, "$1.23M")
+    eq(gui.Actions.Click.Title.Text, "+2 fries/click")
+    eq(gui.Actions.Sell.Title.Text, "12 / 40")
     gui.Actions.Click.MouseEnter:Fire(); eq(gui.Actions.Click.Title.Text, "CLICK")
-    eq(gui.Actions.Click.Detail.Text, "+1 FRY/CLICK")
-    gui.Actions.Click.MouseLeave:Fire(); eq(gui.Actions.Click.Title.Text, "+1 fry/click")
-    state.profile.bag.fries = 20
+    eq(gui.Actions.Click.Detail.Text, "+2 FRIES/CLICK")
+    gui.Actions.Click.MouseLeave:Fire(); eq(gui.Actions.Click.Title.Text, "+2 fries/click")
+    state.profile.bag.fries = 40
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
-    eq(gui.Actions.Sell.Title.Text, "SELL BAG"); eq(gui.Actions.Sell.Detail.Text, "+$10 CASH")
+    eq(gui.Actions.Sell.Title.Text, "SELL BAG"); eq(gui.Actions.Sell.Detail.Text, "+$40 CASH")
     eq(gui.Actions.Sell.Active, true)
     state.hasStation = false
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
     eq(gui.Actions.Sell.Active, false); eq(gui.Actions.Click.Active, false); eq(gui.Teleport.Active, false)
     eq(gui.Guidance.Visible, true)
-    eq(loadModule("client/ui/Elements").money(1000000000000), "$1,000,000,000,000")
+    eq(loadModule("client/ui/Elements").money(1000000000000), "$1T")
     state.hasStation = true
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
-    replicated.FriesRemotes.Notice.OnClientEvent:Fire("Sold! +$10", true)
+    replicated.FriesRemotes.Notice.OnClientEvent:Fire("Sold! +$40", true)
     eq(gui.Guidance.Visible, false)
 end)
 
@@ -809,29 +809,33 @@ test("server rebirth needs the threshold resets Cash and the bag and awards gems
         return state
     end
     local s = sync()
-    eq(s.profile.cash, 20); eq(s.profile.bag.fries, 20); eq(s.profile.gems, 0)
-    eq(s.rebirth.threshold, 1000); eq(s.rebirth.reward, 10); eq(s.rebirth.ready, false); eq(s.rebirth.count, 0)
+    eq(s.profile.cash, 80); eq(s.profile.bag.fries, 40); eq(s.profile.gems, 0)
+    eq(s.rebirth.threshold, 250000); eq(s.rebirth.reward, 10); eq(s.rebirth.ready, false); eq(s.rebirth.count, 0)
     eq(#s.shop, 3); eq(s.shop[1].id, "FriesPerClick"); eq(s.shop[1].cost, 3)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "FriesPerClick")
     eq(Notice.lastArgs[1], "Not enough gems for this upgrade."); eq(State.lastArgs[1].shop[1].level, 0)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Rebirth")
-    eq(Notice.lastArgs[1], "Reach the rebirth threshold first."); eq(sync().profile.cash, 20)
+    eq(Notice.lastArgs[1], "Reach the rebirth threshold first."); eq(sync().profile.cash, 80)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
-    for _ = 1, 97 do fill(20); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
-    s = sync(); eq(s.profile.cash, 1000); eq(s.rebirth.ready, true)
+    -- Earn the $250,000 threshold for real: 6,247 bags of 20 packs ($40 each) after the $120 so far.
+    for _ = 1, 6247 do
+        for _ = 1, 20 do serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack") end
+        serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
+    end
+    s = sync(); eq(s.profile.cash, 250000); eq(s.rebirth.ready, true)
     for _ = 1, 3 do serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack") end
-    eq(sync().profile.bag.fries, 3)
+    eq(sync().profile.bag.fries, 6)
     -- A second request inside the rebirth cooldown is ignored.
     serverTime += 1; remote.OnServerEvent:Fire(first, "Rebirth"); remote.OnServerEvent:Fire(first, "Rebirth")
     s = sync()
     eq(s.profile.cash, 0); eq(s.profile.bag.fries, 0); eq(s.profile.gems, 10)
-    eq(s.rebirth.count, 1); eq(s.rebirth.threshold, 1600); eq(s.rebirth.reward, 15); eq(s.rebirth.ready, false)
-    eq(s.profile.sales, 100) -- sales are kept through rebirth
+    eq(s.rebirth.count, 1); eq(s.rebirth.threshold, 500000); eq(s.rebirth.reward, 15); eq(s.rebirth.ready, false)
+    eq(s.profile.sales, 6250) -- sales are kept through rebirth
     -- Gems buy upgrades; a rapid second purchase is ignored.
     serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "FriesPerClick"); remote.OnServerEvent:Fire(first, "Upgrade", "FriesPerClick")
-    s = State.lastArgs[1]; eq(s.profile.gems, 7); eq(s.shop[1].level, 1); eq(s.stats.perClick, 2)
+    s = State.lastArgs[1]; eq(s.profile.gems, 7); eq(s.shop[1].level, 1); near(s.stats.perClick, 2.2)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "FriesPerClick")
-    s = State.lastArgs[1]; eq(s.profile.gems, 3); eq(s.shop[1].level, 2); eq(s.shop[1].cost, 5); eq(s.stats.perClick, 3)
+    s = State.lastArgs[1]; eq(s.profile.gems, 3); eq(s.shop[1].level, 2); eq(s.shop[1].cost, 5); near(s.stats.perClick, 2.4)
     serverTime += 1; remote.OnServerEvent:Fire(first, "Upgrade", "MoneyPerFry")
     eq(Notice.lastArgs[1], "Not enough gems for this upgrade."); eq(sync().profile.gems, 3)
     -- Forged arguments are dropped before dispatch.
@@ -842,11 +846,11 @@ test("server rebirth needs the threshold resets Cash and the bag and awards gems
         serverTime += 3; remote.OnServerEvent:Fire(first, "Rebirth", forged)
     end
     s = sync(); eq(s.profile.gems, 3); eq(s.rebirth.count, 1)
-    serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack"); eq(sync().profile.bag.fries, 3)
+    serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack"); near(sync().profile.bag.fries, 2.4)
     -- The other player's Cash, gems, and levels are untouched.
     serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
     local other = State.lastArgs[1]
-    eq(other.profile.gems, 0); eq(other.rebirth.count, 0); eq(other.shop[1].level, 0); eq(other.stats.capacity, 20)
+    eq(other.profile.gems, 0); eq(other.rebirth.count, 0); eq(other.shop[1].level, 0); eq(other.stats.capacity, 40)
 end)
 
 test("wallet shop and rebirth panel show server values and send only allowed requests", function()
@@ -858,10 +862,11 @@ test("wallet shop and rebirth panel show server values and send only allowed req
     eq(gui.CashCard.Cash.Text, "$0"); eq(gui.CashCard.Gems.Text, "3")
     eq(shop.Visible, false); eq(panel.Visible, false)
     gui.UpgradesButton.Activated:Fire(); eq(shop.Visible, true)
-    eq(shop.FriesPerClick.Level.Text, "LEVEL 2"); eq(shop.FriesPerClick.Value.Text, "3 » 4 fries/click")
-    eq(shop.MoneyPerFry.Value.Text, "$0.50 » $0.55 per fry"); eq(shop.BagCapacity.Value.Text, "20 » 25 fries per bag")
+    eq(shop.FriesPerClick.Level.Text, "LEVEL 2  ·  +20%"); eq(shop.FriesPerClick.Value.Text, "2.4 » 2.6 fries/click")
+    eq(shop.MoneyPerFry.Level.Text, "LEVEL 0")
+    eq(shop.MoneyPerFry.Value.Text, "$1.00 » $1.10 per fry"); eq(shop.BagCapacity.Value.Text, "40 » 44 fries per bag")
     eq(shop.FriesPerClick.Buy.Text, "5 GEMS"); eq(shop.MoneyPerFry.Buy.Text, "4 GEMS"); eq(shop.BagCapacity.Buy.Text, "5 GEMS")
-    eq(gui.Actions.Click.Title.Text, "+3 fries/click"); eq(gui.Actions.Sell.Title.Text, "3 / 20")
+    eq(gui.Actions.Click.Title.Text, "+2.4 fries/click"); eq(gui.Actions.Sell.Title.Text, "2 / 40")
     -- 3 gems affords nothing; plenty of Cash does not help.
     state.profile.cash = 99999
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
@@ -877,11 +882,11 @@ test("wallet shop and rebirth panel show server values and send only allowed req
     eq(remote.lastServerArgs[1], "Upgrade"); eq(remote.lastServerArgs[2], "MoneyPerFry"); eq(remote.lastServerArgs[3], nil)
     -- Opening the rebirth panel closes the shop.
     gui.RebirthButton.Activated:Fire(); eq(panel.Visible, true); eq(shop.Visible, false)
-    eq(panel.Details.Reward.Text, "+15 GEMS"); eq(panel.Details.Need.Text, "Needs $1,600 Cash  (you have $0)")
+    eq(panel.Details.Reward.Text, "+15 GEMS"); eq(panel.Details.Need.Text, "Needs $500K Cash  (you have $0)")
     eq(panel.Details.Count.Text, "REBIRTHS: 1")
-    eq(panel.Confirm.Active, false); eq(panel.Confirm.Text, "NEED $1,600")
+    eq(panel.Confirm.Active, false); eq(panel.Confirm.Text, "NEED $500K")
     remote.lastServerArgs = nil; panel.Confirm.Activated:Fire(); eq(remote.lastServerArgs, nil)
-    state.profile.cash = 1600
+    state.profile.cash = 500000
     replicated.FriesRemotes.State.OnClientEvent:Fire(state)
     eq(panel.Confirm.Active, true); eq(panel.Confirm.Text, "REBIRTH NOW")
     remote.lastServerArgs = nil; panel.Confirm.Activated:Fire()
@@ -919,31 +924,31 @@ test("server spins charge Cash roll on the server and equip unequip and delete o
     end
     local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
     local s = sync()
-    eq(s.machine.id, "StarterFryer"); eq(s.machine.price, 100); eq(#s.pets.owned, 0); eq(s.pets.slots, 3); eq(s.pets.max, 50)
+    eq(s.machine.id, "StarterFryer"); eq(s.machine.price, 150); eq(#s.pets.owned, 0); eq(s.pets.slots, 3); eq(s.pets.max, 50)
     eq(s.spin, nil)
     act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Not enough Cash to spin."); eq(#sync().pets.owned, 0)
-    for _ = 1, 21 do fill(20); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
-    eq(sync().profile.cash, 210)
+    for _ = 1, 8 do fill(40); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
+    eq(sync().profile.cash, 320)
     -- A second spin inside the cooldown is ignored.
     serverTime += 1; remote.OnServerEvent:Fire(first, "Spin", "StarterFryer"); remote.OnServerEvent:Fire(first, "Spin", "StarterFryer")
     s = State.lastArgs[1]
-    eq(s.profile.cash, 110); eq(#s.pets.owned, 1); eq(s.spin.id, "P1"); eq(s.pets.owned[1].name, "Crinkle Fry")
+    eq(s.profile.cash, 170); eq(#s.pets.owned, 1); eq(s.spin.id, "P1"); eq(s.pets.owned[1].name, "Crinkle Fry")
     eq(s.machine.pity, 1)
     local serial = s.spin.serial
-    s = act("Spin", "StarterFryer"); eq(s.profile.cash, 10); eq(s.spin.id, "P2"); assert(s.spin.serial > serial)
+    s = act("Spin", "StarterFryer"); eq(s.profile.cash, 20); eq(s.spin.id, "P2"); assert(s.spin.serial > serial)
     act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Not enough Cash to spin.")
     eq(sync().spin, nil) -- only the spin's own snapshot carries a result
-    s = act("Equip", "P1"); eq(s.pets.equipped, 1); eq(s.pets.owned[1].equipped, true); near(s.stats.perClick, 3.15)
+    s = act("Equip", "P1"); eq(s.pets.equipped, 1); eq(s.pets.owned[1].equipped, true); near(s.stats.perClick, 7.2) -- (2 + 4) x 1.2
     act("Equip", "P1"); eq(Notice.lastArgs[1], "That pet is already equipped.")
     act("Equip", "P99"); eq(Notice.lastArgs[1], "You do not own that pet.")
     act("DeletePet", "P1"); eq(Notice.lastArgs[1], "Unequip this pet before deleting it.")
-    s = act("Unequip", "P1"); eq(s.pets.equipped, 0); eq(s.stats.perClick, 3)
+    s = act("Unequip", "P1"); eq(s.pets.equipped, 0); near(s.stats.perClick, 2.4)
     s = act("DeletePet", "P1"); eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P2")
     -- Forged arguments are dropped before dispatch.
     for _, forged in ipairs({ "Nope", {}, 5, true }) do act("Spin", forged) end
     for _, forged in ipairs({ "P2;", {id="P2"}, 2, "2" }) do act("Equip", forged); act("DeletePet", forged) end
     act("Spin"); act("Equip")
-    s = sync(); eq(s.profile.cash, 10); eq(#s.pets.owned, 1); eq(s.pets.equipped, 0)
+    s = sync(); eq(s.profile.cash, 20); eq(#s.pets.owned, 1); eq(s.pets.equipped, 0)
     serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
     eq(#State.lastArgs[1].pets.owned, 0); eq(State.lastArgs[1].machine.pity, 0)
 end)
@@ -958,27 +963,28 @@ test("machine and pets panels show server data and send only spin equip and dele
     gui.PetsButton.Activated:Fire(); eq(petsPanel.Visible, true)
     gui.SpinButton.Activated:Fire(); eq(machine.Visible, true); eq(petsPanel.Visible, false)
     eq(machine.Title.Text, "STARTER FRYER")
-    eq(machine.Caption.Text, "$100 per spin  ·  Epic or better within 48 spins")
+    eq(machine.Caption.Text, "$150 per spin  ·  Epic or better within 48 spins")
     -- Every pet in the machine has a tile with a live portrait and its own chance; chances add up to 100%.
     local pool = machine.PoolArea.Pool
-    eq(pool.CrinkleFry.Chance.Text, "20%"); eq(pool.PotatoPup.Chance.Text, "8.33%"); eq(pool.MayoJar.Chance.Text, "5%")
+    eq(pool.CrinkleFry.Chance.Text, "20%"); eq(pool.PotatoPup.Chance.Text, "12.5%"); eq(pool.MayoJar.Chance.Text, "10%")
     eq(pool.FryerBot.Chance.Text, "4%"); eq(pool.FryKing.Chance.Text, "1%"); eq(pool.FryKing.PetName.Text, "Fry King")
     local total, tiles = 0, 0
     for _, tile in ipairs(pool._children) do
         if tile.ClassName == "Frame" then tiles += 1; total += tonumber((string.gsub(tile.Chance.Text, "%%", ""))) end
     end
-    eq(tiles, 10); assert(math.abs(total - 100) < 0.05, total)
+    eq(tiles, 8); assert(math.abs(total - 100) < 0.05, total)
+    eq(pool:FindFirstChild("NapkinGhost"), nil) -- moved to the Deluxe Fryer
     eq(pool.CrinkleFry.Portrait.ClassName, "ViewportFrame"); assert(pool.CrinkleFry.Portrait.Pet and pool.CrinkleFry.Portrait.CurrentCamera)
     eq(machine.Result.Mystery.Visible, true)
     eq(machine.Count.Text, "PETS 1 / 50")
-    eq(machine.Spin.Text, "NEED $100"); eq(machine.Spin.Active, false)
+    eq(machine.Spin.Text, "NEED $150"); eq(machine.Spin.Active, false)
     remote.lastServerArgs = nil; machine.Spin.Activated:Fire(); eq(remote.lastServerArgs, nil)
     state.profile.cash = 500; show()
-    eq(machine.Spin.Text, "SPIN  $100"); eq(machine.Spin.Active, true)
+    eq(machine.Spin.Text, "SPIN  $150"); eq(machine.Spin.Active, true)
     remote.lastServerArgs = nil; machine.Spin.Activated:Fire()
     eq(remote.lastServerArgs[1], "Spin"); eq(remote.lastServerArgs[2], "StarterFryer")
     state.spin = { serial = 999, id = "P2", type = "CrinkleFry" }; show()
-    eq(machine.Result.PetName.Text, "You got Crinkle Fry!"); eq(machine.Result.Bonus.Text, "+5% fries per click")
+    eq(machine.Result.PetName.Text, "You got Crinkle Fry!"); eq(machine.Result.Bonus.Text, "+4 fries/click  ·  +$1/fry  ·  +10 bag")
     eq(machine.Result.Tag.Text, "COMMON!"); eq(machine.Result.Mystery.Visible, false)
     eq(machine.Result.Portrait:GetAttribute("Showing"), "CrinkleFry")
     state.spin = nil
@@ -988,7 +994,7 @@ test("machine and pets panels show server data and send only spin equip and dele
     state.pets.owned = many; show()
     eq(machine.Spin.Text, "INVENTORY FULL"); eq(machine.Spin.Active, false); eq(machine.Count.Text, "PETS 50 / 50  ·  inventory full")
     state.pets.owned = owned; show()
-    -- Fractional stats from pet bonuses display cleanly.
+    -- Fractional stats from upgrade percentages display cleanly.
     state.stats.perClick = 3.15; show(); eq(gui.Actions.Click.Title.Text, "+3.15 fries/click")
     eq(loadModule("client/ui/Elements").number(2.1), "2.1"); eq(loadModule("client/ui/Elements").number(20), "20")
     -- Pets panel: tiles, selection, equip, two-tap delete, unequip.
@@ -996,12 +1002,12 @@ test("machine and pets panels show server data and send only spin equip and dele
     eq(petsPanel.Caption.Text, "Equipped 0 / 3  ·  1 / 50 pets"); eq(petsPanel.GridArea.Empty.Visible, false)
     local grid, detail = petsPanel.GridArea.Grid, petsPanel.Selected
     local tile = grid.P2
-    eq(tile.PetName.Text, "Crinkle Fry"); eq(tile.Bonus.Text, "+5% fries/click"); eq(tile.Equipped.Visible, false)
+    eq(tile.PetName.Text, "Crinkle Fry"); eq(tile.Bonus.Text, "+4 fries\n+$1/fry\n+10 bag"); eq(tile.Equipped.Visible, false)
     eq(tile.Portrait:GetAttribute("Showing"), "CrinkleFry")
     eq(detail.Hint.Visible, true); eq(detail.Equip.Visible, false); eq(detail.Delete.Visible, false)
     tile.Activated:Fire()
     eq(detail.Hint.Visible, false); eq(detail.PetName.Text, "Crinkle Fry"); eq(detail.Rarity.Text, "COMMON")
-    eq(detail.Bonus.Text, "+5% fries per click"); eq(detail.Equip.Text, "EQUIP"); eq(detail.Portrait:GetAttribute("Showing"), "CrinkleFry")
+    eq(detail.Bonus.Text, "+4 fries/click  ·  +$1/fry  ·  +10 bag"); eq(detail.Equip.Text, "EQUIP"); eq(detail.Portrait:GetAttribute("Showing"), "CrinkleFry")
     remote.lastServerArgs = nil; detail.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Equip"); eq(remote.lastServerArgs[2], "P2")
     remote.lastServerArgs = nil; detail.Delete.Activated:Fire(); eq(remote.lastServerArgs, nil); eq(detail.Delete.Text, "SURE?")
     detail.Delete.Activated:Fire(); eq(remote.lastServerArgs[1], "DeletePet"); eq(remote.lastServerArgs[2], "P2")
@@ -1038,21 +1044,21 @@ test("server merges Golden pets bulk deletes auto-deletes and publishes followin
         return state
     end
     local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
-    local s = sync(); eq(s.profile.cash, 10); eq(#s.pets.owned, 1); eq(#s.pets.mergeable, 0)
-    for _ = 1, 69 do fill(20); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
+    local s = sync(); eq(s.profile.cash, 20); eq(#s.pets.owned, 1); eq(#s.pets.mergeable, 0)
+    for _ = 1, 27 do fill(40); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
     for _ = 1, 4 do act("Spin", "StarterFryer") end
-    s = sync(); eq(s.profile.cash, 300); eq(#s.pets.owned, 5); eq(s.pets.mergeable[1].type, "CrinkleFry"); eq(s.pets.mergeable[1].count, 5)
+    s = sync(); eq(s.profile.cash, 500); eq(#s.pets.owned, 5); eq(s.pets.mergeable[1].type, "CrinkleFry"); eq(s.pets.mergeable[1].count, 5)
     s = act("MergePets", "CrinkleFry")
     eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P7"); eq(s.pets.owned[1].golden, true); eq(s.pets.owned[1].name, "Golden Crinkle Fry")
-    near(s.pets.owned[1].bonuses[1].amount, 0.1)
-    s = act("Equip", "P7"); near(s.stats.perClick, 3.3); eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
+    eq(s.pets.owned[1].bonuses[1].stat, "FriesPerClick"); eq(s.pets.owned[1].bonuses[1].amount, 8) -- Golden doubles +4
+    s = act("Equip", "P7"); near(s.stats.perClick, 12) -- (2 + 8) x 1.2; eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
     s = act("ToggleSetting", "PetsFollow"); eq(s.settings.PetsFollow, false); eq(first:GetAttribute("FollowPets"), "")
     s = act("ToggleSetting", "PetsFollow"); eq(s.settings.PetsFollow, true); eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
     s = act("ToggleAutoDelete", "Common"); eq(s.pets.autoDelete.Common, true)
-    s = act("Spin", "StarterFryer"); eq(s.spin.autoDeleted, true); eq(s.spin.type, "CrinkleFry"); eq(s.profile.cash, 200); eq(#s.pets.owned, 1)
+    s = act("Spin", "StarterFryer"); eq(s.spin.autoDeleted, true); eq(s.spin.type, "CrinkleFry"); eq(s.profile.cash, 350); eq(#s.pets.owned, 1)
     s = act("ToggleAutoDelete", "Common"); eq(s.pets.autoDelete.Common, nil)
     act("Spin", "StarterFryer"); s = act("Spin", "StarterFryer")
-    eq(#s.pets.owned, 3); eq(s.spin.id, "P9"); eq(s.profile.cash, 0)
+    eq(#s.pets.owned, 3); eq(s.spin.id, "P9"); eq(s.profile.cash, 50)
     s = act("DeleteRarity", "Common"); eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P7")
     act("DeleteRarity", "Common"); eq(Notice.lastArgs[1], "No unequipped Common pets to delete.")
     act("MergePets", "CrinkleFry"); eq(Notice.lastArgs[1], "You need 5 unequipped copies of that pet to merge.")
@@ -1175,7 +1181,7 @@ test("settings panel and pet tools show server state and send only allowed reque
     -- Golden tile and tools.
     gui.PetsButton.Activated:Fire()
     local tile = petsPanel.GridArea.Grid.P7
-    eq(tile.PetName.Text, "Golden Crinkle Fry"); eq(tile.Bonus.Text, "+10% fries/click"); eq(tile:GetAttribute("Golden"), true)
+    eq(tile.PetName.Text, "Golden Crinkle Fry"); eq(tile.Bonus.Text, "+8 fries\n+$2/fry\n+20 bag"); eq(tile:GetAttribute("Golden"), true)
     eq(tile.Portrait:GetAttribute("Showing"), "CrinkleFry*")
     tile.Activated:Fire(); eq(petsPanel.Selected.Rarity.Text, "COMMON  ·  GOLDEN  ·  EQUIPPED")
     remote.lastServerArgs = nil; petsPanel.AutoCommon.Activated:Fire()

@@ -52,6 +52,12 @@ Rarity text and borders (dark enough for cream and white): Common `#806c58`, Unc
 - **Smallest supported screens:** 375 x 667 portrait and 640 x 360 landscape (common phone sizes). The layout test also covers 390 x 844, 844 x 390, 947 x 600, and 1280 x 720.
 - Nothing may overlap, shadows included. The layout test checks five screen sizes.
 
+## Numbers
+
+- Cash, prices, and stats use the short format from `shared/util/Format`: 950, 1.25K, 12.5K, 125K, 1.25M, then B, T, Qa, Qi, Sx, Sp, Oc, No, Dc, then 1.2e36. Three significant digits.
+- Money per fry in the upgrade shop keeps cents below $1,000 ($1.00 » $1.10).
+- Upgrade rows show the total percent next to the level (LEVEL 2  ·  +20%).
+
 ## Touch and contrast
 
 - Every tappable control is at least 44 x 44 px. Pack and Sell may scale down on narrow phones but stay at least 36 px tall.
@@ -69,7 +75,7 @@ Uploaded images when `src/shared/config/Icons.luau` has an asset ID, otherwise c
 
 - **Models** (`client/ui/PetModels`): about 2 studs tall, built from smooth parts, facing -Z. Every pet shares one face: white eyes with ink pupils and a shine, pink blush, and a small smile. Golden pets turn the body gold (`#ffcc40`, slight shine) and add two neon sparkles. The same model is used for following pets and portraits.
 - **Portraits** (`client/ui/PetPortrait`): a ViewportFrame with a fixed camera looking slightly down at the pet's face. A portrait only rebuilds when the pet shown changes.
-- **Tiles:** white cards with a 3 px border and a top band in the rarity colour (Legendary gold for Golden), the portrait, the name in Luckiest Guy, and a short bonus. Equipped tiles get a teal tick badge at the top right; Golden tiles a sparkle at the top left. Grids stretch their cells to fill the row (`Elements.fitGrid`) and scroll vertically.
+- **Tiles:** white cards with a 3 px border and a top band in the rarity colour (Legendary gold for Golden), the portrait, the name in Luckiest Guy, and three stat lines (fries, money per fry, bag). Equipped tiles get a teal tick badge at the top right; Golden tiles a sparkle at the top left. Grids stretch their cells to fill the row (`Elements.fitGrid`) and scroll vertically.
 
 ## Panels
 

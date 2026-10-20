@@ -4,7 +4,7 @@ A Roblox restaurant tycoon for up to six players. Claim a restaurant, pack fries
 
 Everything in the world and UI is built in code. No paid assets, plugins, external models, or runtime packages are required.
 
-## Status (18 October 2026)
+## Status (20 October 2026)
 
 | Stage | What it added | Status |
 | --- | --- | --- |
@@ -16,23 +16,24 @@ Everything in the world and UI is built in code. No paid assets, plugins, extern
 | 4. Following pets | Equipped pets follow their owner; Settings with two toggles | Accepted 16 Oct |
 | 5. Inventory management | Golden merges, delete all by rarity, auto-delete | Accepted 16 Oct |
 | Visual overhaul 1 | Diner Sticker style foundation, icon system, new HUD layout, all panels restyled | Accepted 18 Oct |
-| Visual overhaul 2 | Cartoon pet models, live pet portraits, PETS as a tile grid, new SPIN machine panel | **Built, awaiting Studio test and review** |
+| Visual overhaul 2 | Cartoon pet models, live pet portraits, PETS as a tile grid, new SPIN machine panel | Accepted 20 Oct |
+| Rebalance | Flat three-stat pets, percentage upgrades, 40-fry bag, short numbers, no Cash cap, faster first world | **Built, awaiting Studio test and review** |
 
-Development has paused on new systems for the **visual overhaul** (see What's next). More machines and Robux are deliberately on hold.
+Overhaul increments 1 and 2 are accepted. **The rebalance is built and awaiting review**; **restaurant tiers come next** (criteria awaiting agreement). Both are below. Robux stays on hold.
 
 ## What the game has now
 
 **Restaurants and the core loop**
 - Six restaurants around a shared plaza. Gold chevrons guide unclaimed players to free entrances; press E (or tap the prompt) to claim. Owner avatar cards sit above claimed roofs.
 - Click, hold, or hold F to pack fries; the basic fryer adds 0.5 fries per second while you are online. Sell a full bag with the button or R.
-- A full bag sells for bag capacity x money per fry, rounded down ($10 at the start).
+- A full bag sells for bag capacity x money per fry, rounded down ($40 at the start: 40 fries x $1).
 
 **Progression**
-- **Rebirth:** at $1,000 Cash (x1.6 each rebirth), reset Cash and the current bag for gems (10, then +5 each rebirth). Gems, upgrades, pets, and the rebirth count are kept.
-- **Upgrades (gems):** fries per click, money per fry, and bag capacity. Permanent; costs rise 1.25x per level.
-- **Gacha (Cash):** the Starter Fryer costs $100 per spin, shows its odds, and guarantees an Epic or better by the 50th spin without one.
-- **Pets:** 10 Fry Buddies from Common to Legendary, each boosting one or two stats. Equip up to 3; stat = (base + upgrades) x (1 + pet bonuses).
-- **Inventory management:** 50 pets; merge 5 copies into a Golden pet (2x bonus); delete one pet, or all unequipped Commons, Uncommons, or Rares; auto-delete chosen rarities as you spin.
+- **Rebirth:** at $250K Cash (x2 each rebirth), reset Cash and the current bag for gems (10, then +5 each rebirth). Gems, upgrades, pets, and the rebirth count are kept.
+- **Upgrades (gems):** +10% fries per click, money per fry, or bag capacity per level (levels add up). Permanent; costs rise 1.25x per level.
+- **Gacha (Cash):** the Starter Fryer costs $150 per spin, shows every pet's chance, and guarantees an Epic or better by the 50th spin without one.
+- **Pets:** 8 Fry Buddies in the Starter Fryer, from Common to Legendary. Every pet adds flat fries per click, money per fry, and bag size, leaning towards one. Equip up to 3; stat = (base + equipped pets) x (1 + upgrade percent).
+- **Inventory management:** 50 pets; merge 5 copies into a Golden pet (2x stats); delete one pet, or all unequipped Commons, Uncommons, or Rares; auto-delete chosen rarities as you spin.
 - **Following pets and Settings:** equipped pets follow their owner for everyone to see. Settings: *Pets follow me* and *Show other players' pets*.
 
 **Under the hood**
@@ -49,9 +50,60 @@ Development has paused on new systems for the **visual overhaul** (see What's ne
 
 Studio runs in labelled **memory-only test mode** by default, so progress resets when you stop. If nothing appears after Play, check the Output window.
 
-## What's next: visual overhaul
+## Rebalance (built 20 October 2026, awaiting review)
 
-The game works, but it looks like a prototype. Agreed on 16 October 2026: a **Pet Simulator style**, a **hybrid** approach (layout and panels stay code-built; a small set of icons is uploaded as images), and **design before building** (mockups, then a style guide, then one screen at a time, accepted from Studio screenshots). Build order: style foundation (Theme and Elements), main HUD, panels, feedback and animation, then the world. Scope notes:
+Pets become the source of base stats and upgrades become percentages: **(base + equipped pets) x (1 + upgrades)**. Reasons: percentage pet bonuses on a small base were nearly worthless (+5% of 1 fry), flat upgrades would stop mattering once pets are strong, and flat pet stats let each new machine's pets be several times stronger, Pet Simulator style. It also gives future enchantments a clean base to work on. The game is meant to scale into the billions and trillions.
+
+Agreed criteria. Numbers come from `tools/simulate.py`; the owner asked for higher pet stats and a fast first world (about 20 minutes to the Fry Diner), and approved them on 20 October 2026.
+
+1. **Every pet adds all three stats as flat amounts** (fries per click / money per fry / bag), with a **lean** so pets differ in more than size. Fries and money multiply each other, so rarity steps are small on paper (about x1.5 Uncommon, x2 Rare, x3 Epic, x4 Legendary) but large in play. Golden doubles every stat.
+
+   | Starter Fryer pet | Rarity | Fries/click | Money/fry | Bag |
+   | --- | --- | --- | --- | --- |
+   | Crinkle Fry (click) | Common | +4 | +$1.00 | +10 |
+   | Salt Shaker (money) | Common | +2 | +$2.00 | +10 |
+   | Paper Cup (bag) | Common | +2 | +$1.00 | +20 |
+   | Potato Pup | Uncommon | +6 | +$1.50 | +15 |
+   | Ketchup Packet | Uncommon | +3 | +$3.00 | +15 |
+   | Mayo Jar | Rare | +4 | +$4.00 | +20 |
+   | Fryer Bot | Epic | +6 | +$3.00 | +60 |
+   | Fry King | Legendary | +12 | +$6.00 | +60 |
+
+   Deluxe Fryer pets (restaurant tier 2) are 4x the Starter pet in the same slot; Napkin Ghost (+8 / +$4 / +80) and Curly Fry Cat (+16 / +$16 / +80) already have their Deluxe stats.
+2. **6 to 8 pets per machine.** Proposed Starter Fryer (8): Crinkle Fry, Salt Shaker, Paper Cup (Common); Potato Pup, Ketchup Packet (Uncommon); Mayo Jar (Rare); Fryer Bot (Epic); Fry King (Legendary). Napkin Ghost and Curly Fry Cat move to the Deluxe Fryer, so their models are reused and old test saves stay valid.
+3. **Upgrades are percentages:** +10% per level on each track, added (not compounded). Gem costs unchanged (3, 4, and 5 gems, x1.25 per level).
+4. **Base player:** 2 fries per click, $1 per fry, 40-fry bag ($40 per bag). The basic fryer stays at 0.5 fries per second.
+5. **Short numbers:** Cash, prices, and stats show as $1.25K, $3.4M, $1.25B, $2T and so on (see 6 for the full list).
+6. **No practical Cash cap** (owner decision, 20 October 2026). The $1 trillion cap goes. A hidden safety limit at 1e300 stays only so a number can never become infinity, which would corrupt a save; no player can reach it. Short names run K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc, then scientific notation (1.2e36). Above about 9 quadrillion, amounts are kept to about 15 significant digits, far finer than anything the game shows.
+7. **Prices:** Starter spin $150 (about 20 seconds of a new player's income); rebirth $250K, then x2 each time; gems per rebirth unchanged (10, +5 each). Restaurant tiers will use Fry Diner $5M and Deluxe spin $150K. Odds and pity unchanged.
+   Simulated pace (median, `tools/simulate.py`): first spin 20 s, first rebirth 3 min, rebirths 2 and 3 at 6 and 9 min, Fry Diner 18 min. The first Legendary comes at about 1 minute: the Starter Fryer is the quick first machine; the longer chases are Golden pets, the Diner, and the Deluxe Fryer.
+8. **Tests and docs** updated: pricing formula, pet text, shop text, number formatting, caps.
+
+## Then: restaurant tiers (proposed 20 October 2026)
+
+Better gacha machines are how players progress, and each new machine also upgrades the restaurant: a better machine means a more elaborate restaurant that everyone on the plaza can see. Agreed with the owner on 20 October 2026:
+
+- **Machines are physical stands** inside the player's own restaurant. Walking up to one opens the existing SPIN panel for that machine; walking away closes it. The server checks the player is at the stand before it spins, as it already does for selling at the counter.
+- **New machines join the old ones.** Every tier keeps all earlier machines, so older pets can still be collected and merged.
+- **Restaurant upgrades cost Cash.**
+- **Tiers are permanent.** They survive rebirth (rebirth already resets Cash, so losing the restaurant too would be too punishing).
+- **Tiers change machines and looks only.** The base fryer rate stays fixed. A fryer upgrade may come later as a player upgrade track with a small effect.
+- **Start with two tiers:** the base restaurant and one upgrade. Once that works, keep adding tiers.
+
+### Proposed acceptance criteria (first draft, numbers are first guesses)
+
+1. **Tier 1, Fry Stand** (every player): today's restaurant plus a physical Starter Fryer stand ($150 per spin, the 8 Starter pets).
+2. **Tier 2, Fry Diner:** bought for **$5M Cash** at an EXPAND sign inside the restaurant. It adds a **Deluxe Fryer** stand ($150K per spin) and a visibly fancier restaurant: a bigger sign, an awning, neon trim, and seating, all inside the existing plot.
+3. **Deluxe Fryer pets:** 6 to 8 pets including Napkin Ghost and Curly Fry Cat, 4 times the Starter pet in the same slot (see the rebalance), with the same rarity odds and pity (Epic or better within 50 spins). Names and models to be agreed.
+4. **SPIN menu button:** no longer opens the panel from anywhere. It shows an arrow to the nearest machine stand in your restaurant.
+5. **Saving:** the tier is a new profile field (never a reused legacy name), kept through rebirth. Old saves start at tier 1.
+6. **Others see it:** every player's restaurant shows its own tier on the plaza.
+7. **Tests:** the tier price is charged on the server only; you can't buy tier 2 twice or skip tiers; spins need the right machine and the right tier and the player at its stand; rebirth keeps the tier.
+
+
+## Visual overhaul (increments 1 and 2 accepted)
+
+The game worked, but it looked like a prototype. Agreed on 16 October 2026: a **Pet Simulator style**, a **hybrid** approach (layout and panels stay code-built; a small set of icons is uploaded as images), and **design before building** (mockups, then a style guide, then one screen at a time, accepted from Studio screenshots). Build order: style foundation (Theme and Elements), main HUD, panels, feedback and animation, then the world. Scope notes:
 
 - **HUD and panels:** a consistent, more playful style (colour, shape, icons, motion) to replace the dark functional cards; better icons than the current fry and bag symbols and the code-built gear.
 - **Feedback and juice:** spin reveal animation, sale and purchase pops, rebirth celebration, sounds, and particles.
@@ -72,7 +124,7 @@ Picked from three mockups (the "Fries HUD style directions" design canvas, artbo
 ### Overhaul increments
 
 1. **Foundation and HUD** (accepted 18 October 2026): Theme and Elements in Diner Sticker, the icon system with code-built fallbacks, the new HUD layout, and every panel on the shared frame.
-2. **Pets, gacha, and inventory** (built 18 October 2026, awaiting review): ten cartoon pet models (shared face, Golden gold and sparkles), live 3D portraits, PETS as a tile grid with a detail bar, and the SPIN panel as a result card, pity bar, and a "in this machine" grid with each pet's chance. Upgrades and rebirth layouts are unchanged for now.
+2. **Pets, gacha, and inventory** (accepted 20 October 2026): ten cartoon pet models (shared face, Golden gold and sparkles), live 3D portraits, PETS as a tile grid with a detail bar, and the SPIN panel as a result card, pity bar, and a "in this machine" grid with each pet's chance. Upgrades and rebirth layouts are unchanged for now.
 3. **Motion and sound:** press squash, panel pops, count-ups, sale pops, spin reveal, rebirth celebration.
 4. **World:** restaurant, fryer, and pet models, plaza decoration, and a physical gacha machine.
 
@@ -80,7 +132,7 @@ Icons drop in at any point: add the PNG to `art/icons/`, upload it, and paste it
 
 ## Later (on hold)
 
-- More machines with better pets, later tied to unlockable worlds (Pet Simulator style). Machines are already data in `src/shared/config/Machines.luau`.
+- Restaurant tiers 3 and up (more machines and restaurant looks), later perhaps unlockable worlds.
 - Robux purchases (odds must be shown; selling gems would sell upgrades directly, so choose carefully).
 - Possible: rebirth-count unlocks, extra pet slots, more upgrade tracks.
 
@@ -91,11 +143,11 @@ Icons drop in at any point: add the PNG to `art/icons/`, upload it, and paste it
 - Following pets have not been checked for performance with six players and 18 pets, or for clipping through walls (they do not collide).
 
 **Balance**
-- All numbers (spin price, odds, pity, rebirth curve, gem costs, pet bonuses) are first guesses from one simulation. Retune from playtests. Later rebirth cycles get long without good pets.
+- All numbers come from `tools/simulate.py`, which models one ideal player. Retune from playtests and rerun it after any change. Rebirths slow down after the Diner until tier 3 exists.
 
 **UX**
 - Panels scale down to about two thirds on short landscape phones; PETS uses a compact layout there but shows one row of tiles at a time.
-- Pets with two bonuses (Fry King) have very small bonus text on their tile.
+- Pet tiles show three stat lines; on the phone detail bar the stats wrap onto two lines (check in Studio).
 - The SPIN panel layout was not mocked up first; treat it as a first draft for feedback.
 - The merge banner only merges the rarest mergeable pet at a time; there is no sorting, filtering, or "equip best".
 - Menu labels are small in the short-landscape grid.

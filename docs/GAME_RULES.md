@@ -1,11 +1,13 @@
-# Game rules (current through stages 4 and 5)
+# Game rules (current through the rebalance, 20 October 2026)
 
-Each player arrives in a central plaza and chooses a free restaurant entrance using E or its touch prompt. Only a nearby living player with a loaded profile can claim; one restaurant is allowed per session. Leaving releases it. Every restaurant has one counter, a basic fryer, and a bag. Players earn Cash, rebirth at a rising Cash threshold to earn gems, spend gems in the upgrade shop, and spend Cash on gacha spins for pets that boost the same three stats.
+Each player arrives in a central plaza and chooses a free restaurant entrance using E or its touch prompt. Only a nearby living player with a loaded profile can claim; one restaurant is allowed per session. Leaving releases it. Every restaurant has one counter, a basic fryer, and a bag. Players earn Cash, rebirth at a rising Cash threshold to earn gems, spend gems in the upgrade shop, and spend Cash on gacha spins for pets that add to the same three stats.
+
+Every stat = (base + equipped pets' flat amounts) x (1 + upgrade percent). Numbers are shown in short form: $1.25K, $3.4M, $1.25B, $2T, then Qa, Qi, Sx, Sp, Oc, No, Dc, then scientific notation (1.2e36).
 
 ## Filling
 
-- A bag holds 20 fries, plus 5 per Bag capacity level, times any equipped capacity pet bonus (rounded down to whole fries).
-- Each accepted click adds 1 fry, plus 1 per Fries per click level, times any equipped pet bonus (so it can be fractional, such as 1.05). The server accepts at most 4 clicks per second.
+- A bag holds (40 + equipped pets' bag) x (1 + 10% per Bag capacity level) fries, rounded down to whole fries.
+- Each accepted click adds (2 + equipped pets' fries) x (1 + 10% per Fries per click level) fries (so it can be fractional, such as 2.4). The server accepts at most 4 clicks per second.
 - Holding Click or F sends paced Pack requests.
 - After claiming, the basic fryer adds 0.5 fries per second while online, including away from the counter. This rate is fixed and cannot be upgraded. There is no production before claiming.
 - Full bags halt production. Overflow is discarded; there is no queue or offline accrual.
@@ -13,16 +15,16 @@ Each player arrives in a central plaza and chooses a free restaurant entrance us
 
 ## Selling
 
-- A full bag sells for bag capacity x money per fry, rounded down to whole Cash. Money per fry is $0.50, plus $0.05 per Money per fry level, times any equipped pet bonus. It is stored in cents so sums stay exact. Before upgrades: 20 fries x $0.50 = $10.
+- A full bag sells for bag capacity x money per fry, rounded down to whole Cash. Money per fry is ($1 + equipped pets' money) x (1 + 10% per Money per fry level). It is worked out in cents. Before pets and upgrades: 40 fries x $1 = $40.
 - Empty and partial bags cannot be sold.
 - Selling requires the player to be alive and near their own counter.
 - A successful sale credits Cash and lifetime counters, then clears the bag in one non-yielding operation.
 - Repeated selling cannot reward the same bag twice.
-- Cash and lifetime counters are capped at 1 trillion.
+- Cash has no practical cap (owner, 20 October 2026). A hidden safety limit of 1e300 only stops a number ever becoming infinity, which would corrupt a save. Above about 9 quadrillion, amounts keep about 15 significant digits.
 
 ## Rebirth
 
-- Rebirth threshold = 1,000 x 1.6^rebirths, rounded to whole Cash: $1,000, $1,600, $2,560, $4,096, ...
+- Rebirth threshold = 250,000 x 2^rebirths, rounded to whole Cash: $250K, $500K, $1M, $2M, ...
 - Gems per rebirth = 10 + 5 x rebirths: 10, 15, 20, ...
 - Rebirth needs Cash >= the threshold. It sets Cash to 0 (everything above the threshold is lost too) and empties the current bag, then adds the gems and counts the rebirth.
 - Gems, upgrade levels, the rebirth count, sales, and lifetime Cash are kept.
@@ -30,18 +32,18 @@ Each player arrives in a central plaza and chooses a free restaurant entrance us
 
 ## Gacha and pets
 
-- **Starter Fryer:** $100 Cash per spin. Odds: Common 60%, Uncommon 25%, Rare 10%, Epic 4%, Legendary 1%. Pets in a rarity share its chance equally.
-- **Pets:** Crinkle Fry, Salt Shaker, Paper Cup (Common, +5%); Potato Pup, Ketchup Packet, Napkin Ghost (Uncommon, +10%); Curly Fry Cat, Mayo Jar (Rare, +20%); Fryer Bot (Epic, +40% bag capacity); Fry King (Legendary, +50% fries per click and +50% money per fry). See README for which stat each boosts.
+- **Starter Fryer:** $150 Cash per spin, 8 pets. Odds: Common 60%, Uncommon 25%, Rare 10%, Epic 4%, Legendary 1%. Pets in a rarity share its chance equally (Common 20% each, Uncommon 12.5% each, Rare 10%, Epic 4%, Legendary 1%).
+- **Pets** (fries per click / money per fry / bag): Crinkle Fry +4 / +$1 / +10, Salt Shaker +2 / +$2 / +10, Paper Cup +2 / +$1 / +20 (Common); Potato Pup +6 / +$1.50 / +15, Ketchup Packet +3 / +$3 / +15 (Uncommon); Mayo Jar +4 / +$4 / +20 (Rare); Fryer Bot +6 / +$3 / +60 (Epic); Fry King +12 / +$6 / +60 (Legendary). Napkin Ghost and Curly Fry Cat are no longer in the Starter Fryer (they join the Deluxe Fryer); copies already owned keep working.
 - **Pity:** the 50th spin in a row without an Epic or better is Epic or better (Epic 80%, Legendary 20%). Any Epic or Legendary resets the counter.
 - The client sends only Spin with the machine name. The server checks the claim, Cash, and inventory space, then deducts the price, rolls with a server-side random number, adds the pet, and updates pity in one non-yielding step.
 - **Inventory:** up to 50 pets, each with a unique ID that is never reused. Spinning is blocked when full.
-- **Equipping:** up to 3 pets. Effective stat = (base + upgrade levels) x (1 + total equipped bonus for that stat). Bonuses for the same stat add together.
+- **Equipping:** up to 3 pets. Their flat amounts add together, then upgrade percentages apply.
 - **Deleting:** only unequipped pets, after a second confirming tap.
 - Unequipping or deleting trims an over-full bag to the new capacity. Pets, equipped pets, pity, and settings survive rebirth.
 
 ## Inventory management
 
-- **Merging:** 5 unequipped, non-golden copies of one pet merge into one Golden pet (new ID, 2x bonus). Golden pets cannot merge again.
+- **Merging:** 5 unequipped, non-golden copies of one pet merge into one Golden pet (new ID, 2x every stat). Golden pets cannot merge again.
 - **Delete all:** removes every unequipped, non-golden Common, Uncommon, or Rare pet of the chosen rarity (second tap within 3 seconds). Epic and Legendary cannot be bulk deleted.
 - **Auto-delete:** per rarity (Common, Uncommon, Rare). A matching spin still costs Cash and counts for pity, but the pet is not kept.
 
@@ -56,16 +58,16 @@ Each player arrives in a central plaza and chooses a free restaurant entrance us
 
 | Track | Per level | Cost (whole gems, rounded) |
 | --- | --- | --- |
-| Fries per click | +1 fry per click | 3 x 1.25^level |
-| Money per fry | +$0.05 per fry | 4 x 1.25^level |
-| Bag capacity | +5 fries | 5 x 1.25^level |
+| Fries per click | +10% fries per click | 3 x 1.25^level |
+| Money per fry | +10% money per fry | 4 x 1.25^level |
+| Bag capacity | +10% bag size | 5 x 1.25^level |
 
-- There are no level caps. Rising costs limit progress.
+- Levels add up rather than compound: level 5 is +50%, level 10 is +100%. There are no level caps; rising costs limit progress.
 - The client sends only the track name. The server checks the restaurant claim, the track name, and the gems, then deducts the gem cost and raises one level in one non-yielding operation. Purchases have a short cooldown. Buying does not require standing at the counter.
 - Buying Bag capacity while the bag is full makes it partial again. No fries are lost and filling resumes.
 - Upgrades are permanent and survive rebirth. Cash never buys upgrades.
 - Upgrade levels are saved in `upgradeLevels`, gems in `gems`, the rebirth count in `rebirths`, pets in `pets`, equipped pet IDs in `equippedPets`, the last pet number in `nextPetId`, and pity per machine in `pity`. The old prototype's `equipped` equipment field is never read. A missing field or track means 0. The old prototype's `upgrades` field is never read.
-- Saves from before gems existed load once with 0 gems, 0 rebirths, and level 0 upgrades (the owner chose to reset Cash-bought levels). A bag above base capacity is trimmed to 20 fries.
+- Saves from before gems existed load once with 0 gems, 0 rebirths, and level 0 upgrades (the owner chose to reset Cash-bought levels). A bag above base capacity is trimmed to 40 fries.
 
 There are no random fry variants, folding bonuses, Tickets, rebirth unlocks, extra machines, Robux purchases, or event rewards. Legacy saved bonuses do not change these rules.
 
@@ -77,7 +79,7 @@ Four menu buttons: UPGRADES, REBIRTH, SPIN, and PETS. On tall screens they are l
 
 - UPGRADES opens one row per track: level, current value -> next value, and a Buy button showing the gem cost. Unaffordable Buy buttons are greyed out and send nothing.
 - REBIRTH glows when the threshold is reached. Its panel shows the gems it gives, the threshold and current Cash with a progress bar, what resets and what is kept, and the rebirth count. The confirm button reads NEED $X until the threshold is reached, then REBIRTH NOW. A completed rebirth closes the panel.
-- SPIN opens the Starter Fryer: price and pity in the caption, the last result (3D portrait, rarity tag, name, bonus), a pity bar, the pet count, a button reading SPIN $100, NEED $100, or INVENTORY FULL, and every pet in the machine with its own chance (its rarity's chance split evenly between that rarity's pets).
+- SPIN opens the Starter Fryer: price and pity in the caption, the last result (3D portrait, rarity tag, name, bonus), a pity bar, the pet count, a button reading SPIN $150, NEED $150, or INVENTORY FULL, and every pet in the machine with its own chance (its rarity's chance split evenly between that rarity's pets).
 - PETS shows owned pets as tiles (equipped first, then by rarity, Golden first) with portrait, name, and bonus. Tapping a tile selects it; the detail bar below shows its rarity and full bonus, EQUIP/UNEQUIP (SLOTS FULL when three are equipped), and DELETE (unequipped only; tap twice within 3 seconds). Above the grid: AUTO-DELETE and DELETE ALL chips for Common, Uncommon, and Rare, and a merge banner with MERGE for the rarest mergeable pet.
 - X closes any panel.
 

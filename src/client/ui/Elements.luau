@@ -1,19 +1,13 @@
 -- Shared widgets in the Diner Sticker style: white sticker borders, solid ink shadows
 -- offset down and right, Luckiest Guy labels on buttons, and one panel frame.
 local Theme = require(script.Parent.Theme)
+local Format = require(game:GetService("ReplicatedStorage"):WaitForChild("FriesShared").util.Format)
 local Elements = {}
-function Elements.count(value)
-    local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
-    local result = string.reverse(grouped):gsub("^,", "")
-    return result
-end
-function Elements.money(value) return "$" .. Elements.count(value) end
--- Whole numbers stay whole; pet bonuses can make stats fractional (1.05 fries per click).
-function Elements.number(value)
-    if math.abs(value - math.floor(value + 0.5)) < 1e-6 then return Elements.count(math.floor(value + 0.5)) end
-    local text = string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", "")
-    return text
-end
+-- Numbers use the shared short format: 950, 1.25K, 3.4M, 1.25B, 2T, ... (see shared/util/Format).
+function Elements.count(value) return Format.short(value) end
+function Elements.money(value) return Format.money(value) end
+-- Whole numbers stay whole; upgrade percentages can make stats fractional (2.2 fries per click).
+function Elements.number(value) return Format.short(value) end
 -- Shrinks text to fit on one line, between min and max sizes.
 function Elements.fit(label, min, max)
     label.TextScaled, label.TextWrapped = true, false

@@ -27,8 +27,8 @@ end)
 
 test("basic fryer click and sale values do not depend on old progression", function()
     local old = {upgrades={Click=20,Sales=20}, equipped={Machine="ufo",Bag="briefcase"}}
-    eq(Pricing.click(old), 1); eq(Pricing.automatic(old), 0.5); eq(Pricing.sale(old), 10)
-    eq(Pricing.perFry(old), 0.5)
+    eq(Pricing.click(old), 2); eq(Pricing.automatic(old), 0.5); eq(Pricing.sale(old), 40)
+    eq(Pricing.perFry(old), 1)
 end)
 
 test("bag sale value is capacity times money per fry", function()
@@ -40,10 +40,10 @@ end)
 test("click and fryer filling clamp at one full bag", function()
     local p = Profile.new()
     for _ = 1, 19 do Packing.add(p, Pricing.click()) end
-    eq(p.bag.fries, 19)
-    eq(Packing.add(p, 0.5), false); eq(p.bag.fries, 19.5)
-    eq(Packing.add(p, 10), true); eq(p.bag.fries, 20)
-    eq(Packing.add(p, 1), false); eq(p.bag.fries, 20)
+    eq(p.bag.fries, 38)
+    eq(Packing.add(p, 0.5), false); eq(p.bag.fries, 38.5)
+    eq(Packing.add(p, 10), true); eq(p.bag.fries, 40)
+    eq(Packing.add(p, 1), false); eq(p.bag.fries, 40)
     assert(Profile.validate(p))
 end)
 
@@ -54,7 +54,7 @@ test("invalid additions cannot corrupt a bag", function()
 end)
 
 test("empty and partial bags cannot be sold", function()
-    for _, fries in ipairs({0, 1, 19, 19.99}) do
+    for _, fries in ipairs({0, 1, 39, 39.99}) do
         local p = Profile.new(); p.bag.fries = fries
         eq(Packing.sell(p), false)
         eq(p.cash, 0); eq(p.sales, 0); eq(p.lifetimeCash, 0); eq(p.bag.fries, fries)
@@ -62,11 +62,11 @@ test("empty and partial bags cannot be sold", function()
 end)
 
 test("full bag credits cash once and clears for the next bag", function()
-    local p = Profile.new(); Packing.add(p, 20)
+    local p = Profile.new(); Packing.add(p, 40)
     local ok, amount = Packing.sell(p)
-    eq(ok, true); eq(amount, 10); eq(p.cash, 10); eq(p.sales, 1); eq(p.lifetimeCash, 10)
-    eq(p.bag.fries, 0); eq(Packing.sell(p), false); eq(p.cash, 10)
-    Packing.add(p, 20); eq(Packing.sell(p), true); eq(p.cash, 20); eq(p.sales, 2)
+    eq(ok, true); eq(amount, 40); eq(p.cash, 40); eq(p.sales, 1); eq(p.lifetimeCash, 40)
+    eq(p.bag.fries, 0); eq(Packing.sell(p), false); eq(p.cash, 40)
+    Packing.add(p, 40); eq(Packing.sell(p), true); eq(p.cash, 80); eq(p.sales, 2)
     assert(Profile.validate(p))
 end)
 
@@ -75,17 +75,17 @@ test("legacy cash and fries remain usable while all old bonuses are ignored", fu
     p.cash, p.sales, p.lifetimeCash = 123, 5, 123
     p.upgrades = {Click=20, Sales=20}; p.equipped = {Machine="ufo", Bag="briefcase"}
     p.tickets = 99; p.owned = {ufo=true}; p.discoveries = {golden=true}
-    p.bag = {fries=20, value=999, perfect=true, foldAttempted=true, variant="golden"}
+    p.bag = {fries=40, value=999, perfect=true, foldAttempted=true, variant="golden"}
     assert(Profile.validate(p))
     local ok, amount = Packing.sell(p)
-    eq(ok, true); eq(amount, 10); eq(p.cash, 133); eq(p.bag.fries, 0)
+    eq(ok, true); eq(amount, 40); eq(p.cash, 163); eq(p.bag.fries, 0)
     eq(p.tickets, 99); eq(p.bag.perfect, nil)
 end)
 
 test("cash and counters stay within the configured bound", function()
     local p = Profile.new()
     p.cash, p.lifetimeCash, p.sales = Economy.MaxCurrency - 1, Economy.MaxCurrency - 1, Economy.MaxCurrency
-    Packing.add(p, 20); Packing.sell(p)
+    Packing.add(p, 40); Packing.sell(p)
     eq(p.cash, Economy.MaxCurrency); eq(p.lifetimeCash, Economy.MaxCurrency); eq(p.sales, Economy.MaxCurrency)
     assert(Profile.validate(p))
 end)

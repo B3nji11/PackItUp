@@ -13,7 +13,7 @@ local function owner(types)
 end
 local function always(value) return function() return value end end
 
-test("five unequipped copies merge into one Golden pet with double bonus", function()
+test("five unequipped copies merge into one Golden pet with double stats", function()
     local p = owner({ "CrinkleFry", "CrinkleFry", "CrinkleFry", "CrinkleFry", "CrinkleFry", "CrinkleFry", "MayoJar" })
     Pets.equip(p, "P1")
     eq(#Pets.mergeable(p), 1); eq(Pets.mergeable(p)[1].type, "CrinkleFry"); eq(Pets.mergeable(p)[1].count, 5)
@@ -21,8 +21,8 @@ test("five unequipped copies merge into one Golden pet with double bonus", funct
     eq(ok, true); eq(golden.id, "P8"); eq(golden.golden, true); eq(golden.type, "CrinkleFry")
     eq(#p.pets, 3) -- equipped P1, MayoJar, and the Golden pet
     eq(Pets.isEquipped(p, "P1"), true); assert(Pets.find(p, "P1")); assert(Pets.find(p, "P7"))
-    near(Pets.petBonus(golden, "FriesPerClick"), 0.10)
-    Pets.equip(p, "P8"); near(Pricing.click(p), 1.15)
+    eq(Pets.petStat(golden, "FriesPerClick"), 8); eq(Pets.petStat(golden, "MoneyPerFry"), 2); eq(Pets.petStat(golden, "BagCapacity"), 20)
+    Pets.equip(p, "P8"); eq(Pricing.click(p), 14) -- base 2 + Crinkle Fry 4 + Golden Crinkle Fry 8
     local message
     ok, message = Pets.merge(p, "CrinkleFry")
     eq(ok, false); eq(message, "You need 5 unequipped copies of that pet to merge.")
@@ -60,9 +60,9 @@ test("auto-deleted rarities still cost the spin and count for pity but are not k
     eq(Pets.toggleAutoDelete(p, "Common"), true); eq(Pets.autoDeletes(p, "Common"), true)
     local ok, result = Gacha.spin(p, "StarterFryer", always(0))
     eq(ok, true); eq(result.autoDeleted, true); eq(result.type, "CrinkleFry"); eq(result.rarity, "Common")
-    eq(#p.pets, 0); eq(p.cash, 99900); eq(Gacha.pity(p, "StarterFryer"), 1)
+    eq(#p.pets, 0); eq(p.cash, 99850); eq(Gacha.pity(p, "StarterFryer"), 1)
     ok, result = Gacha.spin(p, "StarterFryer", always(0.7))
-    eq(result.autoDeleted, nil); eq(result.type, "NapkinGhost"); eq(#p.pets, 1)
+    eq(result.autoDeleted, nil); eq(result.type, "KetchupPacket"); eq(#p.pets, 1)
     eq(Pets.toggleAutoDelete(p, "Epic"), false); eq(Pets.toggleAutoDelete(p, "Legendary"), false)
     Pets.toggleAutoDelete(p, "Common"); eq(Pets.autoDeletes(p, "Common"), false)
     Gacha.spin(p, "StarterFryer", always(0)); eq(#p.pets, 2)
@@ -120,7 +120,7 @@ test("golden pets settings and auto-delete save and load", function()
     eq(store:save("1", "A", p, true), true)
     local restored = store:load("1", "B")
     eq(#restored.pets, 1); eq(restored.pets[1].golden, true); eq(restored.equippedPets[1], "P6")
-    near(Pricing.perFry(restored), 0.7) -- $0.50 x (1 + 0.40)
+    eq(Pricing.perFry(restored), 9) -- $1 base + Golden Mayo Jar $8
     eq(Settings.get(restored, "ShowOtherPets"), false); eq(Settings.get(restored, "PetsFollow"), true)
     eq(Pets.autoDeletes(restored, "Uncommon"), true)
 end)

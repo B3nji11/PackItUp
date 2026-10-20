@@ -20,17 +20,17 @@ test("starter machine odds sum to one and every pet belongs to a listed rarity",
     local machine = Machines.Machines.StarterFryer
     local total = 0
     for _, chance in pairs(machine.Odds) do total += chance end
-    near(total, 1); eq(machine.Price, 100); eq(machine.PityEvery, 50); eq(#machine.Pool, 10)
+    near(total, 1); eq(machine.Price, 150); eq(machine.PityEvery, 50); eq(#machine.Pool, 8)
     for _, petType in ipairs(machine.Pool) do assert(PetConfig.Types[petType]); assert(machine.Odds[PetConfig.Types[petType].Rarity]) end
     local snap = Gacha.snapshot(Profile.new(), "StarterFryer")
     eq(#snap.odds, 5); eq(snap.odds[1].rarity, "Common"); eq(#snap.odds[1].pets, 3); eq(snap.odds[5].pets[1], "Fry King")
-    eq(snap.pity, 0); eq(snap.price, 100)
+    eq(#snap.odds[2].pets, 2); eq(#snap.odds[3].pets, 1); eq(snap.pity, 0); eq(snap.price, 150)
 end)
 
 test("rolls map random numbers to rarities and share each rarity equally", function()
     local p = Profile.new()
     local cases = { {0, 0, "CrinkleFry"}, {0.59, 0.5, "SaltShaker"}, {0.3, 0.99, "PaperCup"}, {0.7, 0, "PotatoPup"},
-        {0.84, 0.99, "NapkinGhost"}, {0.86, 0, "CurlyFryCat"}, {0.9, 0.6, "MayoJar"}, {0.96, 0.5, "FryerBot"}, {0.995, 0, "FryKing"} }
+        {0.84, 0.99, "KetchupPacket"}, {0.86, 0, "MayoJar"}, {0.9, 0.6, "MayoJar"}, {0.96, 0.5, "FryerBot"}, {0.995, 0, "FryKing"} }
     for _, case in ipairs(cases) do
         local petType, rarity = Gacha.roll(p, "StarterFryer", sequence({case[1], case[2]}))
         eq(petType, case[3]); eq(rarity, PetConfig.Types[case[3]].Rarity)
@@ -77,13 +77,13 @@ test("the fiftieth spin without an Epic is guaranteed Epic or better and resets 
 end)
 
 test("spins charge the fixed price add uniquely numbered pets and stop when full or broke", function()
-    local p = rich(250)
+    local p = rich(400)
     local ok, owned = Gacha.spin(p, "StarterFryer", sequence({0}))
-    eq(ok, true); eq(p.cash, 150); eq(owned.id, "P1"); eq(owned.machine, "StarterFryer"); eq(#p.pets, 1)
-    ok, owned = Gacha.spin(p, "StarterFryer", sequence({0})); eq(owned.id, "P2"); eq(p.cash, 50)
+    eq(ok, true); eq(p.cash, 250); eq(owned.id, "P1"); eq(owned.machine, "StarterFryer"); eq(#p.pets, 1)
+    ok, owned = Gacha.spin(p, "StarterFryer", sequence({0})); eq(owned.id, "P2"); eq(p.cash, 100)
     local message
     ok, message = Gacha.spin(p, "StarterFryer", sequence({0}))
-    eq(ok, false); eq(message, "Not enough Cash to spin."); eq(p.cash, 50); eq(#p.pets, 2)
+    eq(ok, false); eq(message, "Not enough Cash to spin."); eq(p.cash, 100); eq(#p.pets, 2)
     eq(Gacha.spin(p, "Nope", sequence({0})), false); eq(Gacha.isMachine("Nope"), false); eq(Gacha.isMachine(nil), false)
     p.cash = 1e9
     while #p.pets < PetConfig.MaxPets do Gacha.spin(p, "StarterFryer", sequence({0})) end
@@ -92,33 +92,34 @@ test("spins charge the fixed price add uniquely numbered pets and stop when full
     eq(p.lifetimeCash, 0); assert(Profile.validate(p))
 end)
 
-test("equipping up to three pets applies their bonuses to the stats", function()
+test("equipping up to three pets adds their flat stats before upgrade percentages", function()
     local p = rich()
     for _, petType in ipairs({ "CrinkleFry", "CrinkleFry", "PotatoPup", "FryKing" }) do Pets.add(p, petType, "StarterFryer") end
-    eq(Pets.equip(p, "P1"), true); near(Pricing.click(p), 1.05)
+    -- Crinkle Fry +4 / +$1 / +10, Potato Pup +6 / +$1.50 / +15, Fry King +12 / +$6 / +60.
+    eq(Pets.equip(p, "P1"), true); eq(Pricing.click(p), 6)
     eq(Pets.equip(p, "P1"), false)
-    eq(Pets.equip(p, "P2"), true); eq(Pets.equip(p, "P3"), true); near(Pricing.click(p), 1.2)
+    eq(Pets.equip(p, "P2"), true); eq(Pets.equip(p, "P3"), true); eq(Pricing.click(p), 16)
     local ok, message = Pets.equip(p, "P4")
     eq(ok, false); eq(message, "All pet slots are full. Unequip a pet first.")
     eq(Pets.equip(p, "P99"), false)
     eq(Pets.unequip(p, "P2"), true); eq(Pets.unequip(p, "P2"), false)
     eq(Pets.equip(p, "P4"), true)
-    near(Pricing.click(p), 1.65); near(Pricing.perFry(p), 0.75); eq(Pricing.sale(p), 15)
+    eq(Pricing.click(p), 24); near(Pricing.perFry(p), 9.5); eq(Pricing.capacity(p), 125); eq(Pricing.sale(p), 1187) -- $1,187.50
     p.upgradeLevels = { FriesPerClick = 1, MoneyPerFry = 1 }
-    near(Pricing.click(p), 3.3); eq(Pricing.sale(p), 16) -- 20 x $0.825 = $16.50 rounds down
+    near(Pricing.click(p), 26.4); eq(Pricing.sale(p), 1306) -- 125 x $10.45 = $1,306.25 rounds down
     assert(Profile.validate(p))
 end)
 
 test("capacity pets round down to whole fries and unequipping trims an over-full bag", function()
     local p = rich()
-    Pets.add(p, "FryerBot", "StarterFryer"); Pets.add(p, "PaperCup", "StarterFryer")
-    Pets.equip(p, "P1"); eq(Pricing.capacity(p), 28); eq(Pricing.sale(p), 14)
-    p.upgradeLevels = { BagCapacity = 1 }; eq(Pricing.capacity(p), 35)
-    Pets.equip(p, "P2"); eq(Pricing.capacity(p), 36) -- 25 x 1.45 = 36.25
+    Pets.add(p, "FryerBot", "StarterFryer"); Pets.add(p, "PotatoPup", "StarterFryer")
+    Pets.equip(p, "P1"); eq(Pricing.capacity(p), 100); eq(Pricing.sale(p), 400)
+    p.upgradeLevels = { BagCapacity = 1 }; eq(Pricing.capacity(p), 110)
+    Pets.equip(p, "P2"); eq(Pricing.capacity(p), 126) -- 115 x 1.1 = 126.5
     p.upgradeLevels = {}
-    eq(Packing.add(p, 100), true); eq(p.bag.fries, 29)
-    eq(Pets.unequip(p, "P1"), true); Profile.normalize(p); eq(p.bag.fries, 21)
-    eq(Pricing.capacity(p), 21); eq(Packing.sell(p), true); eq(p.bag.fries, 0)
+    eq(Packing.add(p, 200), true); eq(p.bag.fries, 115)
+    eq(Pets.unequip(p, "P1"), true); Profile.normalize(p); eq(p.bag.fries, 55)
+    eq(Pricing.capacity(p), 55); eq(Packing.sell(p), true); eq(p.bag.fries, 0)
 end)
 
 test("only unequipped pets can be deleted and IDs are never reused", function()
@@ -134,21 +135,21 @@ test("only unequipped pets can be deleted and IDs are never reused", function()
 end)
 
 test("rebirth keeps pets equipped pets and pity", function()
-    local p = rich(1000)
+    local p = rich(250000)
     Pets.add(p, "FryKing", "StarterFryer"); Pets.equip(p, "P1"); p.pity = { StarterFryer = 12 }
     eq(Rebirth.perform(p), true)
-    eq(#p.pets, 1); eq(Pets.isEquipped(p, "P1"), true); eq(Gacha.pity(p, "StarterFryer"), 12); near(Pricing.click(p), 1.5)
+    eq(#p.pets, 1); eq(Pets.isEquipped(p, "P1"), true); eq(Gacha.pity(p, "StarterFryer"), 12); eq(Pricing.click(p), 14)
 end)
 
-test("upgrade shop values include equipped pet bonuses", function()
+test("upgrade shop values include equipped pet stats", function()
     local p = rich(); Pets.add(p, "CrinkleFry", "StarterFryer"); Pets.equip(p, "P1")
     local row = Upgrades.snapshot(p)[1]
-    near(row.value, 1.05); near(row.nextValue, 2.1)
+    eq(row.value, 6); near(row.nextValue, 6.6)
 end)
 
 test("old prototype equipment never counts as equipped pets", function()
     local p = Profile.new(); p.equipped = { Machine = "ufo", Bag = "briefcase" }; p.owned = { ufo = true }
-    assert(Profile.validate(p)); eq(Pets.bonus(p, "FriesPerClick"), 0); eq(#Pets.equipped(p), 0); eq(Pricing.click(p), 1)
+    assert(Profile.validate(p)); eq(Pets.total(p, "FriesPerClick"), 0); eq(#Pets.equipped(p), 0); eq(Pricing.click(p), 2)
 end)
 
 test("saved pets equipped pets and pity are validated", function()
@@ -193,6 +194,6 @@ test("pets equipped pets and pity save and load", function()
     local restored = store:load("1", "B")
     eq(Profile.migrate(restored), false)
     eq(#restored.pets, 2); eq(restored.pets[1].type, "FryerBot"); eq(restored.equippedPets[1], "P1")
-    eq(restored.nextPetId, 2); eq(Gacha.pity(restored, "StarterFryer"), 1); eq(Pricing.capacity(restored), 28)
-    eq(restored.cash, 100)
+    eq(restored.nextPetId, 2); eq(Gacha.pity(restored, "StarterFryer"), 1); eq(Pricing.capacity(restored), 100)
+    eq(restored.cash, 0)
 end)

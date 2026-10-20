@@ -1,8 +1,21 @@
 # Roblox Studio acceptance checks
 
-Awaiting review: **visual overhaul 2** (pet models, gacha, and inventory panels). Run its checks first; the sections after it are regression checks for accepted stages, newest first. The overhaul changes how everything looks, so re-run them all once (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+Awaiting review: **the rebalance**. Run its checks first. Visual overhaul 2 (pet models, gacha, and inventory panels) was accepted on 20 October 2026; the sections after it are regression checks for accepted stages, newest first. The overhaul changes how everything looks, so re-run them all once (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026). Sections older than the rebalance quote the old numbers ($100 spins, $1,000 rebirth, 20-fry bags, % pet bonuses); check the behaviour against the current numbers in docs/GAME_RULES.md.
 
-## Visual overhaul 2: pet models, gacha, and inventory
+## Rebalance: flat pets, percentage upgrades, short numbers
+
+Use a fresh test save (close Studio without saving, reopen the rebuilt place).
+
+1. A new player: Pack shows +2 fries/click, the bag holds 40, and a full bag sells for $40. The first spin ($150) is affordable in about 20 seconds of tapping.
+2. Spin a few times. Each pet tile shows three lines (+fries, +$/fry, +bag); the detail bar and the SPIN result show all three stats. On a phone, check the detail-bar stats wrap onto two readable lines.
+3. Equip a Crinkle Fry: Pack shows +6 fries/click, and a full bag of 50 sells for $100. Equip three Commons and feel the jump in speed.
+4. The SPIN panel lists 8 pets (no Napkin Ghost or Curly Fry Cat) at 20%, 12.5%, 10%, 4%, and 1%.
+5. Cash, prices, and the rebirth panel use short numbers ($1.25K, $250K, $1.25M). Rebirth needs $250K and then $500K.
+6. UPGRADES: each row shows LEVEL N  ·  +N0%, and buying a level raises the stat by 10% of its base-plus-pets value.
+7. Pace check: time how long the first rebirth takes in real play (the simulation says about 3 minutes) and whether the first world feels fast. Note anything that drags or feels too quick.
+8. If an old test save has Napkin Ghost or Curly Fry Cat, it still loads and they still work.
+
+## Visual overhaul 2: pet models, gacha, and inventory (accepted 20 October 2026)
 
 1. Equip each of the ten pets in turn (spin, or use a test save). Each following pet is recognisable (fry, shaker, cup, pup, ketchup packet, ghost, cat, mayo jar, robot, king), has the shared face, and does not sink into the ground or float too high. Golden pets are gold with two small sparkles.
 2. SPIN: before the first spin the result card shows "?". After a spin it shows the pet's 3D portrait, the rarity tag in its colour, "You got X!", and the bonus. With auto-delete on for that rarity it shows AUTO-DELETED in grey.

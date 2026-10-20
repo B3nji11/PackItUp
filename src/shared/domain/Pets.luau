@@ -12,18 +12,19 @@ function Pets.isEquipped(p, id)
     return false
 end
 function Pets.isPetId(id) return type(id) == "string" and #id <= 16 and string.match(id, "^P%d+$") ~= nil end
--- Golden pets give GoldenMultiplier x their normal bonus.
+-- Golden pets give GoldenMultiplier x their normal stats.
 function Pets.multiplier(owned) return if owned.golden then Config.GoldenMultiplier else 1 end
-function Pets.petBonus(owned, stat)
+-- One pet's flat amount for a stat (fries per click, dollars per fry, or bag slots).
+function Pets.petStat(owned, stat)
     local kind = Config.Types[owned.type]
-    return if kind then (kind.Bonuses[stat] or 0) * Pets.multiplier(owned) else 0
+    return if kind then (kind.Stats[stat] or 0) * Pets.multiplier(owned) else 0
 end
--- Total equipped bonus for a stat, as a fraction (0.15 = +15%).
-function Pets.bonus(p, stat)
+-- Total flat amount the equipped pets add to a stat.
+function Pets.total(p, stat)
     local total = 0
     for _, id in ipairs(Pets.equipped(p)) do
         local owned = Pets.find(p, id)
-        if owned then total += Pets.petBonus(owned, stat) end
+        if owned then total += Pets.petStat(owned, stat) end
     end
     return total
 end
