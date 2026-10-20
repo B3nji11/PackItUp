@@ -4,7 +4,7 @@ A Roblox restaurant tycoon for up to six players. Claim a restaurant, pack fries
 
 Everything in the world and UI is built in code. No paid assets, plugins, external models, or runtime packages are required.
 
-## Status (16 October 2026)
+## Status (18 October 2026)
 
 | Stage | What it added | Status |
 | --- | --- | --- |
@@ -13,10 +13,12 @@ Everything in the world and UI is built in code. No paid assets, plugins, extern
 | 1. Upgrade shop | Three upgrade tracks, money per fry pricing | Accepted 8 Oct |
 | 2. Gems and rebirth | Rebirth at a rising Cash threshold for gems; upgrades cost gems | Accepted 16 Oct |
 | 3. Gacha machine | $100 Starter Fryer, 10 pets, pity, inventory, equipping, delete | Accepted 16 Oct |
-| 4. Following pets | Equipped pets follow their owner; Settings with two toggles | **Built, awaiting Studio test and review** |
-| 5. Inventory management | Golden merges, delete all by rarity, auto-delete | **Built, awaiting Studio test and review** |
+| 4. Following pets | Equipped pets follow their owner; Settings with two toggles | Accepted 16 Oct |
+| 5. Inventory management | Golden merges, delete all by rarity, auto-delete | Accepted 16 Oct |
+| Visual overhaul 1 | Diner Sticker style foundation, icon system, new HUD layout, all panels restyled | Accepted 18 Oct |
+| Visual overhaul 2 | Cartoon pet models, live pet portraits, PETS as a tile grid, new SPIN machine panel | **Built, awaiting Studio test and review** |
 
-After stages 4 and 5 are accepted, development pauses on new systems for the **visual overhaul** (see What's next). More machines and Robux are deliberately on hold.
+Development has paused on new systems for the **visual overhaul** (see What's next). More machines and Robux are deliberately on hold.
 
 ## What the game has now
 
@@ -49,13 +51,32 @@ Studio runs in labelled **memory-only test mode** by default, so progress resets
 
 ## What's next: visual overhaul
 
-The game works, but it looks like a prototype. The next stage is a visual overhaul, agreed scope first, as with every stage. Starting points to discuss:
+The game works, but it looks like a prototype. Agreed on 16 October 2026: a **Pet Simulator style**, a **hybrid** approach (layout and panels stay code-built; a small set of icons is uploaded as images), and **design before building** (mockups, then a style guide, then one screen at a time, accepted from Studio screenshots). Build order: style foundation (Theme and Elements), main HUD, panels, feedback and animation, then the world. Scope notes:
 
 - **HUD and panels:** a consistent, more playful style (colour, shape, icons, motion) to replace the dark functional cards; better icons than the current fry and bag symbols and the code-built gear.
 - **Feedback and juice:** spin reveal animation, sale and purchase pops, rebirth celebration, sounds, and particles.
 - **Pets:** more detailed and recognisable models, Golden sparkle, idle animations.
 - **World:** detailed restaurant and fryer models, plaza decoration, the gacha machine as a physical object in the plaza.
-- **Decide early:** whether art stays code-built or moves to Studio-authored models and uploaded images. That choice shapes the whole overhaul.
+
+### Chosen visual direction: Diner Sticker (agreed 17 October 2026)
+
+Picked from three mockups (the "Fries HUD style directions" design canvas, artboard B). Pet Simulator energy with a fries-shop theme. The full rules are now in **docs/STYLE_GUIDE.md**. In short:
+
+- **Colours:** ketchup red `#e63946` (headers, primary), mustard `#ffb703` (pack, merge, highlights), teal `#2a9d8f` (sell, equipped), cream `#fff4dc` (panel and card bodies), ink brown `#3d1f1f` (text, shadows, outlines), white `#ffffff` (sticker borders). Menu accents: orange `#f77f00` upgrades, grape `#7b2cbf` rebirth, teal `#2a9d8f` spin, blueberry `#1d6fd8` pets.
+- **Rarity colours** (darkened for readable text): Common `#806c58`, Uncommon teal `#1f8a7e`, Rare blueberry `#1d6fd8`, Epic grape `#7b2cbf`, Legendary and Golden gold `#b07600`.
+- **Type:** Luckiest Guy for titles, numbers, and button labels; Fredoka for body text. Both ship with Roblox (`Enum.Font.LuckiestGuy`, `Enum.Font.FredokaOne`).
+- **Shapes:** a white 4-6 px "sticker" border plus a solid ink-brown shadow offset 5-9 px down and right. Pills are fully rounded; cards use 16-30 px corners. Panel headers are ketchup red with a red-and-cream checker strip below; dividers are dashed tan.
+- **Layout:** Cash and Gems on a receipt-style card at the top left; the menu is a column of wide pill buttons (icon disc plus label) below it; Return to Counter and the settings gear at the top centre; Pack and Sell as big sticker buttons at the bottom centre; pets as a grid of tiles with a rarity-coloured top band and shadow.
+- **Rules:** buttons and tiles at least 44 px; text keeps strong contrast (ink on cream, white on red or with an ink shadow); icons come from the uploaded set in `art/` with code-built fallbacks.
+
+### Overhaul increments
+
+1. **Foundation and HUD** (accepted 18 October 2026): Theme and Elements in Diner Sticker, the icon system with code-built fallbacks, the new HUD layout, and every panel on the shared frame.
+2. **Pets, gacha, and inventory** (built 18 October 2026, awaiting review): ten cartoon pet models (shared face, Golden gold and sparkles), live 3D portraits, PETS as a tile grid with a detail bar, and the SPIN panel as a result card, pity bar, and a "in this machine" grid with each pet's chance. Upgrades and rebirth layouts are unchanged for now.
+3. **Motion and sound:** press squash, panel pops, count-ups, sale pops, spin reveal, rebirth celebration.
+4. **World:** restaurant, fryer, and pet models, plaza decoration, and a physical gacha machine.
+
+Icons drop in at any point: add the PNG to `art/icons/`, upload it, and paste its ID into `src/shared/config/Icons.luau`.
 
 ## Later (on hold)
 
@@ -66,7 +87,6 @@ The game works, but it looks like a prototype. The next stage is a visual overha
 ## Known issues and things to improve
 
 **Needs testing**
-- Stages 4 and 5 have not been tested in Studio yet (docs/STUDIO_TESTS.md has the checks).
 - Real DataStore saving has never been tested end to end in a published test experience.
 - Following pets have not been checked for performance with six players and 18 pets, or for clipping through walls (they do not collide).
 
@@ -74,7 +94,9 @@ The game works, but it looks like a prototype. The next stage is a visual overha
 - All numbers (spin price, odds, pity, rebirth curve, gem costs, pet bonuses) are first guesses from one simulation. Retune from playtests. Later rebirth cycles get long without good pets.
 
 **UX**
-- Panels scale down to about half size on short landscape phones; the PETS panel is dense there.
+- Panels scale down to about two thirds on short landscape phones; PETS uses a compact layout there but shows one row of tiles at a time.
+- Pets with two bonuses (Fry King) have very small bonus text on their tile.
+- The SPIN panel layout was not mocked up first; treat it as a first draft for feedback.
 - The merge banner only merges the rarest mergeable pet at a time; there is no sorting, filtering, or "equip best".
 - Menu labels are small in the short-landscape grid.
 
@@ -103,7 +125,9 @@ The game works, but it looks like a prototype. The next stage is a visual overha
 | docs/GAME_RULES.md | Every current game rule and number |
 | docs/ARCHITECTURE.md | Modules, the remote contract, transactions, and the save format |
 | docs/STUDIO_TESTS.md | Manual Studio checks, newest stage first |
+| docs/STYLE_GUIDE.md | Diner Sticker colours, type, shapes, layout, and touch rules |
 | docs/HISTORY.md | Iteration log, the progression design with its reasoning, and every stage's acceptance criteria |
+| art/README.md | Every image the game needs, its size, and its upload status and asset ID |
 | VALIDATION.md | Recorded automated results per stage |
 
 ## Saving and publishing
@@ -140,6 +164,7 @@ The server reserves one of six places per player on entry, so set the experience
     tests/                     Rules, persistence, inventory, and wiring tests
     tools/                     Place builder, test runner, and UI layout previews
     docs/                      Rules, architecture, Studio checks, and history
+    art/                       Source images for upload (icons, marketing), with a manifest
 
 Domain modules own the rules and never create Instances, send messages, or touch DataStores. UI modules display server state and send requests.
 
@@ -168,7 +193,9 @@ Tests use the official Luau tools from https://github.com/luau-lang/luau/release
 
 Optional UI layout previews (requires Pillow) render the real UI modules into **artifacts/ui-preview/**. They are layout aids with approximate fonts, not Roblox screenshots:
 
-    python tools/preview_ui.py --luau PATH_TO_LUAU_EXE
+    python tools/preview_ui.py --luau PATH_TO_LUAU_EXE --fonts PATH_TO_FONTS
+
+`--fonts` is optional: a folder holding `LuckiestGuy-Regular.ttf` and `Fredoka.ttf` from Google Fonts (github.com/google/fonts, `apache/luckiestguy` and `ofl/fredoka`), so previews use the game's real fonts.
 
 ## Team ownership
 

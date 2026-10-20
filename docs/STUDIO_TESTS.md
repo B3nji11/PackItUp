@@ -1,6 +1,33 @@
 # Roblox Studio acceptance checks
 
-Awaiting review: **stages 4 and 5** (following pets, settings, inventory management). Run those checks first; the sections after them are regression checks for accepted stages, newest first (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+Awaiting review: **visual overhaul 2** (pet models, gacha, and inventory panels). Run its checks first; the sections after it are regression checks for accepted stages, newest first. The overhaul changes how everything looks, so re-run them all once (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026).
+
+## Visual overhaul 2: pet models, gacha, and inventory
+
+1. Equip each of the ten pets in turn (spin, or use a test save). Each following pet is recognisable (fry, shaker, cup, pup, ketchup packet, ghost, cat, mayo jar, robot, king), has the shared face, and does not sink into the ground or float too high. Golden pets are gold with two small sparkles.
+2. SPIN: before the first spin the result card shows "?". After a spin it shows the pet's 3D portrait, the rarity tag in its colour, "You got X!", and the bonus. With auto-delete on for that rarity it shows AUTO-DELETED in grey.
+3. SPIN: the pity bar fills as spins pass and reads EPIC+ GUARANTEED IN N SPINS. "IN THIS MACHINE" shows all ten pets with portraits, rarity bands, and chances (20%, 8.33%, 5%, 4%, 1%); it scrolls if it does not fit.
+4. PETS: pets show as tiles with portraits, equipped ones first with a teal tick. Tap a tile: the detail bar shows it larger with its rarity, bonus, and EQUIP or UNEQUIP. With three equipped, the button reads SLOTS FULL and does nothing. DELETE needs two taps within three seconds and is hidden for equipped pets.
+5. PETS: spinning, deleting, and merging update the grid without the scroll jumping back to the top or portraits flickering.
+6. Check the portraits render (not empty squares) and are framed well: the whole pet visible, face forward.
+7. Phone portrait (375 x 667 and 390 x 844): SPIN stacks the result card above the pet grid; PETS stacks EQUIP and DELETE so the name is readable. Phone landscape (640 x 360): PETS puts both chip rows on one line and shows a full row of tiles; panel shadows shrink with the panels (no dark box behind them).
+8. Performance: open PETS with 50 pets (50 live portraits) on a phone and scroll. Note any stutter.
+
+## Visual overhaul 1: Diner Sticker foundation and HUD (accepted 18 October 2026)
+
+Check against docs/STYLE_GUIDE.md and the "Fries HUD style directions" design canvas (artboard B).
+
+1. Fonts: titles, numbers, and buttons use Luckiest Guy; body text uses Fredoka One. Confirm both render (not a fallback font) on desktop and a phone.
+2. Wallet: a cream receipt card at the top left with the coin, Cash, a dashed divider, the gem, and Gems. Large Cash amounts shrink to fit.
+3. Every sticker element (wallet, menu buttons, Return to Counter, gear, Pack, Sell, panels, Buy/Equip/chips) has a white border and an ink shadow down and right. Shadows follow buttons exactly, hide with them, and never sit on top of their button.
+4. Menu: every button shows its name. Labelled pills (orange Upgrades, grape Rebirth, teal Spin, blueberry Pets) on desktop and tall phones; a row of labelled tiles at the top right on short landscape screens. Greyed out before claiming, with names still readable. Rebirth shows a "!" badge when affordable.
+5. Return to Counter is a ketchup pill with a home icon; the gear is a cream circle. In portrait they sit under the wallet.
+6. Pack is mustard with a fries icon disc, and CLAIM FIRST, BAG FULL, and +N FRIES/CLICK fit inside it with room to spare; Sell is cream with a bag icon and progress bar, turning teal with white outlined text when the bag is full.
+7. Each panel opens with its coloured header, white outlined title, caption, round close button, and checker strip. Text inside is readable (ink or dark colours on cream and white).
+8. Code-built icons (coin, gem, fries, bag, arrow, loop, egg, paw, gear, home) read clearly at their sizes. They are placeholders until art is uploaded.
+9. Restaurant markers: AVAILABLE is a mustard sticker label; owner cards are cream with a white border.
+10. Check desktop, a laptop (about 950 x 600), a portrait phone, a small portrait phone (375 x 667), a 640 x 360 landscape phone, and a wide short screen: nothing overlaps (shadows included), and every button is easy to tap.
+11. Look out past the hedge from several camera angles: grass runs to the horizon under a warm haze, with no floating edge or harsh blue void. Check that the haze does not wash out the restaurants up close.
 
 ## Following pets and settings (stage 4)
 

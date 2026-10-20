@@ -1,5 +1,47 @@
 # Validation record
 
+## Visual overhaul 2: pet models, gacha, and inventory panels
+
+Validation date: 18 October 2026.
+
+Scope: ten rebuilt cartoon pet models with a shared face and a Golden variant, live 3D portraits, the PETS panel as a tile grid with a detail bar, the SPIN panel as a result card, pity bar, and per-pet chance grid, responsive panel sizes, and grids that fill their width. The machine snapshot now lists each rarity's pet types so the panel can show per-pet chances. No game rules changed.
+
+**91 tests passed, 0 failed.** All **53 Luau source/test files** compiled. Output is in TEST_RESULTS.txt.
+
+New or changed coverage:
+
+- Pet models: every pet has a recipe; every part is anchored, non-colliding, non-touching, and non-queryable; each has two eyes and a body; Golden pets get a shiny body and two sparkles; `place` moves pieces with their base.
+- Portraits: a ViewportFrame with a camera; the same pet is not rebuilt; a change (including Golden) rebuilds.
+- SPIN: all ten pets in the pool with chances that add up to 100% (20%, 8.33%, 5%, 4%, 1%); the "?" before the first spin, then the portrait, rarity tag, name, and bonus.
+- PETS: tiles with portrait, name, short bonus, and tick; tap to select; EQUIP, UNEQUIP, SLOTS FULL; two-tap DELETE from the detail bar; tiles reused across updates and removed when the pet goes; Golden tiles.
+- Layout at all six screen sizes: SPIN is two columns when wide and stacked when narrow, with no overlapping parts; the PETS grid sits above the detail bar; panel shadows scale with their panels.
+
+Bugs found and fixed during this increment: the DELETE button field overwrote the panel's delete method (tapping DELETE would have errored); panel shadows did not shrink with scaled panels on short landscape screens (a large dark box behind the panel); the narrow SPIN layout could overlap the pity bar on short panels; tile grids left an empty strip on the right. The preview tool now draws tile grids, portrait placeholders, and clipping.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, visual overhaul 2) and owner review. Portrait framing, model proportions, and the cost of 50 live portraits need a real Studio look.
+
+## Visual overhaul 1: Diner Sticker foundation and HUD
+
+Validation date: 17 October 2026.
+
+Scope: Diner Sticker tokens and fonts, sticker buttons with following shadows, the shared panel frame, the icon system (17 icons, all code-built fallbacks for now), the new HUD layout, all five panels restyled, readable rarity colours, and restyled restaurant markers. No game rules changed.
+
+**90 tests passed, 0 failed.** All **52 Luau source/test files** compiled. Output is in TEST_RESULTS.txt.
+
+New or changed coverage:
+
+- Shadows: a sibling that matches its button's position (plus offset), size, visibility, and layer, and is removed with it; flat buttons get none.
+- Icons: every configured icon has no asset ID yet and draws a code-built fallback.
+- Fonts and colours: Luckiest Guy for numbers and buttons, Fredoka One for body text, coloured panel headers.
+- Layout at 320x568, 390x844, 568x320, 844x390, and 1280x720: the wallet at the top left; pills on tall screens and an icon grid on small and short ones; every control on screen, at least 44 px, and not overlapping anything (shadows included).
+- All earlier behaviour tests still pass with the new look.
+
+The test engine double now supports property-change signals (used by shadows). The preview tool now renders the real fonts (with `--fonts`), rotation, padding, letter outlines, and scale-based corners, and centres button text as Roblox does. Preview review led to: `»` instead of `→` (neither font has an arrow), a darker gold for Golden pet names, a clipped receipt divider on short screens, a less crowded Pack button, and rebirth card spacing.
+
+**Revised after the owner's first Studio screenshot (17 October 2026):** menu buttons always show their names (labelled tiles replace the icon-only grid on short screens); Pack and Sell grew to 232 x 104 so CLAIM FIRST fits; guidance moved under the top bar on wide screens so the labelled menu fits on laptops; the world now has grass to the horizon and a warm atmosphere instead of a floating island against a flat blue sky. The layout test now covers 375x667, 390x844, 640x360, 844x390, 947x600 (the owner's screen), and 1280x720, and checks every menu button's name is visible. 90 tests pass.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, visual overhaul 1) and owner review. Font rendering, shadows, and icon legibility in particular need a real Studio look.
+
 ## Stages 4 and 5: following pets, settings, and inventory management
 
 Validation date: 16 October 2026.
@@ -22,7 +64,7 @@ New coverage:
 
 Layout previews (including the Settings panel and the PETS tools) were regenerated and inspected. That led to an outline on OFF toggles. Pet models cannot be previewed outside Studio.
 
-Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, stages 4 and 5), performance with six players, real DataStore persistence, and owner review.
+**Accepted by the project owner on 16 October 2026.** Six-player performance and real DataStore persistence remain untested.
 
 ## Increment 3: first Cash gacha machine
 

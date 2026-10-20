@@ -64,9 +64,11 @@ function Gacha.snapshot(p, id)
     local machine = Machines.Machines[id]
     local rows = {}
     for _, rarity in ipairs(PetConfig.RarityOrder) do
-        local names = {}
-        for _, petType in ipairs(poolOf(machine, rarity)) do table.insert(names, PetConfig.Types[petType].Name) end
-        if #names > 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names }) end
+        local names, types = {}, {}
+        for _, petType in ipairs(poolOf(machine, rarity)) do
+            table.insert(names, PetConfig.Types[petType].Name); table.insert(types, petType)
+        end
+        if #names > 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names, types = types }) end
     end
     return { id = id, name = machine.Name, price = machine.Price, odds = rows, pity = Gacha.pity(p, id),
         pityEvery = machine.PityEvery, pityRarity = machine.PityRarity }

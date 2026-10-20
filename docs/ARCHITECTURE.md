@@ -22,6 +22,7 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | shared/config/Pets | Pet types, rarities, bonuses, inventory size, and equip slots |
 | shared/config/Machines | Gacha machines as data: price, odds, pet pool, and pity |
 | shared/config/Settings | Setting names, hints, and defaults |
+| shared/config/Icons | Uploaded icon asset IDs (empty until uploaded) |
 | shared/config/Runtime | Server, replication, and persistence settings |
 | shared/config/Actions | Closed action vocabulary and each action's allowed argument |
 | shared/domain/Profile | Core defaults and validation, including upgradeLevels, gems, and rebirths; one-time migration of pre-gem saves; v1 save compatibility |
@@ -50,13 +51,15 @@ The shared domain layer depends only on configuration, utilities, and other doma
 | client/ui/HudView | Click, Sell, bag progress, and feedback |
 | client/ui/ShopView | UPGRADES button and shop panel; displays server rows and requests purchases |
 | client/ui/RebirthView | REBIRTH button and confirmation panel; displays server values and requests a rebirth |
-| client/ui/GachaView | SPIN button and machine panel; displays odds, pity, and results, and requests spins |
+| client/ui/GachaView | SPIN button and machine panel; displays the result, pity, and each pet's chance (from the snapshot's `odds[].types`), and requests spins |
 | client/ui/PetsView | PETS button and inventory panel; requests equip, unequip, and delete |
 | client/ui/PetText | Shared pet bonus text and rarity colors |
+| client/ui/Icons | Uploaded icon images, or code-built fallbacks when no asset ID is set |
 | client/ui/SettingsView | Gear button and settings panel; requests setting toggles |
-| client/ui/PetModels | Code-built cartoon pet models |
+| client/ui/PetModels | Code-built cartoon pet models (one recipe per pet plus a shared face; Golden variant) |
+| client/ui/PetPortrait | Live 3D pet portraits in a ViewportFrame; rebuilds only when the pet changes |
 | client/ui/PetFollower | Draws every player's equipped pets locally from the FollowPets attribute and moves them each frame |
-| client/ui/Theme and Elements | Shared UI styling and widgets |
+| client/ui/Theme and Elements | Diner Sticker tokens and widgets: sticker buttons with following shadows, the responsive panel frame, menu buttons, cards, dashes, and scrolling tile grids |
 
 ## Remote contract
 

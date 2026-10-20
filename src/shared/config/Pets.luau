@@ -1,11 +1,12 @@
 -- Fry Buddies (placeholder names). Each bonus is a fraction added to one stat:
 -- effective value = (base + upgrade levels) x (1 + total equipped bonus for that stat).
 local Rarities = {
-    Common = table.freeze({ Rank = 1, Name = "Common", Color = { 198, 207, 191 } }),
-    Uncommon = table.freeze({ Rank = 2, Name = "Uncommon", Color = { 107, 218, 153 } }),
-    Rare = table.freeze({ Rank = 3, Name = "Rare", Color = { 92, 175, 243 } }),
-    Epic = table.freeze({ Rank = 4, Name = "Epic", Color = { 183, 140, 255 } }),
-    Legendary = table.freeze({ Rank = 5, Name = "Legendary", Color = { 255, 199, 70 } }),
+    -- Colours are dark enough to read on cream and white (Diner Sticker style).
+    Common = table.freeze({ Rank = 1, Name = "Common", Color = { 128, 108, 88 } }),
+    Uncommon = table.freeze({ Rank = 2, Name = "Uncommon", Color = { 31, 138, 126 } }),
+    Rare = table.freeze({ Rank = 3, Name = "Rare", Color = { 29, 111, 216 } }),
+    Epic = table.freeze({ Rank = 4, Name = "Epic", Color = { 123, 44, 191 } }),
+    Legendary = table.freeze({ Rank = 5, Name = "Legendary", Color = { 176, 118, 0 } }),
 }
 local function pet(name, rarity, bonuses)
     return table.freeze({ Name = name, Rarity = rarity, Bonuses = table.freeze(bonuses) })

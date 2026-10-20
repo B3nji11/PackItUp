@@ -20,15 +20,15 @@ function RestaurantMarkers:create(index, station)
 
     local available = E.box(gui, "Available", UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), Theme.Background, 0)
     available.BackgroundTransparency = 1
-    local caption = E.box(available, "Caption", UDim2.fromOffset(40, 0), UDim2.fromOffset(140, 28), Theme.Background, 10)
-    E.stroke(caption, Theme.Gold, 1.5)
-    local label = E.label(caption, "AVAILABLE", 28, Theme.Gold)
-    label.Font, label.TextSize, label.TextXAlignment = Enum.Font.GothamBold, 13, Enum.TextXAlignment.Center
+    local caption = E.box(available, "Caption", UDim2.fromOffset(40, 0), UDim2.fromOffset(140, 28), Theme.Gold, 14)
+    E.stroke(caption, Theme.White, 3)
+    local label = E.label(caption, "AVAILABLE", 28, Theme.Ink)
+    label.Font, label.TextSize, label.TextXAlignment = Theme.Display, 15, Enum.TextXAlignment.Center
 
-    local owner = E.box(gui, "Owner", UDim2.fromOffset(0, 14), UDim2.fromOffset(220, 76), Theme.Background, 16)
-    E.stroke(owner, Theme.Gold, 2)
+    local owner = E.box(gui, "Owner", UDim2.fromOffset(0, 14), UDim2.fromOffset(220, 76), Theme.Cream, 18)
+    E.stroke(owner, Theme.White, 4)
     local portrait = E.box(owner, "Portrait", UDim2.fromOffset(8, 8), UDim2.fromOffset(60, 60), Theme.Card, 30)
-    local fallback = E.label(portrait, "?", 60, Theme.Gold)
+    local fallback = E.label(portrait, "?", 60, Theme.Accent)
     fallback.Name, fallback.TextSize, fallback.TextXAlignment = "Fallback", 30, Enum.TextXAlignment.Center
     local avatar = Instance.new("ImageLabel")
     avatar.Name, avatar.Size, avatar.BackgroundTransparency = "Avatar", UDim2.fromScale(1, 1), 1
@@ -38,7 +38,7 @@ function RestaurantMarkers:create(index, station)
     title.Position, title.Size, title.TextSize = UDim2.fromOffset(78, 14), UDim2.fromOffset(132, 18), 10
     local username = E.label(owner, "", 28, Theme.Text)
     username.Name, username.Position, username.Size = "Username", UDim2.fromOffset(78, 33), UDim2.fromOffset(132, 28)
-    username.Font, username.TextScaled, username.TextWrapped = Enum.Font.GothamBold, true, false
+    username.Font, username.TextScaled, username.TextWrapped = Theme.Display, true, false
     local limit = Instance.new("UITextSizeConstraint")
     limit.MinTextSize, limit.MaxTextSize, limit.Parent = 9, 15, username
     return { station = station, gui = gui, available = available, owner = owner,

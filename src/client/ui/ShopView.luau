@@ -1,57 +1,47 @@
--- Upgrade shop: an UPGRADES button and a panel with one row per gem upgrade track.
+-- Upgrade shop: an UPGRADES menu button and a panel with one row per gem upgrade track.
 -- Rows display server-computed levels, values, and costs; the server decides purchases.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Upgrades = require(Shared.config.Upgrades)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local ShopView = {}
 ShopView.__index = ShopView
-local PanelWidth, PanelHeight = 360, 322
+ShopView.Accent = Theme.Orange
+local PanelWidth, PanelHeight = 380, 350
+local TrackIcons = { FriesPerClick = "upgrade-fries-per-click", MoneyPerFry = "upgrade-money-per-fry", BagCapacity = "upgrade-bag-capacity" }
 local function describe(row)
     if row.id == "MoneyPerFry" then
-        return string.format("$%.2f → $%.2f per fry", row.value, row.nextValue)
+        return string.format("$%.2f » $%.2f per fry", row.value, row.nextValue)
     elseif row.id == "FriesPerClick" then
-        return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries/click"
+        return E.number(row.value) .. " » " .. E.number(row.nextValue) .. " fries/click"
     end
-    return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries per bag"
+    return E.number(row.value) .. " » " .. E.number(row.nextValue) .. " fries per bag"
 end
 function ShopView.new(gui, send)
     local self = setmetatable({ send = send, rows = {}, data = {}, hasStation = false }, ShopView)
-    self.button = E.button(gui, "UPGRADES", function() self:toggle() end, Theme.Background)
-    self.button.Name, self.button.TextSize, self.button.TextColor3 = "UpgradesButton", 13, Theme.Gold
-    self.button.Size = UDim2.fromOffset(218, 44)
-    E.stroke(self.button, Theme.Gold, 1.5, 0.3)
-    E.fit(self.button, 8, 13)
-
-    local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
-    panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
-    panel.ZIndex = 5 -- above the HUD buttons when open
-    E.stroke(panel, Theme.Gold, 2, 0.12)
-    self.panel = panel
-    self.scale = Instance.new("UIScale")
-    self.scale.Parent = panel
-    local title = E.label(panel, "UPGRADES", 28, Theme.Text)
-    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(250, 28)
-    title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    local caption = E.label(panel, "Spend gems to boost your restaurant", 16, Theme.Muted)
-    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(20, 42), UDim2.fromOffset(260, 16), 11
-    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
-    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
-    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
-
+    self.button = E.menuButton(gui, "UpgradesButton", "UPGRADES", "upgrades", ShopView.Accent, function() self:toggle() end)
+    local frame = E.panel(gui, "UpgradeShop", PanelWidth, PanelHeight)
+    self.panel, self.scale, self.close = frame.panel, frame.scale, frame.close
+    frame.title.Text, frame.caption.Text = "UPGRADES", "Spend gems to boost your restaurant"
+    self.close.Activated:Connect(function() self:setOpen(false) end)
     for index, id in ipairs(Upgrades.Order) do
-        local row = E.box(panel, id, UDim2.fromOffset(16, 70 + (index - 1) * 82), UDim2.fromOffset(PanelWidth - 32, 74), Theme.Card, 14)
-        local name = E.label(row, Upgrades.Tracks[id].Name, 22, Theme.Text)
-        name.Name, name.Position, name.Size = "TrackName", UDim2.fromOffset(14, 8), UDim2.fromOffset(190, 22)
-        name.Font, name.TextSize = Enum.Font.GothamBold, 15
+        local row = E.card(self.panel, id, UDim2.fromOffset(16, E.PanelTop + 12 + (index - 1) * 88), UDim2.fromOffset(PanelWidth - 32, 78))
+        local disc = E.box(row, "IconDisc", UDim2.fromOffset(12, 16), UDim2.fromOffset(46, 46), Theme.Cream, 23)
+        Icons.make(disc, TrackIcons[id], 34, Theme.Ink, UDim2.fromOffset(6, 6))
+        local name = E.label(row, Upgrades.Tracks[id].Name, 24, Theme.Ink)
+        name.Name, name.Position, name.Size = "TrackName", UDim2.fromOffset(68, 8), UDim2.fromOffset(170, 24)
+        name.Font, name.TextSize = Theme.Display, 17
+        E.fit(name, 10, 17)
         local level = E.label(row, "LEVEL 0", 16, Theme.Muted)
-        level.Name, level.Position, level.Size, level.TextSize = "Level", UDim2.fromOffset(14, 30), UDim2.fromOffset(190, 16), 11
-        local value = E.label(row, "", 18, Theme.GoldLight)
-        value.Name, value.Position, value.Size, value.TextSize = "Value", UDim2.fromOffset(14, 48), UDim2.fromOffset(196, 18), 12
-        value.TextWrapped = false
+        level.Name, level.Position, level.Size, level.TextSize = "Level", UDim2.fromOffset(68, 33), UDim2.fromOffset(170, 16), 12
+        local value = E.label(row, "", 18, Theme.Accent)
+        value.Name, value.Position, value.Size, value.TextSize = "Value", UDim2.fromOffset(68, 51), UDim2.fromOffset(176, 18), 13
+        E.fit(value, 8, 13)
         local buy = E.button(row, "", function() self:buy(id) end, Theme.Gold)
-        buy.Name, buy.Position, buy.Size = "Buy", UDim2.fromOffset(PanelWidth - 32 - 112, 15), UDim2.fromOffset(100, 44)
+        buy.Name, buy.Position, buy.Size = "Buy", UDim2.fromOffset(PanelWidth - 32 - 104, 17), UDim2.fromOffset(90, 42)
         buy.AutoButtonColor, buy.TextColor3 = false, Theme.Ink
+        E.fit(buy, 9, 15)
         self.rows[id] = { level = level, value = value, buy = buy }
     end
     return self
@@ -68,8 +58,7 @@ function ShopView:buy(id)
 end
 function ShopView:update(state)
     self.hasStation = state.hasStation
-    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
-    self.button.TextColor3 = if state.hasStation then Theme.Gold else Theme.Muted
+    E.setMenuEnabled(self.button, state.hasStation, ShopView.Accent)
     if not state.hasStation then self.panel.Visible = false end
     for _, row in ipairs(state.shop or {}) do
         local view = self.rows[row.id]
@@ -81,7 +70,7 @@ function ShopView:update(state)
             view.buy.Text = E.count(row.cost) .. (if row.cost == 1 then " GEM" else " GEMS")
             view.buy.TextSize = if #view.buy.Text > 10 then 11 else 14
             view.buy.Active, view.buy.Selectable = affordable, affordable
-            view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Background
+            view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Disabled
             view.buy.TextColor3 = if affordable then Theme.Ink else Theme.Muted
         end
     end

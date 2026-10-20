@@ -62,7 +62,7 @@ function PetFollower:step(dt)
                 -- The first frame snaps into place; later frames ease towards the target.
                 pet.position = if pet.position then pet.position + (target - pet.position) * alpha else target
                 local base = CFrame.lookAt(pet.position, pet.position + forward)
-                for _, piece in ipairs(pet.pieces) do piece.part.CFrame = base * piece.offset end
+                PetModels.place(pet.pieces, base)
             end
         end
     end

@@ -66,6 +66,13 @@ local function makeInstance(class)
             if class == "Attachment" and key == "WorldPosition" then
                 return values.Parent.Position + (values.Position or Vector3.zero)
             end
+            if key == "GetPropertyChangedSignal" then
+                return function(_, property)
+                    values._props = values._props or {}
+                    values._props[property] = values._props[property] or signal()
+                    return values._props[property]
+                end
+            end
             if instanceMethods[key] then return instanceMethods[key] end
             if values[key] ~= nil then return values[key] end
             if eventNames[key] then values[key]=signal(); return values[key] end
@@ -89,6 +96,7 @@ local function makeInstance(class)
                 end
             end
             values[key]=value
+            if values._props and values._props[key] then values._props[key]:Fire() end
         end,
     })
     return object
@@ -611,8 +619,8 @@ test("client has click sell teleport settings and the upgrade rebirth spin and p
         for _, child in ipairs(node._children or {}) do visit(child) end
     end
     -- Click, Sell, Teleport, four menu buttons, Settings, five Close, Confirm, three Buy, Spin,
-    -- two setting toggles, six rarity chips, and Merge.
-    visit(gui); eq(count, 27)
+    -- two setting toggles, six rarity chips, Merge, and the pet detail bar's Equip and Delete.
+    visit(gui); eq(count, 29)
     eq(gui.SettingsPanel.Visible, false)
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Core loop ready", true)
@@ -629,64 +637,107 @@ test("client has click sell teleport settings and the upgrade rebirth spin and p
 end)
 
 test("permanent core controls fit portrait landscape and desktop", function()
-    for _, viewport in ipairs({Vector2.new(320,568),Vector2.new(390,844),Vector2.new(568,320),Vector2.new(844,390),Vector2.new(1280,720)}) do
+    -- Smallest targets: 375x667 (small iPhone portrait) and 640x360 (common Android landscape).
+    local expectMode = { ["375x667"] = "pill", ["390x844"] = "pill", ["640x360"] = "tile", ["844x390"] = "tile",
+        ["947x600"] = "pill", ["1280x720"] = "pill" }
+    for _, viewport in ipairs({Vector2.new(375,667),Vector2.new(390,844),Vector2.new(640,360),Vector2.new(844,390),
+        Vector2.new(947,600),Vector2.new(1280,720)}) do
         workspace.CurrentCamera.ViewportSize=viewport; runService.RenderStepped:Fire()
         local gui = first.PlayerGui.FriesInterface
+        local key = viewport.X .. "x" .. viewport.Y
         local scale = gui.Actions:FindFirstChildOfClass("UIScale").Scale
-        assert(gui.Actions.Size.X.Offset * scale <= viewport.X - 24 + 0.001)
-        local top = viewport.Y - 60 - 22 - gui.Actions.Size.Y.Offset * scale
-        assert(gui.Teleport.Position.Y.Offset + gui.Teleport.Size.Y.Offset <= top)
-        assert(gui.Guidance.Position.Y.Offset + gui.Guidance.Size.Y.Offset <= top)
-        local cash = gui.CashCard
-        eq(cash.AnchorPoint.Y, 0.5); eq(cash.Position.Y.Scale, 0.5); eq(cash.Position.X.Offset, 16)
-        -- Middle left; tall phones may lift it slightly to fit the menu grid below it.
-        assert(cash.Position.Y.Offset <= 0)
-        if viewport.Y >= 500 then assert(cash.Position.Y.Offset >= -40) end
-        if viewport.Y >= 700 then eq(cash.Position.Y.Offset, 0) end
-        local cashBottom = (viewport.Y - 60) / 2 + cash.Position.Y.Offset + cash.Size.Y.Offset / 2
-        assert(cashBottom + 12 <= top + 0.001)
-        assert(gui.Actions.Click.Size.Y.Offset * scale >= 36)
-        eq(gui.Actions.AnchorPoint.X, 0.5); eq(gui.Actions.AnchorPoint.Y, 1)
-        eq(gui.Teleport.Position.X.Scale, 0.5)
-        assert(gui.Actions.Visible and gui.Teleport.Visible)
-        -- The UPGRADES button stays on screen and clear of every other control.
         local height = viewport.Y - 60
-        local function rect(object, scale)
-            local w, h = object.Size.X.Offset * (scale or 1), object.Size.Y.Offset * (scale or 1)
+        assert(gui.Actions.Size.X.Offset * scale <= viewport.X - 24 + 0.001, key)
+        eq(gui.Actions.AnchorPoint.X, 0.5); eq(gui.Actions.AnchorPoint.Y, 1)
+        assert(gui.Actions.Click.Size.Y.Offset * scale >= 36)
+        assert(gui.Actions.Visible and gui.Teleport.Visible)
+        -- Rectangles in screen pixels; sticker items include their offset shadow.
+        local function rect(object, s, shadow)
+            local w, h = object.Size.X.Offset * (s or 1), object.Size.Y.Offset * (s or 1)
             local anchor = object.AnchorPoint or Vector2.new(0, 0)
             local x = object.Position.X.Scale * viewport.X + object.Position.X.Offset - anchor.X * w
             local y = object.Position.Y.Scale * height + object.Position.Y.Offset - anchor.Y * h
-            return { x, y, x + w, y + h }
+            return { x, y, x + w + (shadow or 0), y + h + (shadow or 0), object.Name }
         end
         local function apart(a, b) return a[3] <= b[1] or b[3] <= a[1] or a[4] <= b[2] or b[4] <= a[2] end
-        local menuButtons = {gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton}
-        for _, button in ipairs(menuButtons) do
-            local box = rect(button)
-            assert(box[1] >= 0 and box[2] >= 0 and box[3] <= viewport.X and box[4] <= height, button.Name)
-            assert(box[4] + 12 <= top + 0.001 or apart(box, rect(gui.Actions, scale)), button.Name)
-            for _, other in ipairs({gui.Teleport, gui.Guidance, cash}) do assert(apart(box, rect(other)), button.Name .. "/" .. other.Name) end
-            assert(button.Size.Y.Offset >= 36 and button.Size.X.Offset >= 56)
+        local cash = gui.CashCard
+        eq(cash.AnchorPoint.X, 0); eq(cash.AnchorPoint.Y, 0); eq(cash.Position.X.Offset, 16); eq(cash.Position.Y.Offset, 12)
+        local boxes = { rect(cash, 1, 6), rect(gui.Teleport, 1, 5), rect(gui.SettingsButton, 1, 5), rect(gui.Actions, scale), rect(gui.Mode) }
+        for _, button in ipairs({gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton}) do
+            table.insert(boxes, rect(button, 1, 5))
+            assert(button.Size.Y.Offset >= 44 and button.Size.X.Offset >= 44, button.Name .. " tap size")
+            eq(button.Label.Visible, true) -- every menu button always shows its name
+            eq(button:GetAttribute("MenuMode"), expectMode[key])
+            assert(button.Label.Text ~= "")
         end
-        for i = 1, #menuButtons do
-            for j = i + 1, #menuButtons do assert(apart(rect(menuButtons[i]), rect(menuButtons[j])), menuButtons[i].Name .. "/" .. menuButtons[j].Name) end
+        table.insert(boxes, rect(gui.Guidance))
+        for _, box in ipairs(boxes) do
+            assert(box[1] >= 0 and box[2] >= 0 and box[3] <= viewport.X + 0.001 and box[4] <= height + 0.001, key .. " on screen: " .. box[5])
         end
-        local gearBox = rect(gui.SettingsButton)
-        assert(gearBox[1] >= 0 and gearBox[2] >= 0 and gearBox[3] <= viewport.X and gearBox[4] <= height, "Settings on screen")
-        assert(apart(gearBox, rect(gui.Actions, scale)), "Settings/Actions")
-        for _, other in ipairs({gui.Teleport, gui.Guidance, cash, gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton}) do
-            assert(apart(gearBox, rect(other)), "Settings/" .. other.Name)
+        for i = 1, #boxes do
+            for j = i + 1, #boxes do assert(apart(boxes[i], boxes[j]), key .. " overlap: " .. boxes[i][5] .. "/" .. boxes[j][5]) end
         end
-        for _, other in ipairs({gui.UpgradesButton, gui.RebirthButton, gui.SpinButton, gui.PetsButton, gui.SettingsButton, gui.Teleport, cash}) do
-            assert(apart(rect(gui.Mode), rect(other)), "Mode/" .. other.Name)
-        end
-        assert(apart(rect(gui.Mode), rect(gui.Actions, scale)), "Mode/Actions")
+        assert(gui.Teleport.Size.Y.Offset >= 44 and gui.SettingsButton.Size.Y.Offset >= 44)
         for _, panel in ipairs({gui.UpgradeShop, gui.RebirthPanel, gui.GachaPanel, gui.PetsPanel, gui.SettingsPanel}) do
-            eq(panel.ZIndex, 5)
+            eq(panel.ZIndex, 6)
             local panelScale = panel:FindFirstChildOfClass("UIScale").Scale
+            local panelShadow = panel.Parent:FindFirstChild(panel.Name .. "Shadow")
+            eq(panelShadow:FindFirstChildOfClass("UIScale").Scale, panelScale) -- shadow shrinks with its panel
             assert(panel.Size.X.Offset * panelScale <= viewport.X - 32 + 0.001)
             assert(panel.Size.Y.Offset * panelScale <= height - 24 + 0.001)
         end
+        -- Gacha: two columns when the panel is wide, stacked otherwise; parts never overlap.
+        local gacha = gui.GachaPanel
+        local pw, ph = gacha.Size.X.Offset, gacha.Size.Y.Offset
+        local function inner(object)
+            local x, y = object.Position.X.Scale * pw + object.Position.X.Offset, object.Position.Y.Scale * ph + object.Position.Y.Offset
+            return { x, y, x + object.Size.X.Scale * pw + object.Size.X.Offset, y + object.Size.Y.Scale * ph + object.Size.Y.Offset, object.Name }
+        end
+        local parts = { inner(gacha.Result), inner(gacha.Pity), inner(gacha.Count), inner(gacha.Spin), inner(gacha.PoolArea) }
+        for i = 1, #parts do
+            assert(parts[i][1] >= 0 and parts[i][3] <= pw + 0.001 and parts[i][4] <= ph + 0.001, key .. " gacha inside: " .. parts[i][5])
+            for j = i + 1, #parts do assert(apart(parts[i], parts[j]), key .. " gacha overlap: " .. parts[i][5] .. "/" .. parts[j][5]) end
+        end
+        local poolBox, spinBox = inner(gacha.PoolArea), inner(gacha.Spin)
+        if pw >= 560 then assert(poolBox[1] >= spinBox[3], key .. " wide gacha") else assert(poolBox[4] <= spinBox[2], key .. " stacked gacha") end
+        local pets = gui.PetsPanel
+        assert(inner(pets.GridArea)[4] <= inner(pets.Selected)[2] + 0.001, key .. " pets grid above detail")
     end
+end)
+
+test("sticker shadows follow their button and every icon has a code-built fallback", function()
+    local E = loadModule("client/ui/Elements")
+    local Theme = loadModule("client/ui/Theme")
+    local Icons = loadModule("client/ui/Icons")
+    local Ids = loadModule("shared/config/Icons")
+    local holder = Instance.new("Frame")
+    local button = E.button(holder, "GO", nil, Theme.Gold)
+    button.Name, button.Position, button.Size = "Go", UDim2.fromOffset(10, 20), UDim2.fromOffset(100, 40)
+    local shadow = holder:FindFirstChild("GoShadow")
+    assert(shadow, "shadow sibling exists")
+    eq(shadow.Position.X.Offset, 13); eq(shadow.Position.Y.Offset, 23); eq(shadow.Size.X.Offset, 100)
+    assert(shadow.ZIndex < button.ZIndex)
+    button.Visible = false; eq(shadow.Visible, false)
+    button.Position = UDim2.new(0.5, -4, 1, 6); eq(shadow.Position.X.Scale, 0.5); eq(shadow.Position.X.Offset, -1); eq(shadow.Position.Y.Offset, 9)
+    button.Parent = nil; eq(shadow.Parent, nil)
+    local flat = E.button(holder, "X", nil, Theme.Ink, 0)
+    flat.Name = "Flat"; eq(holder:FindFirstChild("FlatShadow"), nil)
+    -- Every configured icon draws something until an asset ID is pasted in.
+    local count = 0
+    for name, id in pairs(Ids) do
+        count += 1
+        eq(id, ""); eq(Icons.hasImage(name), false)
+        local icon = Icons.make(holder, name, 32, Theme.Ink)
+        eq(icon:GetAttribute("Icon"), name); assert(#(icon._children or {}) > 0, name .. " draws a fallback")
+        eq(icon:FindFirstChild("Image"), nil)
+    end
+    eq(count, 17)
+    -- Diner Sticker type: Luckiest Guy for numbers and buttons, Fredoka for body text.
+    local gui = first.PlayerGui.FriesInterface
+    eq(gui.CashCard.Cash.Font, Enum.Font.LuckiestGuy); eq(gui.Actions.Click.Title.Font, Enum.Font.LuckiestGuy)
+    eq(gui.Actions.Click.Detail.Font, Enum.Font.FredokaOne)
+    eq(gui.UpgradeShop.Header.BackgroundColor3, Theme.Red); eq(gui.PetsPanel.Header.BackgroundColor3, Theme.Blue)
+    assert(gui:FindFirstChild("CashCardShadow") and gui:FindFirstChild("TeleportShadow") and gui:FindFirstChild("UpgradesButtonShadow"))
 end)
 
 test("button and keyboard selling require a full bag at the counter", function()
@@ -807,8 +858,8 @@ test("wallet shop and rebirth panel show server values and send only allowed req
     eq(gui.CashCard.Cash.Text, "$0"); eq(gui.CashCard.Gems.Text, "3")
     eq(shop.Visible, false); eq(panel.Visible, false)
     gui.UpgradesButton.Activated:Fire(); eq(shop.Visible, true)
-    eq(shop.FriesPerClick.Level.Text, "LEVEL 2"); eq(shop.FriesPerClick.Value.Text, "3 → 4 fries/click")
-    eq(shop.MoneyPerFry.Value.Text, "$0.50 → $0.55 per fry"); eq(shop.BagCapacity.Value.Text, "20 → 25 fries per bag")
+    eq(shop.FriesPerClick.Level.Text, "LEVEL 2"); eq(shop.FriesPerClick.Value.Text, "3 » 4 fries/click")
+    eq(shop.MoneyPerFry.Value.Text, "$0.50 » $0.55 per fry"); eq(shop.BagCapacity.Value.Text, "20 » 25 fries per bag")
     eq(shop.FriesPerClick.Buy.Text, "5 GEMS"); eq(shop.MoneyPerFry.Buy.Text, "4 GEMS"); eq(shop.BagCapacity.Buy.Text, "5 GEMS")
     eq(gui.Actions.Click.Title.Text, "+3 fries/click"); eq(gui.Actions.Sell.Title.Text, "3 / 20")
     -- 3 gems affords nothing; plenty of Cash does not help.
@@ -908,8 +959,17 @@ test("machine and pets panels show server data and send only spin equip and dele
     gui.SpinButton.Activated:Fire(); eq(machine.Visible, true); eq(petsPanel.Visible, false)
     eq(machine.Title.Text, "STARTER FRYER")
     eq(machine.Caption.Text, "$100 per spin  ·  Epic or better within 48 spins")
-    eq(machine.Odds.Common.Text, "COMMON  60%"); eq(machine.Odds.CommonPets.Text, "Crinkle Fry, Salt Shaker, Paper Cup")
-    eq(machine.Odds.Legendary.Text, "LEGENDARY  1%"); eq(machine.Odds.LegendaryPets.Text, "Fry King")
+    -- Every pet in the machine has a tile with a live portrait and its own chance; chances add up to 100%.
+    local pool = machine.PoolArea.Pool
+    eq(pool.CrinkleFry.Chance.Text, "20%"); eq(pool.PotatoPup.Chance.Text, "8.33%"); eq(pool.MayoJar.Chance.Text, "5%")
+    eq(pool.FryerBot.Chance.Text, "4%"); eq(pool.FryKing.Chance.Text, "1%"); eq(pool.FryKing.PetName.Text, "Fry King")
+    local total, tiles = 0, 0
+    for _, tile in ipairs(pool._children) do
+        if tile.ClassName == "Frame" then tiles += 1; total += tonumber((string.gsub(tile.Chance.Text, "%%", ""))) end
+    end
+    eq(tiles, 10); assert(math.abs(total - 100) < 0.05, total)
+    eq(pool.CrinkleFry.Portrait.ClassName, "ViewportFrame"); assert(pool.CrinkleFry.Portrait.Pet and pool.CrinkleFry.Portrait.CurrentCamera)
+    eq(machine.Result.Mystery.Visible, true)
     eq(machine.Count.Text, "PETS 1 / 50")
     eq(machine.Spin.Text, "NEED $100"); eq(machine.Spin.Active, false)
     remote.lastServerArgs = nil; machine.Spin.Activated:Fire(); eq(remote.lastServerArgs, nil)
@@ -918,7 +978,9 @@ test("machine and pets panels show server data and send only spin equip and dele
     remote.lastServerArgs = nil; machine.Spin.Activated:Fire()
     eq(remote.lastServerArgs[1], "Spin"); eq(remote.lastServerArgs[2], "StarterFryer")
     state.spin = { serial = 999, id = "P2", type = "CrinkleFry" }; show()
-    eq(machine.Result.PetName.Text, "You got Crinkle Fry!"); eq(machine.Result.Bonus.Text, "COMMON  ·  +5% fries per click")
+    eq(machine.Result.PetName.Text, "You got Crinkle Fry!"); eq(machine.Result.Bonus.Text, "+5% fries per click")
+    eq(machine.Result.Tag.Text, "COMMON!"); eq(machine.Result.Mystery.Visible, false)
+    eq(machine.Result.Portrait:GetAttribute("Showing"), "CrinkleFry")
     state.spin = nil
     local owned = state.pets.owned
     local many = {}
@@ -929,28 +991,34 @@ test("machine and pets panels show server data and send only spin equip and dele
     -- Fractional stats from pet bonuses display cleanly.
     state.stats.perClick = 3.15; show(); eq(gui.Actions.Click.Title.Text, "+3.15 fries/click")
     eq(loadModule("client/ui/Elements").number(2.1), "2.1"); eq(loadModule("client/ui/Elements").number(20), "20")
-    -- Pets panel: equip, two-tap delete, unequip.
+    -- Pets panel: tiles, selection, equip, two-tap delete, unequip.
     gui.PetsButton.Activated:Fire(); eq(petsPanel.Visible, true); eq(machine.Visible, false)
-    eq(petsPanel.Caption.Text, "Equipped 0 / 3  ·  1 / 50 pets"); eq(petsPanel.ListArea.Empty.Visible, false)
-    local row = petsPanel.ListArea.List.P2
-    eq(row.PetName.Text, "Crinkle Fry"); eq(row.Bonus.Text, "+5% fries/click"); eq(row.Equip.Text, "EQUIP")
-    remote.lastServerArgs = nil; row.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Equip"); eq(remote.lastServerArgs[2], "P2")
-    remote.lastServerArgs = nil; row.Delete.Activated:Fire(); eq(remote.lastServerArgs, nil)
-    row = petsPanel.ListArea.List.P2; eq(row.Delete.Text, "SURE?")
-    row.Delete.Activated:Fire(); eq(remote.lastServerArgs[1], "DeletePet"); eq(remote.lastServerArgs[2], "P2")
+    eq(petsPanel.Caption.Text, "Equipped 0 / 3  ·  1 / 50 pets"); eq(petsPanel.GridArea.Empty.Visible, false)
+    local grid, detail = petsPanel.GridArea.Grid, petsPanel.Selected
+    local tile = grid.P2
+    eq(tile.PetName.Text, "Crinkle Fry"); eq(tile.Bonus.Text, "+5% fries/click"); eq(tile.Equipped.Visible, false)
+    eq(tile.Portrait:GetAttribute("Showing"), "CrinkleFry")
+    eq(detail.Hint.Visible, true); eq(detail.Equip.Visible, false); eq(detail.Delete.Visible, false)
+    tile.Activated:Fire()
+    eq(detail.Hint.Visible, false); eq(detail.PetName.Text, "Crinkle Fry"); eq(detail.Rarity.Text, "COMMON")
+    eq(detail.Bonus.Text, "+5% fries per click"); eq(detail.Equip.Text, "EQUIP"); eq(detail.Portrait:GetAttribute("Showing"), "CrinkleFry")
+    remote.lastServerArgs = nil; detail.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Equip"); eq(remote.lastServerArgs[2], "P2")
+    remote.lastServerArgs = nil; detail.Delete.Activated:Fire(); eq(remote.lastServerArgs, nil); eq(detail.Delete.Text, "SURE?")
+    detail.Delete.Activated:Fire(); eq(remote.lastServerArgs[1], "DeletePet"); eq(remote.lastServerArgs[2], "P2")
     owned[1].equipped = true; state.pets.equipped = 1; show()
-    row = petsPanel.ListArea.List.P2
-    eq(row.Equip.Text, "UNEQUIP"); eq(row:FindFirstChild("Delete"), nil)
-    remote.lastServerArgs = nil; row.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Unequip")
+    eq(grid.P2, tile) -- tiles are reused, not rebuilt
+    eq(tile.Equipped.Visible, true); eq(detail.Equip.Text, "UNEQUIP"); eq(detail.Delete.Visible, false)
+    eq(detail.Rarity.Text, "COMMON  ·  EQUIPPED")
+    remote.lastServerArgs = nil; detail.Equip.Activated:Fire(); eq(remote.lastServerArgs[1], "Unequip")
     -- With all slots full, unequipped pets cannot be equipped.
     owned[1].equipped = false
     local function equippedCopy(id) local copy = table.clone(owned[1]); copy.id = id; copy.equipped = true; return copy end
     state.pets.owned = { owned[1], equippedCopy("P7"), equippedCopy("P8"), equippedCopy("P9") }; state.pets.equipped = 3; show()
-    row = petsPanel.ListArea.List.P2
-    eq(row.Equip.Active, false); remote.lastServerArgs = nil; row.Equip.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    eq(detail.Equip.Text, "SLOTS FULL"); eq(detail.Equip.Active, false)
+    remote.lastServerArgs = nil; detail.Equip.Activated:Fire(); eq(remote.lastServerArgs, nil)
     eq(petsPanel.Caption.Text, "Equipped 3 / 3  ·  4 / 50 pets")
-    state.pets.owned, state.pets.equipped = {}, 0; show(); eq(petsPanel.ListArea.Empty.Visible, true)
-    eq(petsPanel.ListArea.List:FindFirstChild("P2"), nil)
+    state.pets.owned, state.pets.equipped = {}, 0; show(); eq(petsPanel.GridArea.Empty.Visible, true)
+    eq(grid:FindFirstChild("P2"), nil); eq(detail.Hint.Visible, true)
     -- Unclaimed players cannot open either panel.
     state.hasStation = false; show()
     eq(petsPanel.Visible, false)
@@ -1051,6 +1119,44 @@ test("following pets render behind their players respect settings and clean up",
     eq(count, 1)
 end)
 
+test("every pet has a code-built model and portraits rebuild only when the pet changes", function()
+    local PetModels = loadModule("client/ui/PetModels")
+    local PetPortrait = loadModule("client/ui/PetPortrait")
+    local Pets = loadModule("shared/config/Pets")
+    local count = 0
+    for petType in pairs(Pets.Types) do
+        count += 1
+        assert(PetModels.Recipes[petType], petType .. " has a recipe")
+        for _, golden in ipairs({ false, true }) do
+            local model, pieces = PetModels.build(petType, golden, nil)
+            eq(model.Name, petType .. (if golden then "Golden" else ""))
+            assert(#pieces >= 8, petType .. " has a body and a face")
+            local eyes, sparkles, body = 0, 0, nil
+            for _, piece in ipairs(pieces) do
+                local part = piece.part
+                eq(part.Anchored, true); eq(part.CanCollide, false); eq(part.CanQuery, false); eq(part.CanTouch, false)
+                assert(math.abs(piece.offset.Position.Y) < 2 and math.abs(piece.offset.Position.X) < 2, petType .. " stays compact")
+                if part.Name == "Eye" then eyes += 1 elseif part.Name == "Sparkle" then sparkles += 1
+                elseif part.Name == "Body" and not body then body = part end
+            end
+            eq(eyes, 2); eq(sparkles, if golden then 2 else 0)
+            assert(body, petType .. " has a body piece")
+            eq(body.Reflectance, if golden then 0.3 else 0)
+            PetModels.place(pieces, CFrame.new(Vector3.new(0, 5, 0)))
+            assert(math.abs(pieces[1].part.CFrame.Position.Y - 5) < 2)
+        end
+    end
+    eq(count, 10)
+    local holder = Instance.new("Frame")
+    local view = PetPortrait.make(holder, "Portrait", UDim2.fromOffset(80, 80))
+    eq(view.ClassName, "ViewportFrame"); assert(view.CurrentCamera, "portrait has a camera")
+    PetPortrait.set(view, "MayoJar", false)
+    local model = view.Pet
+    assert(model); eq(view:GetAttribute("Showing"), "MayoJar")
+    PetPortrait.set(view, "MayoJar", false); eq(view.Pet, model) -- unchanged pets are not rebuilt
+    PetPortrait.set(view, "MayoJar", true); assert(view.Pet ~= model); eq(view:GetAttribute("Showing"), "MayoJar*")
+end)
+
 test("settings panel and pet tools show server state and send only allowed requests", function()
     local gui = first.PlayerGui.FriesInterface
     local settings, petsPanel = gui.SettingsPanel, gui.PetsPanel
@@ -1066,10 +1172,12 @@ test("settings panel and pet tools show server state and send only allowed reque
     eq(remote.lastServerArgs[1], "ToggleSetting"); eq(remote.lastServerArgs[2], "PetsFollow")
     state.settings.PetsFollow = false; show(); eq(settings.PetsFollow.Toggle.Text, "OFF")
     settings.Close.Activated:Fire(); eq(settings.Visible, false)
-    -- Golden row and tools.
+    -- Golden tile and tools.
     gui.PetsButton.Activated:Fire()
-    local row = petsPanel.ListArea.List.P7
-    eq(row.PetName.Text, "Golden Crinkle Fry"); eq(row.Rarity.Text, "COMMON  ·  GOLDEN  ·  EQUIPPED"); eq(row.Bonus.Text, "+10% fries/click")
+    local tile = petsPanel.GridArea.Grid.P7
+    eq(tile.PetName.Text, "Golden Crinkle Fry"); eq(tile.Bonus.Text, "+10% fries/click"); eq(tile:GetAttribute("Golden"), true)
+    eq(tile.Portrait:GetAttribute("Showing"), "CrinkleFry*")
+    tile.Activated:Fire(); eq(petsPanel.Selected.Rarity.Text, "COMMON  ·  GOLDEN  ·  EQUIPPED")
     remote.lastServerArgs = nil; petsPanel.AutoCommon.Activated:Fire()
     eq(remote.lastServerArgs[1], "ToggleAutoDelete"); eq(remote.lastServerArgs[2], "Common")
     state.pets.autoDelete = { Common = true }; show()

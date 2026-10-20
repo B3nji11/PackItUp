@@ -8,6 +8,9 @@ return function(count)
     local model = Instance.new("Model")
     model.Name, model.Parent = "FriesRestaurant", workspace
     P.part(model, "Ground", Vector3.new(220, 1, 192), Vector3.new(0, -0.5, 0), Color3.fromRGB(112, 198, 91))
+    -- Rolling grass beyond the hedge out to the horizon, so the district never floats in the sky.
+    local outskirts = P.part(model, "Outskirts", Vector3.new(2048, 1, 2048), Vector3.new(0, -0.62, 0), Color3.fromRGB(126, 204, 98))
+    outskirts.CastShadow = false
     P.part(model, "CentralPlaza", Vector3.new(198, 0.25, 48), Vector3.new(0, 0.1, 0), Color3.fromRGB(166, 113, 73))
     local pathBrown = Color3.fromRGB(190, 137, 88)
     P.part(model, "Promenade", Vector3.new(198, 0.05, 12), Vector3.new(0, 0.25, 0), pathBrown)
@@ -67,5 +70,12 @@ return function(count)
     Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0.3, 0.12
     Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 1
     Lighting.ExposureCompensation = -0.25
+    -- A warm, hazy atmosphere softens the default blue sky into the Diner Sticker palette and
+    -- blends the outskirts into the horizon.
+    local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
+    atmosphere.Name, atmosphere.Density, atmosphere.Offset = "DinerHaze", 0.34, 0.2
+    atmosphere.Color, atmosphere.Decay = Color3.fromRGB(255, 236, 205), Color3.fromRGB(150, 205, 232)
+    atmosphere.Glare, atmosphere.Haze = 0, 1.8
+    atmosphere.Parent = Lighting
     return stations
 end

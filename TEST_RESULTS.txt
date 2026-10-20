@@ -1,4 +1,4 @@
-Compilation passed for 50 Luau files.
+Compilation passed for 53 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -44,6 +44,7 @@ PASS restaurant markers clear on release and ignore late portraits from the prev
 PASS unavailable avatars retain a username fallback with bounded background retries
 PASS client has click sell teleport settings and the upgrade rebirth spin and pets menus only
 PASS permanent core controls fit portrait landscape and desktop
+PASS sticker shadows follow their button and every icon has a code-built fallback
 PASS button and keyboard selling require a full bag at the counter
 PASS click packs while full bags and distance block further client packing
 PASS HUD highlights fries per click capacity and full-bag feedback inside the buttons
@@ -53,6 +54,7 @@ PASS server spins charge Cash roll on the server and equip unequip and delete ow
 PASS machine and pets panels show server data and send only spin equip and delete requests
 PASS server merges Golden pets bulk deletes auto-deletes and publishes following pets
 PASS following pets render behind their players respect settings and clean up
+PASS every pet has a code-built model and portraits rebuild only when the pet changes
 PASS settings panel and pet tools show server state and send only allowed requests
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
@@ -89,4 +91,4 @@ PASS settings default on toggle and reject unknown names
 PASS the public follow text lists equipped pets and respects Pets follow me
 PASS golden flags settings and auto-delete are validated
 PASS golden pets settings and auto-delete save and load
-RESULT: 89 passed, 0 failed
+RESULT: 91 passed, 0 failed

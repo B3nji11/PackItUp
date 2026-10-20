@@ -48,6 +48,34 @@ return table.freeze({
         </Item>
         <Item class="ModuleScript" referent="RBX00006">
           <Properties>
+            <string name="Name">Icons</string>
+            <ProtectedString name="Source">-- Uploaded icon asset IDs, keyed by the file names in art/README.md (without ".png").
+-- Leave an entry empty ("") until its image is uploaded and approved; the game then draws a
+-- code-built fallback. Paste IDs as "rbxassetid://1234567890".
+return table.freeze({
+    ["cash"] = "",
+    ["gem"] = "",
+    ["fries"] = "",
+    ["bag"] = "",
+    ["upgrades"] = "",
+    ["rebirth"] = "",
+    ["spin"] = "",
+    ["pets"] = "",
+    ["settings"] = "",
+    ["home"] = "",
+    ["upgrade-fries-per-click"] = "",
+    ["upgrade-money-per-fry"] = "",
+    ["upgrade-bag-capacity"] = "",
+    ["close"] = "",
+    ["check"] = "",
+    ["sparkle"] = "",
+    ["star"] = "",
+})
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00007">
+          <Properties>
             <string name="Name">Machines</string>
             <ProtectedString name="Source">-- Gacha machines are data: a fixed Cash price, rarity odds, a pet pool, and pity.
 -- Pets in the same rarity share that rarity's chance equally. New machines are added here.
@@ -67,17 +95,18 @@ return table.freeze({ Order = table.freeze({ "StarterFryer" }), Machines = table
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00007">
+        <Item class="ModuleScript" referent="RBX00008">
           <Properties>
             <string name="Name">Pets</string>
             <ProtectedString name="Source">-- Fry Buddies (placeholder names). Each bonus is a fraction added to one stat:
 -- effective value = (base + upgrade levels) x (1 + total equipped bonus for that stat).
 local Rarities = {
-    Common = table.freeze({ Rank = 1, Name = "Common", Color = { 198, 207, 191 } }),
-    Uncommon = table.freeze({ Rank = 2, Name = "Uncommon", Color = { 107, 218, 153 } }),
-    Rare = table.freeze({ Rank = 3, Name = "Rare", Color = { 92, 175, 243 } }),
-    Epic = table.freeze({ Rank = 4, Name = "Epic", Color = { 183, 140, 255 } }),
-    Legendary = table.freeze({ Rank = 5, Name = "Legendary", Color = { 255, 199, 70 } }),
+    -- Colours are dark enough to read on cream and white (Diner Sticker style).
+    Common = table.freeze({ Rank = 1, Name = "Common", Color = { 128, 108, 88 } }),
+    Uncommon = table.freeze({ Rank = 2, Name = "Uncommon", Color = { 31, 138, 126 } }),
+    Rare = table.freeze({ Rank = 3, Name = "Rare", Color = { 29, 111, 216 } }),
+    Epic = table.freeze({ Rank = 4, Name = "Epic", Color = { 123, 44, 191 } }),
+    Legendary = table.freeze({ Rank = 5, Name = "Legendary", Color = { 176, 118, 0 } }),
 }
 local function pet(name, rarity, bonuses)
     return table.freeze({ Name = name, Rarity = rarity, Bonuses = table.freeze(bonuses) })
@@ -110,7 +139,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00008">
+        <Item class="ModuleScript" referent="RBX00009">
           <Properties>
             <string name="Name">Rebirth</string>
             <ProtectedString name="Source">-- Rebirth balance. Threshold = BaseThreshold x Growth ^ rebirths (rounded, in Cash).
@@ -124,7 +153,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00009">
+        <Item class="ModuleScript" referent="RBX00010">
           <Properties>
             <string name="Name">Runtime</string>
             <ProtectedString name="Source">return table.freeze({
@@ -143,7 +172,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00010">
+        <Item class="ModuleScript" referent="RBX00011">
           <Properties>
             <string name="Name">Settings</string>
             <ProtectedString name="Source">-- Player settings, saved per profile. Defaults apply when a setting has never been changed.
@@ -159,7 +188,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00011">
+        <Item class="ModuleScript" referent="RBX00012">
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade tracks, in shop order. Cost in gems = round(BaseCost x Growth ^ level).
@@ -179,11 +208,11 @@ return table.freeze({
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00012">
+      <Item class="Folder" referent="RBX00013">
         <Properties>
           <string name="Name">domain</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00013">
+        <Item class="ModuleScript" referent="RBX00014">
           <Properties>
             <string name="Name">Gacha</string>
             <ProtectedString name="Source">-- Gacha spins. Pure rules: the server injects `random` (returns 0 &lt;= x &lt; 1).
@@ -252,9 +281,11 @@ function Gacha.snapshot(p, id)
     local machine = Machines.Machines[id]
     local rows = {}
     for _, rarity in ipairs(PetConfig.RarityOrder) do
-        local names = {}
-        for _, petType in ipairs(poolOf(machine, rarity)) do table.insert(names, PetConfig.Types[petType].Name) end
-        if #names &gt; 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names }) end
+        local names, types = {}, {}
+        for _, petType in ipairs(poolOf(machine, rarity)) do
+            table.insert(names, PetConfig.Types[petType].Name); table.insert(types, petType)
+        end
+        if #names &gt; 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names, types = types }) end
     end
     return { id = id, name = machine.Name, price = machine.Price, odds = rows, pity = Gacha.pity(p, id),
         pityEvery = machine.PityEvery, pityRarity = machine.PityRarity }
@@ -263,7 +294,7 @@ return Gacha
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00014">
+        <Item class="ModuleScript" referent="RBX00015">
           <Properties>
             <string name="Name">Packing</string>
             <ProtectedString name="Source">local Pricing = require(script.Parent.Pricing)
@@ -289,7 +320,7 @@ return Packing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00015">
+        <Item class="ModuleScript" referent="RBX00016">
           <Properties>
             <string name="Name">Pets</string>
             <ProtectedString name="Source">-- Owned pets, equipping, deleting, and equipped stat bonuses. Pure rules.
@@ -415,7 +446,7 @@ return Pets
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00016">
+        <Item class="ModuleScript" referent="RBX00017">
           <Properties>
             <string name="Name">Pricing</string>
             <ProtectedString name="Source">-- Effective stats: (base + upgrade levels) x (1 + equipped pet bonus). Old prototype
@@ -447,7 +478,7 @@ return Pricing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00017">
+        <Item class="ModuleScript" referent="RBX00018">
           <Properties>
             <string name="Name">Profile</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
@@ -559,7 +590,7 @@ return Profile
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00018">
+        <Item class="ModuleScript" referent="RBX00019">
           <Properties>
             <string name="Name">Rebirth</string>
             <ProtectedString name="Source">-- Rebirth: convert Cash into gems at a rising threshold. Pure rules: no Instances,
@@ -592,7 +623,7 @@ return Rebirth
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00019">
+        <Item class="ModuleScript" referent="RBX00020">
           <Properties>
             <string name="Name">Settings</string>
             <ProtectedString name="Source">-- Saved player settings. Pure rules.
@@ -619,7 +650,7 @@ return Settings
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00020">
+        <Item class="ModuleScript" referent="RBX00021">
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade purchases. Pure rules: no Instances, messages, or DataStores.
@@ -669,11 +700,11 @@ return Upgrades
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00021">
+      <Item class="Folder" referent="RBX00022">
         <Properties>
           <string name="Name">util</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00022">
+        <Item class="ModuleScript" referent="RBX00023">
           <Properties>
             <string name="Name">Copy</string>
             <ProtectedString name="Source">local function copy(value)
@@ -686,7 +717,7 @@ return copy
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00023">
+        <Item class="ModuleScript" referent="RBX00024">
           <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
@@ -712,15 +743,15 @@ return RateLimiter
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00024">
+  <Item class="ServerScriptService" referent="RBX00025">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00025">
+    <Item class="Folder" referent="RBX00026">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00026">
+      <Item class="Script" referent="RBX00027">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -835,7 +866,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00027">
+      <Item class="ModuleScript" referent="RBX00028">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -861,11 +892,11 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00028">
+      <Item class="Folder" referent="RBX00029">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00029">
+        <Item class="ModuleScript" referent="RBX00030">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -970,7 +1001,7 @@ return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00030">
+        <Item class="ModuleScript" referent="RBX00031">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -1074,7 +1105,7 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00031">
+        <Item class="ModuleScript" referent="RBX00032">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1141,7 +1172,7 @@ return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00032">
+        <Item class="ModuleScript" referent="RBX00033">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1211,11 +1242,11 @@ return StationService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00033">
+      <Item class="Folder" referent="RBX00034">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00034">
+        <Item class="ModuleScript" referent="RBX00035">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -1300,11 +1331,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00035">
+      <Item class="Folder" referent="RBX00036">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00036">
+        <Item class="ModuleScript" referent="RBX00037">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -1341,7 +1372,7 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00037">
+        <Item class="ModuleScript" referent="RBX00038">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1446,7 +1477,7 @@ end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00038">
+        <Item class="ModuleScript" referent="RBX00039">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
@@ -1459,6 +1490,9 @@ return function(count)
     local model = Instance.new("Model")
     model.Name, model.Parent = "FriesRestaurant", workspace
     P.part(model, "Ground", Vector3.new(220, 1, 192), Vector3.new(0, -0.5, 0), Color3.fromRGB(112, 198, 91))
+    -- Rolling grass beyond the hedge out to the horizon, so the district never floats in the sky.
+    local outskirts = P.part(model, "Outskirts", Vector3.new(2048, 1, 2048), Vector3.new(0, -0.62, 0), Color3.fromRGB(126, 204, 98))
+    outskirts.CastShadow = false
     P.part(model, "CentralPlaza", Vector3.new(198, 0.25, 48), Vector3.new(0, 0.1, 0), Color3.fromRGB(166, 113, 73))
     local pathBrown = Color3.fromRGB(190, 137, 88)
     P.part(model, "Promenade", Vector3.new(198, 0.05, 12), Vector3.new(0, 0.25, 0), pathBrown)
@@ -1518,6 +1552,13 @@ return function(count)
     Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0.3, 0.12
     Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 1
     Lighting.ExposureCompensation = -0.25
+    -- A warm, hazy atmosphere softens the default blue sky into the Diner Sticker palette and
+    -- blends the outskirts into the horizon.
+    local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
+    atmosphere.Name, atmosphere.Density, atmosphere.Offset = "DinerHaze", 0.34, 0.2
+    atmosphere.Color, atmosphere.Decay = Color3.fromRGB(255, 236, 205), Color3.fromRGB(150, 205, 232)
+    atmosphere.Glare, atmosphere.Haze = 0, 1.8
+    atmosphere.Parent = Lighting
     return stations
 end
 </ProtectedString>
@@ -1526,19 +1567,19 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00039">
+  <Item class="StarterPlayer" referent="RBX00040">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00040">
+    <Item class="StarterPlayerScripts" referent="RBX00041">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00041">
+      <Item class="Folder" referent="RBX00042">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="LocalScript" referent="RBX00042">
+        <Item class="LocalScript" referent="RBX00043">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -1581,11 +1622,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00043">
+        <Item class="Folder" referent="RBX00044">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00044">
+          <Item class="ModuleScript" referent="RBX00045">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1631,15 +1672,19 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="Folder" referent="RBX00045">
+        <Item class="Folder" referent="RBX00046">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00046">
+          <Item class="ModuleScript" referent="RBX00047">
             <Properties>
               <string name="Name">AppView</string>
-              <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
+              <ProtectedString name="Source">-- Screen layout in the Diner Sticker style: a receipt-style wallet (Cash and Gems) at the top
+-- left, the menu below it (labelled pills, or labelled tiles on short screens), Return
+-- to Counter and Settings at the top, guidance above Pack and Sell at the bottom centre.
+local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local HudView = require(script.Parent.HudView)
 local ShopView = require(script.Parent.ShopView)
 local RebirthView = require(script.Parent.RebirthView)
@@ -1648,65 +1693,62 @@ local PetsView = require(script.Parent.PetsView)
 local SettingsView = require(script.Parent.SettingsView)
 local AppView = {}
 AppView.__index = AppView
--- The wallet card holds Cash (top) and Gems (bottom row).
-local CardHeight, ButtonGap, ButtonHeight = 112, 10, 44
-local function scaledText(label, max)
-    label.TextScaled, label.TextWrapped = true, false
-    local fit = Instance.new("UITextSizeConstraint")
-    fit.MinTextSize, fit.MaxTextSize, fit.Parent = 10, max, label
-end
+local Margin, TopBar = 16, 48
 function AppView.new(playerGui, send)
     local self = setmetatable({}, AppView)
     local gui = Instance.new("ScreenGui")
     gui.Name, gui.ResetOnSpawn, gui.ZIndexBehavior = "FriesInterface", false, Enum.ZIndexBehavior.Sibling
     gui.Parent = playerGui
-    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(16, 16), UDim2.fromOffset(218, CardHeight), Theme.Background, 18)
-    self.cashCard.AnchorPoint = Vector2.new(0, 0.5)
-    E.stroke(self.cashCard, Theme.Gold, 2, 0.12)
-    local coin = E.box(self.cashCard, "Coin", UDim2.fromOffset(12, 17), UDim2.fromOffset(42, 42), Theme.Gold, 21)
-    local symbol = E.label(coin, "$", 42, Theme.Ink)
-    symbol.Size, symbol.TextSize, symbol.Font = UDim2.fromScale(1, 1), 29, Enum.Font.GothamBold
-    symbol.TextXAlignment = Enum.TextXAlignment.Center
-    local caption = E.label(self.cashCard, "CASH", 18, Theme.Muted)
-    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(65, 10), UDim2.fromOffset(140, 18), 11
-    self.wallet = E.label(self.cashCard, "$0", 36, Theme.Text)
-    self.wallet.Name, self.wallet.Position, self.wallet.Size = "Cash", UDim2.fromOffset(65, 29), UDim2.fromOffset(142, 36)
-    self.wallet.Font, self.wallet.TextSize = Enum.Font.GothamBold, 27
-    scaledText(self.wallet, 27)
-    local divider = E.box(self.cashCard, "Divider", UDim2.fromOffset(12, 74), UDim2.new(1, -24, 0, 1), Theme.Muted, 0)
-    divider.BackgroundTransparency = 0.7
-    -- A code-built gem: a small rotated square, no texture assets.
-    local gem = E.box(self.cashCard, "GemIcon", UDim2.fromOffset(24, 84), UDim2.fromOffset(18, 18), Theme.Gem, 3)
-    gem.Rotation = 45
-    self.gems = E.label(self.cashCard, "0", 26, Theme.Text)
-    self.gems.Name, self.gems.Position, self.gems.Size = "Gems", UDim2.fromOffset(65, 80), UDim2.new(1, -125, 0, 26)
-    self.gems.Font, self.gems.TextSize = Enum.Font.GothamBold, 20
-    scaledText(self.gems, 20)
-    local gemCaption = E.label(self.cashCard, "GEMS", 18, Theme.Gem)
+    -- Wallet: a cream receipt card with a coin row, a dashed divider, and a gem row.
+    self.cashCard = E.box(gui, "CashCard", UDim2.fromOffset(Margin, 12), UDim2.fromOffset(220, 112), Theme.Cream, 20)
+    self.cashCard.AnchorPoint = Vector2.new(0, 0)
+    E.sticker(self.cashCard, 4, 6)
+    local coin = Icons.make(self.cashCard, "cash", 40, Theme.Ink, UDim2.fromOffset(12, 10))
+    coin.Name = "Coin"
+    self.wallet = E.label(self.cashCard, "$0", 40, Theme.Ink)
+    self.wallet.Name, self.wallet.Position, self.wallet.Size = "Cash", UDim2.fromOffset(60, 10), UDim2.new(1, -72, 0, 40)
+    self.wallet.Font, self.wallet.TextSize = Theme.Display, 30
+    E.fit(self.wallet, 12, 30)
+    self.divider = E.dashes(self.cashCard, "Divider", UDim2.fromOffset(12, 56), 196)
+    local gem = Icons.make(self.cashCard, "gem", 36, Theme.Gem, UDim2.fromOffset(14, 64))
+    gem.Name = "GemIcon"
+    self.gems = E.label(self.cashCard, "0", 36, Theme.Ink)
+    self.gems.Name, self.gems.Position, self.gems.Size = "Gems", UDim2.fromOffset(60, 64), UDim2.new(1, -124, 0, 36)
+    self.gems.Font, self.gems.TextSize = Theme.Display, 26
+    E.fit(self.gems, 10, 26)
+    local gemCaption = E.label(self.cashCard, "GEMS", 18, Theme.Muted)
     gemCaption.Name, gemCaption.AnchorPoint = "GemCaption", Vector2.new(1, 0)
-    gemCaption.Position, gemCaption.Size, gemCaption.TextSize = UDim2.new(1, -14, 0, 84), UDim2.fromOffset(50, 18), 11
+    gemCaption.Position, gemCaption.Size, gemCaption.TextSize = UDim2.new(1, -12, 0, 74), UDim2.fromOffset(52, 18), 13
     gemCaption.TextXAlignment = Enum.TextXAlignment.Right
-    self.mode = E.label(gui, "", 20, Theme.Text)
     -- Studio-only label in the bottom-left corner, below every control.
-    self.mode.Name, self.mode.Position, self.mode.Size, self.mode.TextSize = "Mode", UDim2.new(0, 16, 1, -18), UDim2.fromOffset(220, 16), 10
+    self.mode = E.label(gui, "", 16, Theme.Ink)
+    self.mode.Name, self.mode.Position, self.mode.Size, self.mode.TextSize = "Mode", UDim2.new(0, Margin, 1, -21), UDim2.fromOffset(220, 15), 11
+    -- Return to Counter: a ketchup sticker pill with a home icon.
     self.teleport = E.button(gui, "RETURN TO COUNTER", function()
         if self.hasStation then send("Return") end
-    end, Theme.Background)
-    self.teleport.TextColor3 = Theme.Text
-    self.teleport.Name, self.teleport.AnchorPoint = "Teleport", Vector2.new(0.5, 0)
-    self.teleport.Size, self.teleport.TextSize = UDim2.fromOffset(212, 44), 12
-    E.stroke(self.teleport, Theme.Gold, 1.5, 0.3)
-    self.guidance = E.label(gui, "", 44, Theme.Text)
+    end, Theme.Red, 0)
+    self.teleport.Name, self.teleport.TextColor3, self.teleport.TextSize = "Teleport", Theme.OnColor, 16
+    self.teleport:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 24)
+    E.sticker(self.teleport, 4, 5)
+    E.textStroke(self.teleport, Theme.Ink, 2)
+    E.fit(self.teleport, 9, 16)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft, padding.PaddingRight, padding.Parent = UDim.new(0, 44), UDim.new(0, 12), self.teleport
+    local home = Icons.make(self.teleport, "home", 26, Theme.White, UDim2.new(0, -32, 0.5, -13))
+    home.Name = "HomeIcon"
+    -- Guidance and errors: a cream sticker strip.
+    self.guidance = E.label(gui, "", 48, Theme.Ink)
     self.guidance.Name, self.guidance.AnchorPoint = "Guidance", Vector2.new(0.5, 0)
-    self.guidance.TextXAlignment, self.guidance.TextSize = Enum.TextXAlignment.Center, 13
-    self.guidance.BackgroundColor3, self.guidance.BackgroundTransparency = Theme.Background, 0.08
-    E.corner(self.guidance, 12)
+    self.guidance.TextXAlignment, self.guidance.TextSize = Enum.TextXAlignment.Center, 14
+    self.guidance.BackgroundColor3, self.guidance.BackgroundTransparency = Theme.Cream, 0
+    E.corner(self.guidance, 16)
+    E.stroke(self.guidance, Theme.White, 3, 0)
     self.hud = HudView.new(gui, send)
     self.shop = ShopView.new(gui, send)
     self.rebirth = RebirthView.new(gui, send)
     self.gacha = GachaView.new(gui, send)
     self.pets = PetsView.new(gui, send)
-    -- Grid order: UPGRADES | REBIRTH on the first row, SPIN | PETS on the second.
+    -- Menu order: Upgrades, Rebirth, Spin, Pets.
     self.menus = { self.shop, self.rebirth, self.gacha, self.pets }
     self.settings = SettingsView.new(gui, send)
     -- Opening one panel closes the others so they never stack.
@@ -1728,10 +1770,11 @@ function AppView:update(state)
     self.teleport.Active, self.teleport.Selectable = state.hasStation, state.hasStation
     self.teleport.Text = if state.hasStation then "RETURN TO COUNTER" else "CHOOSE A RESTAURANT"
     self.teleport.AutoButtonColor = state.hasStation
+    self.teleport.BackgroundColor3 = if state.hasStation then Theme.Red else Theme.Muted
     if not self.errorUntil or os.clock() &gt;= self.errorUntil then
         self.guidance.Visible = not state.hasStation
         self.guidance.Text = "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
-        self.guidance.TextColor3 = Theme.Text
+        self.guidance.TextColor3 = Theme.Ink
     end
     self.hud:update(state)
     for _, menu in ipairs(self.panels) do menu:update(state) end
@@ -1745,55 +1788,82 @@ end
 function AppView:resize(viewport)
     if self.viewportX == viewport.X and self.viewportY == viewport.Y then return end
     self.viewportX, self.viewportY = viewport.X, viewport.Y
+    local width, height = viewport.X, viewport.Y - 60
     local portrait = viewport.X &lt; 760 and viewport.Y &gt;= 500
-    local compact = viewport.X &lt; 760 and not portrait
-    local hudScale = math.min(1, (viewport.X - 24) / 392)
-    local height = viewport.Y - 60
-    local actionTop = height - 22 - 104 * hudScale
-    local cardWidth = if compact then 172 else 218
-    -- Centre the wallet on the left; lift it only when a short screen needs room for actions.
-    -- Tall screens put the 2x2 menu grid below it, which needs room too. Short screens
-    -- (under 500 px high) put the grid at the top right instead.
-    local side = viewport.Y &lt; 500
-    local below = if side then 0 else ButtonGap + ButtonHeight * 2 + 8
-    local cashOffset = math.min(0, actionTop - 12 - below - CardHeight / 2 - height / 2)
-    self.cashCard.Position = UDim2.new(0, 16, 0.5, cashOffset)
-    self.cashCard.Size = UDim2.fromOffset(cardWidth, CardHeight)
-    self.wallet.Size = UDim2.fromOffset(if compact then 105 else 142, 36)
-    self.wallet.Position = UDim2.fromOffset(if compact then 58 else 65, 29)
-    self.gems.Position = UDim2.fromOffset(if compact then 58 else 65, 80)
-    -- Return to Counter and the settings gear are centred together; compact screens narrow it.
-    local teleportWidth = if compact then 160 else 212
-    local teleportX = if compact then 0 else -26
-    local teleportY = if portrait then 36 else 16
-    self.teleport.Size = UDim2.fromOffset(teleportWidth, 44)
-    self.teleport.Position = UDim2.new(0.5, teleportX, 0, teleportY)
-    self.settings.button.AnchorPoint = Vector2.new(0, 0)
-    self.settings.button.Position = UDim2.new(0.5, teleportX + teleportWidth / 2 + 8, 0, teleportY)
-    self.guidance.Position = UDim2.new(0.5, if compact then 22 else 0, 0, if portrait then 88 else 68)
-    self.guidance.Size = UDim2.fromOffset(if compact then 230 else math.min(460, viewport.X - 32), 44)
-    local gridLeft = viewport.X
-    for index, menu in ipairs(self.menus) do
-        local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
-        local button = menu.button
-        if side then
-            -- Top right, clear of Return to Counter and the guidance strip.
-            local width = if compact then 60 else 96
-            button.AnchorPoint = Vector2.new(1, 0)
-            button.Position = UDim2.new(1, -16 - (1 - column) * (width + 8), 0, 16 + row * (ButtonHeight + 8))
-            button.Size = UDim2.fromOffset(width, ButtonHeight)
-            gridLeft = viewport.X - 16 - width * 2 - 8
+    local short = viewport.Y &lt; 500
+    local compact = viewport.X &lt; 760 and short
+    -- Wallet, top left.
+    local cardWidth, cardHeight = if compact then 184 else 220, if compact then 100 else 112
+    self.cashCard.Size = UDim2.fromOffset(cardWidth, cardHeight)
+    self.divider.Position = UDim2.fromOffset(12, if compact then 50 else 56)
+    self.divider.Size = UDim2.fromOffset(cardWidth - 24, 3)
+    local walletRight = Margin + cardWidth
+    local teleportWidth = if compact then 150 elseif portrait then math.min(220, width - Margin * 2 - TopBar - 10) else 220
+    local groupWidth = teleportWidth + 10 + TopBar
+    local groupLeft, groupTop, guidanceLeft, guidanceRight, guidanceTop, guidanceHeight, menuTop, menuMode
+    local hudScale = math.min(1, (width - 24) / HudView.Width)
+    if short then
+        -- Short screens: labelled tiles in a row at the top right, the top bar under them,
+        -- guidance between the wallet and the tiles, and Pack and Sell scaled to fit below.
+        local tileWidth, tileHeight, tileGap = 58, 64, 6
+        local tilesLeft = width - Margin - #self.menus * tileWidth - (#self.menus - 1) * tileGap
+        for index, menu in ipairs(self.menus) do
+            E.setMenuMode(menu.button, "tile", tileWidth, tileHeight)
+            menu.button.AnchorPoint = Vector2.new(0, 0)
+            menu.button.Position = UDim2.fromOffset(tilesLeft + (index - 1) * (tileWidth + tileGap), 12)
+        end
+        groupLeft, groupTop = width - Margin - groupWidth, 12 + tileHeight + 12
+        guidanceLeft, guidanceRight = walletRight + 18, math.min(tilesLeft, groupLeft) - 12
+        guidanceTop, guidanceHeight = 12, 76
+        local topBottom = math.max(12 + cardHeight + 6, groupTop + TopBar + 5)
+        hudScale = math.min(hudScale, (height - 22 - topBottom - 12) / HudView.Height)
+    else
+        if portrait then
+            groupLeft, groupTop = Margin, 12 + cardHeight + 14
+            menuTop = groupTop + TopBar + 16
         else
-            local half = (cardWidth - 8) / 2
+            groupLeft, groupTop = math.max(walletRight + 20, math.floor(width / 2 - groupWidth / 2)), 12
+            menuTop = 12 + cardHeight + 16
+        end
+        local actionTop = height - 22 - HudView.Height * hudScale
+        if portrait then
+            -- Portrait: guidance sits just above Pack and Sell.
+            guidanceLeft, guidanceRight, guidanceHeight = Margin, width - Margin, 48
+            guidanceTop = actionTop - 12 - guidanceHeight
+        else
+            -- Wide screens: guidance under the top bar, clear of the wallet.
+            local half = math.min(230, width / 2 - walletRight - 18)
+            guidanceLeft, guidanceRight, guidanceHeight = width / 2 - half, width / 2 + half, 48
+            guidanceTop = groupTop + TopBar + 14
+        end
+        -- Labelled pills when the column fits; otherwise labelled tiles in a 2x2 grid.
+        local limit = if portrait then guidanceTop - 12 else actionTop - 12
+        local pillHeight, pillGap = 50, 9
+        menuMode = if menuTop + #self.menus * (pillHeight + pillGap) - pillGap &lt;= limit then "pill" else "tile"
+        for index, menu in ipairs(self.menus) do
+            local button = menu.button
             button.AnchorPoint = Vector2.new(0, 0)
-            button.Position = UDim2.new(0, 16 + column * (half + 8), 0.5, cashOffset + CardHeight / 2 + ButtonGap + row * (ButtonHeight + 8))
-            button.Size = UDim2.fromOffset(half, ButtonHeight)
+            if menuMode == "pill" then
+                E.setMenuMode(button, "pill", cardWidth, pillHeight)
+                button.Position = UDim2.fromOffset(Margin, menuTop + (index - 1) * (pillHeight + pillGap))
+            else
+                local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
+                local tileWidth = math.floor((cardWidth - 10) / 2)
+                E.setMenuMode(button, "tile", tileWidth, 70)
+                button.Position = UDim2.fromOffset(Margin + column * (tileWidth + 10), menuTop + row * 80)
+            end
         end
     end
-    if side and not compact then
-        -- Keep the centred guidance strip clear of the top-right grid.
-        self.guidance.Size = UDim2.fromOffset(math.min(460, 2 * (gridLeft - 12 - viewport.X / 2)), 44)
-    end
+    self.teleport.AnchorPoint = Vector2.new(0, 0)
+    self.teleport.Size = UDim2.fromOffset(teleportWidth, TopBar)
+    self.teleport.Position = UDim2.fromOffset(groupLeft, groupTop)
+    self.settings.button.AnchorPoint = Vector2.new(0, 0)
+    self.settings.button.Size = UDim2.fromOffset(TopBar, TopBar)
+    self.settings.button.Position = UDim2.fromOffset(groupLeft + teleportWidth + 10, groupTop)
+    local guidanceWidth = math.max(120, guidanceRight - guidanceLeft)
+    self.guidance.Position = UDim2.fromOffset(guidanceLeft + guidanceWidth / 2, guidanceTop)
+    self.guidance.Size = UDim2.fromOffset(guidanceWidth, guidanceHeight)
+    self.guidance.TextSize = if guidanceWidth &gt;= 300 then 14 else 12
     for _, menu in ipairs(self.panels) do menu:resize(viewport) end
     self.hud.scale.Scale = hudScale
 end
@@ -1801,10 +1871,12 @@ return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00047">
+          <Item class="ModuleScript" referent="RBX00048">
             <Properties>
               <string name="Name">Elements</string>
-              <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
+              <ProtectedString name="Source">-- Shared widgets in the Diner Sticker style: white sticker borders, solid ink shadows
+-- offset down and right, Luckiest Guy labels on buttons, and one panel frame.
+local Theme = require(script.Parent.Theme)
 local Elements = {}
 function Elements.count(value)
     local grouped = string.reverse(string.format("%.0f", value)):gsub("(%d%d%d)", "%1,")
@@ -1831,6 +1903,18 @@ function Elements.stroke(parent, color, thickness, transparency)
     stroke.ApplyStrokeMode, stroke.Parent = Enum.ApplyStrokeMode.Border, parent
     return stroke
 end
+-- An outline around the letters themselves (for white titles on colour).
+function Elements.textStroke(label, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Name, stroke.Color, stroke.Thickness = "TextOutline", color or Theme.Ink, thickness or 2
+    stroke.ApplyStrokeMode, stroke.Parent = Enum.ApplyStrokeMode.Contextual, label
+    return stroke
+end
+function Elements.corner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius, corner.Parent = UDim.new(0, radius or 10), parent
+    return corner
+end
 function Elements.box(parent, name, position, size, color, radius)
     local frame = Instance.new("Frame")
     frame.Name, frame.Position, frame.Size = name, position, size
@@ -1838,15 +1922,11 @@ function Elements.box(parent, name, position, size, color, radius)
     Elements.corner(frame, radius)
     return frame
 end
-function Elements.corner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius, corner.Parent = UDim.new(0, radius or 10), parent
-end
 function Elements.label(parent, text, height, color)
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 0, height or 42)
     label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamMedium
+    label.Font = Theme.Body
     label.TextSize = 15
     label.TextColor3 = color or Theme.Text
     label.TextXAlignment = Enum.TextXAlignment.Left
@@ -1855,18 +1935,53 @@ function Elements.label(parent, text, height, color)
     label.Parent = parent
     return label
 end
-function Elements.button(parent, text, callback, color)
+-- A solid ink "shadow" sibling that follows its target's position, size, visibility, and
+-- layer. Roblox draws children above their parent, so a drop shadow must be a sibling.
+-- Never use on a direct child of a list layout (the shadow would become a list item).
+local Followed = { "Position", "Size", "AnchorPoint", "Visible", "ZIndex", "Name", "Parent" }
+function Elements.shadow(target, offset, color)
+    offset = offset or Theme.ShadowOffset
+    local shadow = Instance.new("Frame")
+    shadow.BackgroundColor3, shadow.BorderSizePixel = color or Theme.Ink, 0
+    local corner = Elements.corner(shadow, 0)
+    if target.ZIndex == nil or target.ZIndex &lt; 2 then target.ZIndex = 2 end
+    local function sync()
+        local p = target.Position or UDim2.new()
+        shadow.Name = target.Name .. "Shadow"
+        shadow.AnchorPoint, shadow.Size = target.AnchorPoint or Vector2.new(0, 0), target.Size
+        shadow.Position = UDim2.new(p.X.Scale, p.X.Offset + offset, p.Y.Scale, p.Y.Offset + offset)
+        shadow.Visible = target.Visible
+        shadow.ZIndex = (target.ZIndex or 2) - 1
+        local targetCorner = target:FindFirstChildOfClass("UICorner")
+        corner.CornerRadius = if targetCorner then targetCorner.CornerRadius else UDim.new(0, 0)
+        shadow.Parent = target.Parent
+    end
+    for _, property in ipairs(Followed) do target:GetPropertyChangedSignal(property):Connect(sync) end
+    sync()
+    return shadow
+end
+-- Sticker look: white border plus an offset ink shadow.
+function Elements.sticker(target, border, offset)
+    Elements.stroke(target, Theme.White, border or Theme.Border, 0)
+    return Elements.shadow(target, offset or Theme.ShadowOffset)
+end
+-- A sticker button with a Luckiest Guy label. Pass shadowOffset = 0 for a flat button.
+function Elements.button(parent, text, callback, color, shadowOffset)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 43)
+    button.Size = UDim2.new(1, 0, 0, 44)
     button.BackgroundColor3 = color or Theme.Gold
-    button.TextColor3 = Theme.Background
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 15
+    button.TextColor3 = Theme.Ink
+    button.Font = Theme.Display
+    button.TextSize = 16
     button.TextWrapped = true
     button.Text = text
     button.BorderSizePixel = 0
     button.Parent = parent
-    Elements.corner(button)
+    Elements.corner(button, 14)
+    if shadowOffset ~= 0 then
+        Elements.stroke(button, Theme.White, 3, 0)
+        Elements.shadow(button, shadowOffset or 3)
+    end
     if callback then button.Activated:Connect(callback) end
     return button
 end
@@ -1876,17 +1991,19 @@ function Elements.column(parent, name)
     frame.Size = UDim2.fromScale(1, 1)
     frame.BackgroundTransparency = 1
     frame.BorderSizePixel = 0
-    frame.ScrollBarThickness = 4
+    frame.ScrollBarThickness = 6
     frame.ScrollBarImageColor3 = Theme.Muted
     frame.CanvasSize = UDim2.new()
     frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
     frame.Parent = parent
     local padding = Instance.new("UIPadding")
-    padding.PaddingRight = UDim.new(0, 9)
+    padding.PaddingRight = UDim.new(0, 10)
     padding.PaddingBottom = UDim.new(0, 12)
+    padding.PaddingTop = UDim.new(0, 4)
+    padding.PaddingLeft = UDim.new(0, 4)
     padding.Parent = frame
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 8)
+    layout.Padding = UDim.new(0, 10)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = frame
     return frame
@@ -1894,7 +2011,7 @@ end
 function Elements.bar(parent, color, height)
     local outer = Instance.new("Frame")
     outer.Size = UDim2.new(1, 0, 0, height or 18)
-    outer.BackgroundColor3 = Theme.Card
+    outer.BackgroundColor3 = Theme.Chip
     outer.BorderSizePixel = 0
     outer.Parent = parent
     Elements.corner(outer, 5)
@@ -1906,71 +2023,217 @@ function Elements.bar(parent, color, height)
     Elements.corner(fill, 5)
     return outer, fill
 end
+-- A dashed tan divider, like a receipt.
+function Elements.dashes(parent, name, position, width)
+    local holder = Instance.new("Frame")
+    holder.Name, holder.Position, holder.Size = name, position, UDim2.fromOffset(width, 3)
+    holder.BackgroundTransparency, holder.ClipsDescendants, holder.Parent = 1, true, parent
+    for x = 0, width - 6, 12 do
+        Elements.box(holder, "Dash", UDim2.fromOffset(x, 0), UDim2.fromOffset(6, 3), Theme.Tan, 1)
+    end
+    return holder
+end
+-- The shared modal frame: cream body with a white sticker border and shadow, a ketchup
+-- header with a white Luckiest Guy title, a red-and-cream checker strip, and a close button.
+-- Content starts at Elements.PanelTop. Title, Caption, and Close are direct panel children.
+Elements.PanelTop = 70
+function Elements.panel(gui, name, width, height, accent)
+    local panel = Elements.box(gui, name, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(width, height), Theme.Cream, 26)
+    panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
+    Elements.stroke(panel, Theme.White, 5, 0)
+    panel.ZIndex = 6
+    local panelShadow = Elements.shadow(panel, 8)
+    local headerColor = accent or Theme.Red
+    local header = Elements.box(panel, "Header", UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 58), headerColor, 22)
+    header.ZIndex = 0
+    local square = Elements.box(header, "Square", UDim2.new(0, 0, 1, -22), UDim2.new(1, 0, 0, 22), headerColor, 0)
+    square.ZIndex = 0
+    local checker = Instance.new("Frame")
+    checker.Name, checker.Position, checker.Size = "Checker", UDim2.fromOffset(0, 58), UDim2.new(1, 0, 0, 10)
+    checker.BackgroundColor3, checker.BorderSizePixel, checker.ClipsDescendants = Theme.Cream, 0, true
+    checker.ZIndex, checker.Parent = 0, panel
+    -- Enough cells for the widest a resizable panel gets; the strip clips the rest.
+    for index = 0, math.ceil(math.max(width, 760) / 10) - 1 do
+        if index % 2 == 0 then
+            local cell = Instance.new("Frame")
+            cell.Name, cell.Position, cell.Size = "Cell", UDim2.fromOffset(index * 10, 0), UDim2.fromOffset(10, 10)
+            cell.BackgroundColor3, cell.BorderSizePixel, cell.ZIndex, cell.Parent = headerColor, 0, 0, checker
+        end
+    end
+    local title = Elements.label(panel, string.upper(name), 34, Theme.OnColor)
+    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 7), UDim2.new(1, -96, 0, 34)
+    title.Font, title.TextSize = Theme.Display, 28
+    Elements.textStroke(title, Theme.Ink, 2)
+    Elements.fit(title, 14, 28)
+    local caption = Elements.label(panel, "", 16, Color3.fromRGB(255, 232, 214))
+    caption.Name, caption.Position, caption.Size, caption.TextSize = "Caption", UDim2.fromOffset(20, 38), UDim2.new(1, -96, 0, 16), 12
+    Elements.fit(caption, 8, 12)
+    local close = Elements.button(panel, "X", nil, Theme.Ink, 0)
+    close.Name, close.Position, close.Size = "Close", UDim2.new(1, -50, 0, 10), UDim2.fromOffset(38, 38)
+    close.TextColor3, close.TextSize = Theme.White, 18
+    close:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 19)
+    Elements.stroke(close, Theme.White, 3, 0)
+    local scale = Instance.new("UIScale")
+    scale.Parent = panel
+    -- The shadow is a sibling, so it needs its own UIScale that mirrors the panel's.
+    local shadowScale = Instance.new("UIScale")
+    shadowScale.Parent = panelShadow
+    scale:GetPropertyChangedSignal("Scale"):Connect(function() shadowScale.Scale = scale.Scale end)
+    return { panel = panel, title = title, caption = caption, close = close, scale = scale }
+end
+-- Menu buttons: a coloured sticker pill with a cream icon disc and a white outlined label.
+-- setMenuMode switches between the wide pill and a round icon-only button.
+function Elements.menuButton(parent, name, text, icon, accent, callback)
+    local Icons = require(script.Parent.Icons)
+    local button = Elements.button(parent, "", callback, accent, 0)
+    button.Name, button.AutoButtonColor = name, true
+    Elements.stroke(button, Theme.White, 4, 0)
+    Elements.shadow(button, 5)
+    local disc = Elements.box(button, "Disc", UDim2.new(0, 7, 0.5, 0), UDim2.fromOffset(36, 36), Theme.Cream, 18)
+    disc.AnchorPoint = Vector2.new(0, 0.5)
+    local glyph = Icons.make(disc, icon, 26, accent)
+    glyph.AnchorPoint, glyph.Position = Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5)
+    local label = Elements.label(button, text, 30, Theme.OnColor)
+    label.Name, label.Position, label.Size = "Label", UDim2.new(0, 52, 0.5, -15), UDim2.new(1, -60, 0, 30)
+    label.Font, label.TextSize = Theme.Display, 19
+    Elements.textStroke(label, Theme.Ink, 2)
+    Elements.fit(label, 7, 19)
+    local badge = Elements.box(button, "Badge", UDim2.new(1, -14, 0, -8), UDim2.fromOffset(22, 22), Theme.Gold, 11)
+    Elements.stroke(badge, Theme.White, 2, 0)
+    local mark = Elements.label(badge, "!", 22, Theme.Ink)
+    mark.Size, mark.Font, mark.TextSize, mark.TextXAlignment = UDim2.fromScale(1, 1), Theme.Display, 15, Enum.TextXAlignment.Center
+    badge.Visible = false
+    return button
+end
+-- Menu buttons always show their name. "pill": icon disc on the left, label beside it.
+-- "tile": icon disc on top, label underneath (Pet Simulator style, for short screens).
+function Elements.setMenuMode(button, mode, width, height)
+    local pill = mode == "pill"
+    button:SetAttribute("MenuMode", mode)
+    button.Size = UDim2.fromOffset(width, height)
+    button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, if pill then math.floor(height / 2) else 16)
+    local disc, label = button.Disc, button.Label
+    local discSize = if pill then 36 else math.min(width - 18, height - 28)
+    disc.Size = UDim2.fromOffset(discSize, discSize)
+    disc:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, math.floor(discSize / 2))
+    disc.AnchorPoint = if pill then Vector2.new(0, 0.5) else Vector2.new(0.5, 0)
+    disc.Position = if pill then UDim2.new(0, 7, 0.5, 0) else UDim2.new(0.5, 0, 0, 6)
+    label.Visible = true
+    if pill then
+        label.Position, label.Size = UDim2.new(0, 52, 0.5, -15), UDim2.new(1, -60, 0, 30)
+        label.TextXAlignment, label.Fit.MaxTextSize = Enum.TextXAlignment.Left, 19
+    else
+        label.Position, label.Size = UDim2.new(0, 3, 1, -21), UDim2.new(1, -6, 0, 16)
+        label.TextXAlignment, label.Fit.MaxTextSize = Enum.TextXAlignment.Center, 12
+    end
+end
+function Elements.setMenuEnabled(button, enabled, accent)
+    button.BackgroundColor3 = if enabled then accent else Theme.Disabled
+    button.Active, button.Selectable, button.AutoButtonColor = enabled, enabled, enabled
+end
+-- A scrolling grid of fixed-size cells (tiles). Never give its children sibling shadows.
+function Elements.grid(parent, name, cellWidth, cellHeight, gap)
+    local frame = Instance.new("ScrollingFrame")
+    frame.Name, frame.BackgroundTransparency, frame.BorderSizePixel = name, 1, 0
+    frame.Size, frame.ScrollBarThickness, frame.ScrollBarImageColor3 = UDim2.fromScale(1, 1), 6, Theme.Muted
+    frame.CanvasSize, frame.AutomaticCanvasSize = UDim2.new(), Enum.AutomaticSize.Y
+    frame.Parent = parent
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop, padding.PaddingLeft = UDim.new(0, 6), UDim.new(0, 4)
+    padding.PaddingRight, padding.PaddingBottom = UDim.new(0, 10), UDim.new(0, 10)
+    padding.Parent = frame
+    local layout = Instance.new("UIGridLayout")
+    layout.CellSize, layout.CellPadding = UDim2.fromOffset(cellWidth, cellHeight), UDim2.fromOffset(gap or 10, gap or 10)
+    layout.SortOrder, layout.Parent = Enum.SortOrder.LayoutOrder, frame
+    return frame, layout
+end
+-- Stretches grid cells so the columns fill `areaWidth` (no empty strip on the right). Cells
+-- stay between minWidth and 1.3x minWidth wide; the height stays as built.
+function Elements.fitGrid(layout, areaWidth, minWidth)
+    local gap = layout.CellPadding.X.Offset
+    local usable = areaWidth - 14 -- the grid's left and right padding
+    local columns = math.max(1, math.floor((usable + gap) / (minWidth + gap)))
+    local cell = math.min(math.floor(minWidth * 1.3), math.floor((usable - gap * (columns - 1)) / columns))
+    layout.CellSize = UDim2.fromOffset(cell, layout.CellSize.Y.Offset)
+    return columns
+end
+-- A card for content inside panels: white with a quiet tan border (no sibling shadow, so it
+-- is safe inside list layouts).
+function Elements.card(parent, name, position, size, radius)
+    local card = Elements.box(parent, name, position, size, Theme.Card, radius or 16)
+    Elements.stroke(card, Theme.Tan, 2, 0)
+    return card
+end
 return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00048">
+          <Item class="ModuleScript" referent="RBX00049">
             <Properties>
               <string name="Name">GachaView</string>
-              <ProtectedString name="Source">-- Gacha machine panel: price, odds, pity, last result, and the SPIN button.
--- The server rolls; this view only displays and requests.
+              <ProtectedString name="Source">-- Gacha machine: the last pull (live portrait, rarity tag, bonus), a pity progress bar, the
+-- SPIN button, and every pet in the machine as a tile with its own chance. Two columns on
+-- wide screens, stacked on narrow ones. The server rolls; this view only displays and requests.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local PetConfig = require(Shared.config.Pets)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
 local PetText = require(script.Parent.PetText)
+local PetPortrait = require(script.Parent.PetPortrait)
 local GachaView = {}
 GachaView.__index = GachaView
-local PanelWidth, PanelHeight = 360, 376
+GachaView.Accent = Theme.Green
+local MinWidth, MaxWidth, MinHeight, MaxHeight, NarrowMaxHeight = 340, 680, 440, 540, 680
+local WideAt, LeftWidth = 560, 240
+local PoolTileWidth, PoolTileHeight = 88, 112
 function GachaView.new(gui, send)
-    local self = setmetatable({ send = send, hasStation = false, canSpin = false, odds = {} }, GachaView)
-    self.button = E.button(gui, "SPIN", function() self:toggle() end, Theme.Background)
-    self.button.Name, self.button.TextSize, self.button.TextColor3 = "SpinButton", 13, Theme.Green
-    E.stroke(self.button, Theme.Green, 1.5, 0.3)
-    E.fit(self.button, 8, 13)
+    local self = setmetatable({ send = send, hasStation = false, canSpin = false, poolTiles = {} }, GachaView)
+    self.button = E.menuButton(gui, "SpinButton", "SPIN", "spin", GachaView.Accent, function() self:toggle() end)
+    local frame = E.panel(gui, "GachaPanel", MaxWidth, MaxHeight, Theme.Green)
+    self.panel, self.scale, self.close, self.title, self.caption = frame.panel, frame.scale, frame.close, frame.title, frame.caption
+    self.title.Text = "STARTER FRYER"
+    self.close.Activated:Connect(function() self:setOpen(false) end)
+    local panel = self.panel
 
-    local panel = E.box(gui, "GachaPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
-    panel.AnchorPoint, panel.Visible, panel.ZIndex = Vector2.new(0.5, 0.5), false, 5
-    E.stroke(panel, Theme.Green, 2, 0.12)
-    self.panel = panel
-    self.scale = Instance.new("UIScale")
-    self.scale.Parent = panel
-    self.title = E.label(panel, "STARTER FRYER", 28, Theme.Text)
-    self.title.Name, self.title.Position, self.title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(260, 28)
-    self.title.Font, self.title.TextSize = Enum.Font.GothamBold, 21
-    self.caption = E.label(panel, "", 16, Theme.Muted)
-    self.caption.Name, self.caption.Position, self.caption.Size, self.caption.TextSize = "Caption", UDim2.fromOffset(20, 42), UDim2.fromOffset(270, 16), 11
-    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
-    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
-    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
+    -- The last pull.
+    self.result = E.card(panel, "Result", UDim2.fromOffset(16, E.PanelTop + 12), UDim2.fromOffset(LeftWidth, 196), 18)
+    self.portrait = PetPortrait.make(self.result, "Portrait", UDim2.fromOffset(110, 110))
+    self.mystery = E.label(self.result, "?", 110, Theme.Tan)
+    self.mystery.Name, self.mystery.Font, self.mystery.TextSize = "Mystery", Theme.Display, 72
+    self.mystery.TextXAlignment = Enum.TextXAlignment.Center
+    self.tag = E.label(self.result, "", 22, Theme.OnColor)
+    self.tag.Name, self.tag.Font, self.tag.TextSize = "Tag", Theme.Display, 13
+    self.tag.TextXAlignment, self.tag.BackgroundTransparency, self.tag.Visible = Enum.TextXAlignment.Center, 0, false
+    E.corner(self.tag, 11)
+    self.resultName = E.label(self.result, "Spin to get a Fry Buddy!", 26, Theme.Ink)
+    self.resultName.Name, self.resultName.Font, self.resultName.TextSize = "PetName", Theme.Display, 18
+    E.fit(self.resultName, 9, 18)
+    self.resultBonus = E.label(self.result, "Pets you win appear in PETS.", 18, Theme.Muted)
+    self.resultBonus.Name, self.resultBonus.TextSize = "Bonus", 12
+    E.fit(self.resultBonus, 7, 12)
 
-    local odds = E.box(panel, "Odds", UDim2.fromOffset(16, 70), UDim2.fromOffset(PanelWidth - 32, 136), Theme.Card, 14)
-    for index, rarity in ipairs(PetConfig.RarityOrder) do
-        local y = 8 + (index - 1) * 24
-        local chance = E.label(odds, "", 22, PetText.color(rarity))
-        chance.Name, chance.Position, chance.Size = rarity, UDim2.fromOffset(12, y), UDim2.fromOffset(112, 22)
-        chance.Font, chance.TextSize = Enum.Font.GothamBold, 12
-        E.fit(chance, 8, 12)
-        local names = E.label(odds, "", 22, Theme.Muted)
-        names.Name, names.Position, names.Size, names.TextSize = rarity .. "Pets", UDim2.fromOffset(126, y), UDim2.fromOffset(PanelWidth - 32 - 138, 22), 10
-        E.fit(names, 7, 10)
-        self.odds[rarity] = { chance = chance, names = names }
-    end
-
-    local result = E.box(panel, "Result", UDim2.fromOffset(16, 216), UDim2.fromOffset(PanelWidth - 32, 64), Theme.Card, 14)
-    self.resultName = E.label(result, "Spin to get a Fry Buddy!", 26, Theme.Text)
-    self.resultName.Name, self.resultName.Position, self.resultName.Size = "PetName", UDim2.fromOffset(14, 8), UDim2.fromOffset(PanelWidth - 60, 26)
-    self.resultName.Font, self.resultName.TextSize = Enum.Font.GothamBold, 17
-    E.fit(self.resultName, 9, 17)
-    self.resultBonus = E.label(result, "Pets you win appear in PETS.", 18, Theme.Muted)
-    self.resultBonus.Name, self.resultBonus.Position, self.resultBonus.Size, self.resultBonus.TextSize = "Bonus", UDim2.fromOffset(14, 36), UDim2.fromOffset(PanelWidth - 60, 18), 12
-
+    -- Pity progress, count, and the SPIN button.
+    self.pity = Instance.new("Frame")
+    self.pity.Name, self.pity.BackgroundTransparency, self.pity.Parent = "Pity", 1, panel
+    self.pityText = E.label(self.pity, "", 16, Theme.Gem)
+    self.pityText.Name, self.pityText.Font, self.pityText.TextSize = "PityText", Theme.Display, 12
+    self.pityText.Size = UDim2.new(1, 0, 0, 16)
+    E.fit(self.pityText, 7, 12)
+    local track
+    track, self.pityFill = E.bar(self.pity, Theme.Gem, 10)
+    track.Name, track.Position, track.Size = "Progress", UDim2.fromOffset(0, 20), UDim2.new(1, 0, 0, 10)
     self.count = E.label(panel, "", 16, Theme.Muted)
-    self.count.Name, self.count.Position, self.count.Size, self.count.TextSize = "Count", UDim2.fromOffset(20, 290), UDim2.fromOffset(PanelWidth - 40, 16), 11
-    self.spin = E.button(panel, "SPIN", function() self:spinOnce() end, Theme.Green)
-    self.spin.Name, self.spin.Position, self.spin.Size = "Spin", UDim2.fromOffset(16, 312), UDim2.fromOffset(PanelWidth - 32, 48)
-    self.spin.AutoButtonColor, self.spin.TextColor3, self.spin.TextSize = false, Theme.Ink, 16
+    self.count.Name, self.count.TextSize = "Count", 12
+    self.spin = E.button(panel, "SPIN", function() self:spinOnce() end, Theme.Green, 5)
+    self.spin.Name, self.spin.AutoButtonColor, self.spin.TextColor3, self.spin.TextSize = "Spin", false, Theme.OnColor, 22
+    self.spinOutline = E.textStroke(self.spin, Theme.Ink, 2)
+
+    -- Every pet in the machine.
+    self.poolLabel = E.label(panel, "IN THIS MACHINE", 20, Theme.Ink)
+    self.poolLabel.Name, self.poolLabel.Font, self.poolLabel.TextSize = "PoolLabel", Theme.Display, 15
+    self.poolArea = E.box(panel, "PoolArea", UDim2.new(), UDim2.new(), Theme.Cream, 0)
+    self.pool, self.poolLayout = E.grid(self.poolArea, "Pool", PoolTileWidth, PoolTileHeight, 8)
+    self.wide = nil
     return self
 end
 function GachaView:setOpen(open) self.panel.Visible = open and self.hasStation end
@@ -1978,10 +2241,37 @@ function GachaView:toggle() if self.hasStation then self:setOpen(not self.panel.
 function GachaView:spinOnce()
     if self.canSpin and self.panel.Visible and self.machineId then self.send("Spin", self.machineId) end
 end
+-- One tile per pet in the machine, with that pet's own chance.
+function GachaView:poolTile(petType, rarity, chance, order)
+    local color = PetText.color(rarity)
+    local tile = E.box(self.pool, petType, UDim2.new(), UDim2.new(), Theme.Card, 14)
+    tile.LayoutOrder = order
+    E.stroke(tile, color, 3, 0)
+    E.box(tile, "Band", UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 8), color, 8)
+    PetPortrait.set(PetPortrait.make(tile, "Portrait", UDim2.fromOffset(60, 60), UDim2.new(0.5, -30, 0, 10)), petType, false)
+    local name = E.label(tile, PetConfig.Types[petType].Name, 16, Theme.Ink)
+    name.Name, name.Position, name.Size = "PetName", UDim2.new(0, 4, 0, 72), UDim2.new(1, -8, 0, 16)
+    name.Font, name.TextSize, name.TextXAlignment = Theme.Display, 12, Enum.TextXAlignment.Center
+    E.fit(name, 7, 12)
+    local odds = E.label(tile, E.number(chance) .. "%", 18, color)
+    odds.Name, odds.Position, odds.Size = "Chance", UDim2.new(0, 4, 0, 90), UDim2.new(1, -8, 0, 18)
+    odds.Font, odds.TextSize, odds.TextXAlignment = Theme.Display, 14, Enum.TextXAlignment.Center
+    return tile
+end
+function GachaView:showResult(pet, rarity, autoDeleted)
+    local color = PetText.color(rarity)
+    PetPortrait.set(self.portrait, pet.type, pet.golden)
+    self.mystery.Visible = false
+    self.tag.Visible = true
+    self.tag.Text = if autoDeleted then "AUTO-DELETED" else string.upper(rarity) .. "!"
+    self.tag.BackgroundColor3 = if autoDeleted then Theme.Muted else color
+    self.resultName.Text = if autoDeleted then "Auto-deleted " .. pet.name else "You got " .. pet.name .. "!"
+    self.resultName.TextColor3 = if autoDeleted then Theme.Muted else color
+    self.resultBonus.Text = if autoDeleted then "Turn auto-delete off in PETS to keep these." else PetText.bonus(pet.bonuses)
+end
 function GachaView:update(state)
     self.hasStation = state.hasStation
-    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
-    self.button.TextColor3 = if state.hasStation then Theme.Green else Theme.Muted
+    E.setMenuEnabled(self.button, state.hasStation, GachaView.Accent)
     if not state.hasStation then self.panel.Visible = false end
     local machine, pets = state.machine, state.pets
     if not machine or not pets then return end
@@ -1990,11 +2280,15 @@ function GachaView:update(state)
     local left = machine.pityEvery - machine.pity
     self.caption.Text = E.money(machine.price) .. " per spin  ·  " .. machine.pityRarity .. " or better within " .. left
         .. (if left == 1 then " spin" else " spins")
-    for _, row in ipairs(machine.odds) do
-        local view = self.odds[row.rarity]
-        if view then
-            view.chance.Text = string.upper(row.rarity) .. "  " .. E.number(row.chance * 100) .. "%"
-            view.names.Text = table.concat(row.pets, ", ")
+    self.pityText.Text = string.upper(machine.pityRarity) .. "+ GUARANTEED IN " .. left .. (if left == 1 then " SPIN" else " SPINS")
+    self.pityFill.Size = UDim2.fromScale(math.clamp(machine.pity / machine.pityEvery, 0, 1), 1)
+    if not next(self.poolTiles) then
+        local order = 0
+        for _, row in ipairs(machine.odds) do
+            for _, petType in ipairs(row.types or {}) do
+                order += 1
+                self.poolTiles[petType] = self:poolTile(petType, row.rarity, row.chance * 100 / #row.types, order)
+            end
         end
     end
     local full = #pets.owned &gt;= pets.max
@@ -2003,87 +2297,124 @@ function GachaView:update(state)
     self.count.Text = "PETS " .. #pets.owned .. " / " .. pets.max .. (if full then "  ·  inventory full" else "")
     self.spin.Active, self.spin.Selectable = self.canSpin, self.canSpin
     self.spin.Text = if full then "INVENTORY FULL" elseif affordable then "SPIN  " .. E.money(machine.price) else "NEED " .. E.money(machine.price)
-    self.spin.BackgroundColor3 = if self.canSpin then Theme.Green else Theme.Card
-    self.spin.TextColor3 = if self.canSpin then Theme.Ink else Theme.Muted
-    -- A new spin result names the pet in its rarity color.
+    self.spin.BackgroundColor3 = if self.canSpin then Theme.Green else Theme.Disabled
+    self.spin.TextColor3 = if self.canSpin then Theme.OnColor else Theme.Muted
+    self.spinOutline.Enabled = self.canSpin
+    -- A new spin result shows the pet large in its rarity colour.
     local spin = state.spin
-    if spin and spin.serial ~= self.lastSerial and spin.autoDeleted then
-        -- Auto-deleted pets are not in the inventory; name them from config.
+    if spin and spin.serial ~= self.lastSerial then
         self.lastSerial = spin.serial
-        local kind = PetConfig.Types[spin.type]
-        self.resultName.Text = "Auto-deleted " .. kind.Name
-        self.resultName.TextColor3 = Theme.Muted
-        self.resultBonus.Text = string.upper(kind.Rarity) .. "  ·  turn auto-delete off in PETS"
-    elseif spin and spin.serial ~= self.lastSerial then
-        self.lastSerial = spin.serial
-        for _, owned in ipairs(pets.owned) do
-            if owned.id == spin.id then
-                self.resultName.Text = "You got " .. owned.name .. "!"
-                self.resultName.TextColor3 = PetText.color(owned.rarity)
-                self.resultBonus.Text = string.upper(owned.rarity) .. "  ·  " .. PetText.bonus(owned.bonuses)
+        if spin.autoDeleted then
+            local kind = PetConfig.Types[spin.type]
+            self:showResult({ type = spin.type, name = kind.Name, golden = false, bonuses = {} }, kind.Rarity, true)
+        else
+            for _, owned in ipairs(pets.owned) do
+                if owned.id == spin.id then self:showResult(owned, owned.rarity, false) end
             end
         end
     end
 end
+-- Two columns on wide panels, stacked on narrow ones; the panel grows with the screen.
 function GachaView:resize(viewport)
-    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+    local availableWidth, availableHeight = viewport.X - 32, viewport.Y - 60 - 24
+    local width = math.clamp(availableWidth, MinWidth, MaxWidth)
+    local wide = width &gt;= WideAt
+    -- Stacked (phone portrait) panels may grow taller so more of the pool shows.
+    local height = math.clamp(availableHeight, MinHeight, if wide then MaxHeight else NarrowMaxHeight)
+    self.panel.Size = UDim2.fromOffset(width, height)
+    self.scale.Scale = math.min(1, availableWidth / width, availableHeight / height)
+    local top = E.PanelTop + 12
+    local spinTop = height - 74
+    if wide then
+        self.result.Position, self.result.Size = UDim2.fromOffset(16, top), UDim2.fromOffset(LeftWidth, 196)
+        self.portrait.Position, self.portrait.Size = UDim2.new(0.5, -55, 0, 8), UDim2.fromOffset(110, 110)
+        self.mystery.Position, self.mystery.Size = UDim2.new(0.5, -55, 0, 8), UDim2.fromOffset(110, 110)
+        self.tag.Position, self.tag.Size = UDim2.new(0.5, -60, 0, 114), UDim2.fromOffset(120, 22)
+        self.resultName.Position, self.resultName.Size = UDim2.fromOffset(10, 140), UDim2.new(1, -20, 0, 26)
+        self.resultName.TextXAlignment = Enum.TextXAlignment.Center
+        self.resultBonus.Position, self.resultBonus.Size = UDim2.fromOffset(10, 168), UDim2.new(1, -20, 0, 18)
+        self.resultBonus.TextXAlignment = Enum.TextXAlignment.Center
+        self.pity.Position, self.pity.Size = UDim2.fromOffset(16, top + 210), UDim2.fromOffset(LeftWidth, 32)
+        self.count.Position, self.count.Size = UDim2.fromOffset(16, spinTop - 24), UDim2.fromOffset(LeftWidth, 16)
+        self.spin.Position, self.spin.Size = UDim2.fromOffset(16, spinTop), UDim2.fromOffset(LeftWidth, 54)
+        self.poolLabel.Position, self.poolLabel.Size = UDim2.fromOffset(LeftWidth + 34, top - 2), UDim2.fromOffset(width - LeftWidth - 50, 20)
+        self.poolArea.Position = UDim2.fromOffset(LeftWidth + 28, top + 22)
+        self.poolArea.Size = UDim2.fromOffset(width - LeftWidth - 40, height - top - 22 - 14)
+    else
+        self.result.Position, self.result.Size = UDim2.fromOffset(16, top), UDim2.new(1, -32, 0, 104)
+        self.portrait.Position, self.portrait.Size = UDim2.fromOffset(6, 6), UDim2.fromOffset(92, 92)
+        self.mystery.Position, self.mystery.Size = UDim2.fromOffset(6, 6), UDim2.fromOffset(92, 92)
+        self.tag.Position, self.tag.Size = UDim2.fromOffset(106, 12), UDim2.fromOffset(120, 22)
+        self.resultName.Position, self.resultName.Size = UDim2.fromOffset(106, 40), UDim2.new(1, -116, 0, 26)
+        self.resultName.TextXAlignment = Enum.TextXAlignment.Left
+        self.resultBonus.Position, self.resultBonus.Size = UDim2.fromOffset(106, 70), UDim2.new(1, -116, 0, 18)
+        self.resultBonus.TextXAlignment = Enum.TextXAlignment.Left
+        self.poolLabel.Position, self.poolLabel.Size = UDim2.fromOffset(20, top + 114), UDim2.new(1, -40, 0, 20)
+        self.poolArea.Position = UDim2.fromOffset(12, top + 136)
+        self.poolArea.Size = UDim2.new(1, -24, 0, math.max(60, spinTop - 70 - (top + 136)))
+        self.pity.Position, self.pity.Size = UDim2.fromOffset(16, spinTop - 64), UDim2.new(1, -32, 0, 32)
+        self.count.Position, self.count.Size = UDim2.fromOffset(16, spinTop - 24), UDim2.new(1, -32, 0, 16)
+        self.spin.Position, self.spin.Size = UDim2.fromOffset(16, spinTop), UDim2.new(1, -37, 0, 54)
+    end
+    E.fitGrid(self.poolLayout, if wide then width - LeftWidth - 40 else width - 24, PoolTileWidth)
+    self.wide = wide
 end
 return GachaView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00049">
+          <Item class="ModuleScript" referent="RBX00050">
             <Properties>
               <string name="Name">HudView</string>
-              <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
+              <ProtectedString name="Source">-- Pack and Sell: two big Diner Sticker buttons at the bottom centre.
+local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local HudView = {}
 HudView.__index = HudView
-local function action(parent, name, x, color, key, callback)
-    local shadow = E.box(parent, name .. "Shadow", UDim2.fromOffset(x, 7), UDim2.fromOffset(190, 96), Theme.Shadow, 18)
-    shadow.BackgroundTransparency = 0.18
-    local button = E.button(parent, "", callback, color)
-    button.Name, button.Position, button.Size = name, UDim2.fromOffset(x, 0), UDim2.fromOffset(190, 96)
+-- Two 232 x 104 buttons, a 14 px gap, and the 7 px sticker shadow. Wide enough that
+-- Luckiest Guy titles such as "CLAIM FIRST" fit with room to spare.
+local ButtonWidth, ButtonHeight, Shadow, Gap = 232, 104, 7, 14
+HudView.Width, HudView.Height = ButtonWidth * 2 + Gap + Shadow, ButtonHeight + Shadow + 1
+local TextLeft, TextWidth = 72, ButtonWidth - 72 - 16
+local function action(parent, name, x, color, key, icon, callback)
+    local button = E.button(parent, "", callback, color, 0)
+    button.Name, button.Position, button.Size = name, UDim2.fromOffset(x, 0), UDim2.fromOffset(ButtonWidth, ButtonHeight)
     button.AutoButtonColor = false
-    button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 18)
-    E.stroke(button, Theme.Text, 1.5, 0.65)
-    local title = E.label(button, "", 34, Theme.Ink)
-    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(48, 13), UDim2.fromOffset(136, 34)
-    title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    -- Longer titles after upgrades ("+12 fries/click") shrink to one line instead of wrapping.
-    title.TextWrapped, title.TextScaled = false, true
-    local fit = Instance.new("UITextSizeConstraint")
-    fit.Name, fit.MinTextSize, fit.MaxTextSize, fit.Parent = "Fit", 10, 21, title
-    local detail = E.label(button, "", 20, Theme.Ink)
-    detail.Name, detail.Position, detail.Size, detail.TextSize = "Detail", UDim2.fromOffset(12, 50), UDim2.fromOffset(166, 20), 12
-    local shortcut = E.label(button, key, 16, Theme.Ink)
-    shortcut.Position, shortcut.Size, shortcut.TextSize = UDim2.fromOffset(168, 3), UDim2.fromOffset(18, 16), 10
-    shortcut.TextXAlignment = Enum.TextXAlignment.Center
-    return button, title, detail, shortcut
+    button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 26)
+    E.stroke(button, Theme.White, 5, 0)
+    E.shadow(button, Shadow)
+    local disc = E.box(button, "IconDisc", UDim2.fromOffset(12, 26), UDim2.fromOffset(50, 50), Theme.Cream, 25)
+    Icons.make(disc, icon, 36, Theme.Ink, UDim2.fromOffset(7, 7))
+    local title = E.label(button, "", 36, Theme.Ink)
+    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(TextLeft, 20), UDim2.fromOffset(TextWidth, 34)
+    title.Font, title.TextSize = Theme.Display, 23
+    E.fit(title, 10, 23)
+    local outline = E.textStroke(title, Theme.Ink, 2)
+    outline.Enabled = false
+    local detail = E.label(button, "", 18, Theme.Ink)
+    detail.Name, detail.Position, detail.Size, detail.TextSize = "Detail", UDim2.fromOffset(TextLeft, 58), UDim2.fromOffset(TextWidth, 18), 12
+    E.fit(detail, 8, 12)
+    local shortcut = E.label(button, key, 18, Theme.Ink)
+    shortcut.Name, shortcut.Position, shortcut.Size, shortcut.TextSize = "Key", UDim2.fromOffset(ButtonWidth - 26, 4), UDim2.fromOffset(18, 16), 11
+    shortcut.TextXAlignment, shortcut.Font = Enum.TextXAlignment.Center, Theme.Display
+    return button, title, detail, shortcut, outline
 end
 function HudView.new(parent, send)
     local self = setmetatable({ send = send, hovered = false }, HudView)
     local frame = Instance.new("Frame")
     frame.Name, frame.AnchorPoint = "Actions", Vector2.new(0.5, 1)
-    frame.Position, frame.Size = UDim2.new(0.5, 0, 1, -22), UDim2.fromOffset(392, 104)
+    frame.Position, frame.Size = UDim2.new(0.5, 0, 1, -22), UDim2.fromOffset(HudView.Width, HudView.Height)
     frame.BackgroundTransparency, frame.Parent = 1, parent
     self.frame = frame
     self.scale = Instance.new("UIScale")
     self.scale.Parent = frame
-    self.pack, self.packTitle, self.packDetail = action(frame, "Click", 0, Theme.Gold, "F", nil)
-    self.sell, self.sellTitle, self.sellDetail, self.sellShortcut = action(frame, "Sell", 202, Theme.Card, "R", function() self:sellBag() end)
-    -- Small code-built fry and bag symbols; no external texture assets.
-    for n = 1, 3 do
-        E.box(self.pack, "Fry" .. n, UDim2.fromOffset(14 + (n - 1) * 8, 15 - n % 2 * 3),
-            UDim2.fromOffset(6, 27), Theme.Ink, 2)
-    end
-    E.box(self.sell, "BagIcon", UDim2.fromOffset(15, 18), UDim2.fromOffset(24, 28), Theme.Gold, 4)
-    E.box(self.sell, "BagRim", UDim2.fromOffset(13, 16), UDim2.fromOffset(28, 5), Theme.GoldLight, 2)
+    self.pack, self.packTitle, self.packDetail, self.packKey = action(frame, "Click", 0, Theme.Gold, "F", "fries", nil)
+    self.sell, self.sellTitle, self.sellDetail, self.sellKey, self.sellOutline =
+        action(frame, "Sell", ButtonWidth + Gap, Theme.Cream, "R", "bag", function() self:sellBag() end)
     local track
-    track, self.fill = E.bar(self.sell, Theme.Gold, 6)
-    track.Position, track.Size, track.BackgroundColor3 = UDim2.fromOffset(12, 79), UDim2.fromOffset(166, 6), Theme.Background
-    local hint = E.label(self.pack, "PACK FRIES", 14, Theme.Ink)
-    hint.Position, hint.Size, hint.TextSize = UDim2.fromOffset(12, 76), UDim2.fromOffset(166, 14), 10
+    track, self.fill = E.bar(self.sell, Theme.Gold, 8)
+    track.Name, track.Position, track.Size = "Progress", UDim2.fromOffset(TextLeft, 82), UDim2.fromOffset(TextWidth - 4, 8)
     local function hover(on)
         self.hovered = on
         if self.state then self:update(self.state) end
@@ -2094,8 +2425,6 @@ function HudView.new(parent, send)
     self.pack.SelectionLost:Connect(function() hover(false) end)
     self.packTitle.Text, self.packDetail.Text = "LOADING", "YOUR RESTAURANT"
     self.sellTitle.Text, self.sellDetail.Text = "0 / 20", "FRIES IN BAG"
-    self.sellTitle.TextColor3, self.sellDetail.TextColor3 = Theme.Text, Theme.Muted
-    self.sellShortcut.TextColor3 = Theme.Muted
     self.pack.Active, self.sell.Active = false, false
     self.pack.Selectable, self.sell.Selectable = false, false
     return self
@@ -2115,11 +2444,9 @@ function HudView:update(state)
     local yieldText = "+" .. E.number(perClick) .. (if perClick == 1 then " fry/click" else " fries/click")
     self.pack.Active, self.pack.Selectable = canPack, canPack
     self.sell.Active, self.sell.Selectable = canSell, canSell
-    self.pack.BackgroundColor3 = if canPack and self.hovered then Theme.GoldLight else Theme.Gold
+    self.pack.BackgroundColor3 = if not canPack then Theme.Disabled elseif self.hovered then Theme.GoldLight else Theme.Gold
     self.packTitle.Text = if not state.hasStation then "CLAIM FIRST" elseif full then "BAG FULL"
         elseif not state.nearStation then "AT COUNTER" elseif self.hovered then "CLICK" else yieldText
-    self.packTitle.TextSize = if not state.hasStation then 17 else 21
-    self.packTitle.Fit.MaxTextSize = self.packTitle.TextSize
     self.packDetail.Text = if not state.hasStation then "CLAIM AT THE ENTRANCE" elseif full then "SELL TO KEEP PACKING"
         elseif not state.nearStation then "RETURN TO COUNTER" elseif self.hovered then string.upper(yieldText) else "TAP / HOLD TO PACK"
     self.sellTitle.Text = if full then "SELL BAG" else math.floor(bag.fries) .. " / " .. capacity
@@ -2127,18 +2454,155 @@ function HudView:update(state)
         elseif full and not state.nearStation then "RETURN TO COUNTER"
         elseif full then "+" .. E.money(state.stats.saleValue) .. " CASH"
         else "FRIES IN BAG"
-    self.sell.BackgroundColor3 = if canSell then Theme.Green else Theme.Card
-    self.sellTitle.TextColor3 = if canSell then Theme.Ink else Theme.Text
-    self.sellDetail.TextColor3 = if canSell then Theme.Ink else Theme.Muted
-    self.sellShortcut.TextColor3 = if canSell then Theme.Ink else Theme.Muted
-    self.fill.BackgroundColor3 = if full then Theme.Green else Theme.Gold
-    self.fill.Size = UDim2.fromScale(bag.fries / capacity, 1)
+    -- Ready to sell: teal with white outlined text; otherwise cream with ink text.
+    self.sell.BackgroundColor3 = if canSell then Theme.Green else Theme.Cream
+    self.sellTitle.TextColor3 = if canSell then Theme.OnColor else Theme.Ink
+    self.sellOutline.Enabled = canSell
+    self.sellDetail.TextColor3 = if canSell then Theme.OnColor else Theme.Muted
+    self.sellKey.TextColor3 = if canSell then Theme.OnColor else Theme.Muted
+    self.fill.Parent.Visible = not full
+    self.fill.BackgroundColor3 = Theme.Gold
+    self.fill.Size = UDim2.fromScale(math.clamp(bag.fries / capacity, 0, 1), 1)
 end
 return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00050">
+          <Item class="ModuleScript" referent="RBX00051">
+            <Properties>
+              <string name="Name">Icons</string>
+              <ProtectedString name="Source">-- Icons: an uploaded image when shared/config/Icons has an asset ID, otherwise a simple
+-- code-built fallback drawn in the same square. Drawings use scale units, so any size works.
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local Ids = require(Shared.config.Icons)
+local Theme = require(script.Parent.Theme)
+local Icons = {}
+local function piece(parent, name, x, y, w, h, color, round, rotation)
+    local frame = Instance.new("Frame")
+    frame.Name, frame.BorderSizePixel = name, 0
+    frame.Position, frame.Size = UDim2.fromScale(x, y), UDim2.fromScale(w, h)
+    frame.BackgroundColor3, frame.Rotation = color, rotation or 0
+    if round then
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius, corner.Parent = if round == true then UDim.new(0.5, 0) else UDim.new(round, 0), frame
+    end
+    frame.Parent = parent
+    return frame
+end
+local function ring(parent, name, x, y, w, h, color, thickness)
+    local frame = piece(parent, name, x, y, w, h, color, true)
+    frame.BackgroundTransparency = 1
+    local stroke = Instance.new("UIStroke")
+    stroke.Color, stroke.Thickness, stroke.Parent = color, thickness, frame
+    return frame
+end
+local function glyph(parent, text, color)
+    local label = Instance.new("TextLabel")
+    label.Name, label.Text, label.TextColor3, label.Font = "Glyph", text, color, Theme.Display
+    label.BackgroundTransparency, label.Size, label.TextScaled = 1, UDim2.fromScale(1, 1), true
+    label.TextSize = 100
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.Parent = parent
+    return label
+end
+-- Fallback drawings. `tint` is the main line colour (white on colour, ink on cream).
+local Draw = {}
+function Draw.cash(holder)
+    piece(holder, "Coin", 0.05, 0.05, 0.9, 0.9, Theme.Gold, true)
+    local mark = piece(holder, "Mark", 0.2, 0.18, 0.6, 0.64, Theme.Gold, true)
+    mark.BackgroundTransparency = 1
+    glyph(mark, "$", Theme.Ink)
+end
+function Draw.gem(holder)
+    piece(holder, "Stone", 0.2, 0.2, 0.6, 0.6, Theme.Gem, 0.12, 45)
+    piece(holder, "Shine", 0.36, 0.3, 0.2, 0.2, Theme.GemLight, 0.2, 45)
+end
+function Draw.fries(holder)
+    for index, x in ipairs({ 0.27, 0.44, 0.61 }) do
+        piece(holder, "Fry" .. index, x, 0.08 + (index % 2) * 0.06, 0.12, 0.5, Theme.GoldLight, 0.3)
+    end
+    piece(holder, "Box", 0.18, 0.46, 0.64, 0.46, Theme.Red, 0.18)
+end
+function Draw.bag(holder, tint)
+    ring(holder, "Handle", 0.33, 0.08, 0.34, 0.34, tint, 3)
+    piece(holder, "Body", 0.18, 0.3, 0.64, 0.62, Theme.Tan, 0.16)
+    piece(holder, "Band", 0.18, 0.5, 0.64, 0.1, Theme.Red, 0)
+end
+function Draw.upgrades(holder, tint)
+    piece(holder, "Head", 0.24, 0.1, 0.52, 0.52, tint, 0.1, 45)
+    piece(holder, "Shaft", 0.38, 0.38, 0.24, 0.52, tint, 0.2)
+end
+function Draw.rebirth(holder, tint)
+    ring(holder, "Loop", 0.16, 0.16, 0.68, 0.68, tint, 4)
+    piece(holder, "Tip", 0.6, 0.06, 0.26, 0.26, tint, 0.1, 45)
+end
+function Draw.spin(holder, tint)
+    piece(holder, "Egg", 0.24, 0.08, 0.52, 0.84, tint, 0.48)
+    piece(holder, "Band", 0.24, 0.48, 0.52, 0.12, Theme.Gold, 0)
+end
+function Draw.pets(holder, tint)
+    piece(holder, "Pad", 0.26, 0.46, 0.48, 0.42, tint, true)
+    for index, spot in ipairs({ { 0.14, 0.26 }, { 0.32, 0.08 }, { 0.54, 0.08 }, { 0.72, 0.26 } }) do
+        piece(holder, "Toe" .. index, spot[1], spot[2], 0.16, 0.2, tint, true)
+    end
+end
+function Draw.settings(holder, tint)
+    for index = 0, 3 do
+        piece(holder, "Tooth" .. index, 0.42, 0.06, 0.16, 0.88, tint, 0.2, index * 45)
+    end
+    piece(holder, "Ring", 0.2, 0.2, 0.6, 0.6, tint, true)
+    piece(holder, "Hole", 0.38, 0.38, 0.24, 0.24, Theme.Cream, true)
+end
+function Draw.home(holder, tint)
+    piece(holder, "Roof", 0.2, 0.1, 0.6, 0.6, tint, 0.08, 45)
+    piece(holder, "Walls", 0.24, 0.44, 0.52, 0.46, tint, 0.08)
+    piece(holder, "Door", 0.42, 0.62, 0.16, 0.28, Theme.Red, 0.2)
+end
+function Draw.close(holder, tint)
+    piece(holder, "BarA", 0.42, 0.1, 0.16, 0.8, tint, 0.4, 45)
+    piece(holder, "BarB", 0.42, 0.1, 0.16, 0.8, tint, 0.4, -45)
+end
+function Draw.check(holder, tint)
+    piece(holder, "Short", 0.24, 0.42, 0.14, 0.34, tint, 0.4, -45)
+    piece(holder, "Long", 0.52, 0.16, 0.14, 0.66, tint, 0.4, 40)
+end
+function Draw.sparkle(holder)
+    piece(holder, "Tall", 0.4, 0.06, 0.2, 0.88, Theme.Gold, 0.5, 0)
+    piece(holder, "Wide", 0.06, 0.4, 0.88, 0.2, Theme.Gold, 0.5, 0)
+    piece(holder, "Core", 0.3, 0.3, 0.4, 0.4, Theme.GoldLight, 0.1, 45)
+end
+function Draw.star(holder)
+    piece(holder, "A", 0.2, 0.2, 0.6, 0.6, Theme.Gold, 0.1, 0)
+    piece(holder, "B", 0.2, 0.2, 0.6, 0.6, Theme.Gold, 0.1, 45)
+end
+Draw["upgrade-fries-per-click"] = Draw.fries
+Draw["upgrade-money-per-fry"] = Draw.cash
+Draw["upgrade-bag-capacity"] = Draw.bag
+Icons.Draw = Draw
+function Icons.hasImage(name) return type(Ids[name]) == "string" and Ids[name] ~= "" end
+-- Returns a square holder named "Icon" containing either the uploaded image or a fallback.
+function Icons.make(parent, name, size, tint, position)
+    local holder = Instance.new("Frame")
+    holder.Name, holder.BackgroundTransparency = "Icon", 1
+    holder.Size, holder.Position = UDim2.fromOffset(size, size), position or UDim2.new()
+    holder:SetAttribute("Icon", name)
+    if Icons.hasImage(name) then
+        local image = Instance.new("ImageLabel")
+        image.Name, image.Image, image.BackgroundTransparency = "Image", Ids[name], 1
+        image.Size, image.ScaleType = UDim2.fromScale(1, 1), Enum.ScaleType.Fit
+        image.Parent = holder
+    else
+        assert(Draw[name], "Unknown icon " .. tostring(name))
+        Draw[name](holder, tint or Theme.Ink)
+    end
+    holder.Parent = parent
+    return holder
+end
+return Icons
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00052">
             <Properties>
               <string name="Name">PetFollower</string>
               <ProtectedString name="Source">-- Draws every player's equipped pets locally, following and bobbing behind their character.
@@ -2205,7 +2669,7 @@ function PetFollower:step(dt)
                 -- The first frame snaps into place; later frames ease towards the target.
                 pet.position = if pet.position then pet.position + (target - pet.position) * alpha else target
                 local base = CFrame.lookAt(pet.position, pet.position + forward)
-                for _, piece in ipairs(pet.pieces) do piece.part.CFrame = base * piece.offset end
+                PetModels.place(pet.pieces, base)
             end
         end
     end
@@ -2215,71 +2679,243 @@ return PetFollower
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00051">
+          <Item class="ModuleScript" referent="RBX00053">
             <Properties>
               <string name="Name">PetModels</string>
-              <ProtectedString name="Source">-- Code-built pet models: a few smooth cartoon blocks and balls per pet, no assets.
--- Each piece is { shape, size, offset, color, transparency? }. Bodies get eyes on the front (-Z).
+              <ProtectedString name="Source">-- Code-built cartoon pet models (no uploaded assets). Each pet is a short recipe of smooth
+-- parts plus a shared face: white eyes with dark pupils and a shine, blush cheeks, and a smile.
+-- Pets face -Z. Models are about 2 studs tall. Golden pets get a gold body, a slight shine,
+-- and two sparkles. Used by the following pets and by the UI portraits.
 local PetModels = {}
 local function rgb(r, g, b) return Color3.fromRGB(r, g, b) end
-local Specs = {
-    CrinkleFry = { eyes = 0.45, { "Block", { 0.9, 1.8, 0.9 }, { 0, 0, 0 }, rgb(255, 214, 90) },
-        { "Block", { 0.95, 0.12, 0.95 }, { 0, 0.4, 0 }, rgb(232, 176, 52) }, { "Block", { 0.95, 0.12, 0.95 }, { 0, -0.3, 0 }, rgb(232, 176, 52) } },
-    SaltShaker = { eyes = 0.55, { "Block", { 1.1, 1.4, 1.1 }, { 0, 0, 0 }, rgb(244, 244, 240) },
-        { "Block", { 1.12, 0.4, 1.12 }, { 0, 0.85, 0 }, rgb(170, 178, 190) } },
-    PaperCup = { eyes = 0.6, { "Block", { 1.2, 1.4, 1.2 }, { 0, 0, 0 }, rgb(232, 72, 72) },
-        { "Block", { 1.22, 0.38, 1.22 }, { 0, -0.2, 0 }, rgb(255, 248, 236) }, { "Block", { 0.8, 0.5, 0.8 }, { 0, 0.9, 0 }, rgb(255, 214, 90) } },
-    PotatoPup = { eyes = 0.75, { "Ball", { 1.6, 1.6, 1.6 }, { 0, 0, 0 }, rgb(196, 150, 92) },
-        { "Ball", { 0.55, 0.55, 0.55 }, { -0.55, 0.7, 0 }, rgb(150, 105, 60) }, { "Ball", { 0.55, 0.55, 0.55 }, { 0.55, 0.7, 0 }, rgb(150, 105, 60) } },
-    KetchupPacket = { eyes = 0.18, { "Block", { 1.5, 1.1, 0.35 }, { 0, 0, 0 }, rgb(222, 44, 44) },
-        { "Block", { 1.52, 0.25, 0.37 }, { 0, 0.32, 0 }, rgb(255, 248, 236) } },
-    NapkinGhost = { eyes = 0.75, { "Ball", { 1.6, 1.6, 1.6 }, { 0, 0, 0 }, rgb(250, 250, 255), 0.15 },
-        { "Block", { 1.2, 0.5, 1.2 }, { 0, -0.7, 0 }, rgb(250, 250, 255), 0.15 } },
-    CurlyFryCat = { eyes = 0.7, { "Ball", { 1.5, 1.5, 1.5 }, { 0, 0, 0 }, rgb(240, 150, 60) },
-        { "Block", { 0.35, 0.55, 0.35 }, { -0.45, 0.8, 0 }, rgb(214, 118, 40) }, { "Block", { 0.35, 0.55, 0.35 }, { 0.45, 0.8, 0 }, rgb(214, 118, 40) } },
-    MayoJar = { eyes = 0.6, { "Block", { 1.2, 1.5, 1.2 }, { 0, 0, 0 }, rgb(252, 246, 222) },
-        { "Block", { 1.25, 0.32, 1.25 }, { 0, 0.9, 0 }, rgb(92, 150, 232) } },
-    FryerBot = { eyes = false, { "Block", { 1.4, 1.3, 1.2 }, { 0, 0, 0 }, rgb(170, 186, 202) },
-        { "Block", { 0.9, 0.5, 0.06 }, { 0, 0.15, -0.62 }, rgb(126, 245, 215) }, { "Block", { 0.12, 0.5, 0.12 }, { 0, 0.9, 0 }, rgb(120, 130, 145) },
-        { "Ball", { 0.3, 0.3, 0.3 }, { 0, 1.2, 0 }, rgb(244, 112, 111) } },
-    FryKing = { eyes = 0.5, { "Block", { 1.0, 1.9, 1.0 }, { 0, 0, 0 }, rgb(255, 206, 64) },
-        { "Block", { 1.12, 0.36, 1.12 }, { 0, 1.15, 0 }, rgb(255, 176, 0) }, { "Ball", { 0.3, 0.3, 0.3 }, { 0, 1.45, 0 }, rgb(244, 112, 111) } },
-}
-local Gold = rgb(255, 200, 50)
-PetModels.Specs = Specs
--- Returns a Model plus the pieces with their local offsets, for the follower to place each frame.
-function PetModels.build(petType, golden, parent)
-    local spec = Specs[petType] or Specs.CrinkleFry
-    local model = Instance.new("Model")
-    model.Name = petType .. (if golden then "Golden" else "")
+local Ink, White, Blush = rgb(45, 30, 30), rgb(255, 255, 255), rgb(255, 150, 160)
+local Gold = rgb(255, 204, 64)
+local Upright = CFrame.Angles(0, 0, math.pi / 2) -- turns a Cylinder (X axis) to stand on Y
+
+-- Builder: collects parts with their local offsets.
+local function builder(model, golden)
     local pieces = {}
-    local function add(shape, size, offset, color, transparency)
+    local b = {}
+    function b.add(shape, size, position, color, options)
+        options = options or {}
         local part = Instance.new("Part")
-        part.Shape = if shape == "Ball" then Enum.PartType.Ball else Enum.PartType.Block
+        part.Shape = if shape == "Ball" then Enum.PartType.Ball elseif shape == "Cylinder" then Enum.PartType.Cylinder else Enum.PartType.Block
         part.Size = Vector3.new(size[1], size[2], size[3])
-        part.Color, part.Transparency = color, transparency or 0
-        part.Material, part.Reflectance = Enum.Material.SmoothPlastic, if golden then 0.25 else 0
+        part.Color = color
+        part.Transparency = options.transparency or 0
+        part.Material = if options.neon then Enum.Material.Neon else Enum.Material.SmoothPlastic
+        part.Reflectance = if golden and options.body then 0.3 else 0
+        part.TopSurface, part.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
         part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery, part.CastShadow = true, false, false, false, false
+        part.Name = options.name or shape
         part.Parent = model
-        table.insert(pieces, { part = part, offset = CFrame.new(Vector3.new(offset[1], offset[2], offset[3])) })
+        local offset = CFrame.new(Vector3.new(position[1], position[2], position[3]))
+        if options.upright then offset = offset * Upright end
+        if options.rotation then offset = offset * options.rotation end
+        table.insert(pieces, { part = part, offset = offset })
+        return part
     end
-    for index, piece in ipairs(spec) do
-        -- Golden pets tint the body gold and keep their accent colors.
-        add(piece[1], piece[2], piece[3], if golden and index == 1 then Gold else piece[4], piece[5])
+    -- Body pieces turn gold on Golden pets.
+    function b.body(shape, size, position, color, options)
+        options = options or {}
+        options.body, options.name = true, options.name or "Body"
+        return b.add(shape, size, position, if golden then Gold else color, options)
     end
-    if spec.eyes then
-        for _, x in ipairs({ -0.22, 0.22 }) do
-            add("Ball", { 0.24, 0.24, 0.24 }, { x, 0.25, -spec.eyes }, rgb(40, 32, 28))
+    -- Eyes, blush, and a smile on the front surface at depth z (negative), centred at height y.
+    function b.face(z, y, spread, eyeSize)
+        spread, eyeSize = spread or 0.24, eyeSize or 0.34
+        for _, side in ipairs({ -1, 1 }) do
+            local x = side * spread
+            b.add("Ball", { eyeSize, eyeSize, eyeSize }, { x, y, z - 0.02 }, White, { name = "Eye" })
+            b.add("Ball", { eyeSize * 0.62, eyeSize * 0.62, eyeSize * 0.62 }, { x, y - 0.02, z - eyeSize * 0.3 }, Ink, { name = "Pupil" })
+            b.add("Ball", { eyeSize * 0.22, eyeSize * 0.22, eyeSize * 0.22 }, { x + 0.04, y + 0.06, z - eyeSize * 0.48 }, White, { name = "Shine" })
+            b.add("Ball", { 0.18, 0.18, 0.18 }, { side * (spread + 0.2), y - 0.22, z - 0.02 }, Blush, { name = "Blush", transparency = 0.15 })
+        end
+        b.add("Block", { 0.18, 0.05, 0.05 }, { 0, y - 0.26, z - 0.03 }, Ink, { name = "Smile" })
+    end
+    function b.feet(y, spread, color)
+        for _, side in ipairs({ -1, 1 }) do
+            b.add("Ball", { 0.36, 0.36, 0.36 }, { side * (spread or 0.28), y, -0.05 }, color or Ink, { name = "Foot" })
         end
     end
+    function b.sparkles()
+        if not golden then return end
+        b.add("Ball", { 0.16, 0.16, 0.16 }, { 0.75, 0.9, -0.2 }, rgb(255, 245, 190), { name = "Sparkle", neon = true })
+        b.add("Ball", { 0.12, 0.12, 0.12 }, { -0.7, 0.3, -0.25 }, rgb(255, 245, 190), { name = "Sparkle", neon = true })
+    end
+    return b, pieces
+end
+
+local Recipes = {}
+function Recipes.CrinkleFry(b)
+    b.body("Block", { 0.8, 1.9, 0.8 }, { 0, 0.1, 0 }, rgb(255, 214, 90))
+    for index, y in ipairs({ -0.5, 0.05, 0.6 }) do
+        b.add("Block", { 0.84, 0.1, 0.84 }, { 0, y, 0 }, rgb(236, 176, 52), { name = "Crinkle" .. index })
+    end
+    b.add("Block", { 0.82, 0.22, 0.82 }, { 0, 1.0, 0 }, rgb(214, 140, 40), { name = "Toast" })
+    b.face(-0.41, 0.35, 0.18, 0.28)
+    b.feet(-0.92, 0.22, rgb(214, 140, 40))
+end
+function Recipes.SaltShaker(b)
+    b.body("Cylinder", { 1.4, 1.1, 1.1 }, { 0, 0, 0 }, rgb(246, 246, 242), { upright = true })
+    b.add("Cylinder", { 0.42, 1.16, 1.16 }, { 0, 0.88, 0 }, rgb(170, 180, 194), { upright = true, name = "Cap" })
+    for index, x in ipairs({ -0.22, 0, 0.22 }) do
+        b.add("Ball", { 0.1, 0.1, 0.1 }, { x, 1.1, -0.1 }, Ink, { name = "Hole" .. index })
+    end
+    b.face(-0.56, 0.05)
+    b.feet(-0.78)
+end
+function Recipes.PaperCup(b)
+    b.body("Cylinder", { 1.3, 1.2, 1.2 }, { 0, -0.1, 0 }, rgb(232, 72, 72), { upright = true })
+    b.add("Cylinder", { 0.46, 1.24, 1.24 }, { 0, -0.05, 0 }, rgb(255, 248, 236), { upright = true, name = "Band" })
+    for index, spot in ipairs({ { -0.3, 0.05 }, { 0, -0.12 }, { 0.3, 0.08 } }) do
+        b.add("Block", { 0.2, 0.9, 0.2 }, { spot[1], 0.85, spot[2] }, rgb(255, 214, 90), { name = "Fry" .. index })
+    end
+    b.face(-0.63, -0.05, 0.24, 0.3)
+    b.feet(-0.82)
+end
+function Recipes.PotatoPup(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, 0, 0 }, rgb(196, 150, 92))
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Ball", { 0.6, 0.6, 0.6 }, { side * 0.6, 0.62, 0.05 }, rgb(150, 105, 60), { name = "Ear" })
+    end
+    b.add("Ball", { 0.62, 0.62, 0.62 }, { 0, -0.15, -0.62 }, rgb(232, 196, 140), { name = "Snout" })
+    b.add("Ball", { 0.2, 0.2, 0.2 }, { 0, -0.05, -0.92 }, Ink, { name = "Nose" })
+    b.add("Ball", { 0.3, 0.3, 0.3 }, { 0, -0.1, 0.82 }, rgb(150, 105, 60), { name = "Tail" })
+    b.add("Ball", { 0.3, 0.3, 0.3 }, { 0.45, 0.25, -0.58 }, rgb(170, 125, 75), { name = "Spot" })
+    b.face(-0.7, 0.22, 0.3, 0.3)
+    b.feet(-0.78, 0.4, rgb(150, 105, 60))
+end
+function Recipes.KetchupPacket(b)
+    b.body("Block", { 1.5, 1.2, 0.32 }, { 0, 0, 0 }, rgb(222, 44, 44))
+    b.add("Block", { 1.1, 0.7, 0.05 }, { 0, -0.05, -0.18 }, rgb(255, 248, 236), { name = "Label" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.18, 0.18, 0.34 }, { side * 0.66, 0.52, 0 }, rgb(180, 30, 30), { name = "Corner" })
+    end
+    b.add("Ball", { 0.24, 0.24, 0.24 }, { 0.5, -0.66, -0.05 }, rgb(200, 30, 30), { name = "Drip" })
+    b.face(-0.21, 0.0, 0.22, 0.26)
+    b.feet(-0.72, 0.4)
+end
+function Recipes.NapkinGhost(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, 0.15, 0 }, rgb(252, 252, 255), { transparency = 0.08 })
+    for index, x in ipairs({ -0.5, 0, 0.5 }) do
+        b.add("Ball", { 0.62, 0.62, 0.62 }, { x, -0.6, 0 }, rgb(252, 252, 255), { name = "Skirt" .. index, transparency = 0.08 })
+    end
+    b.add("Block", { 1.7, 0.1, 0.4 }, { 0, -0.05, -0.62 }, rgb(150, 205, 232), { name = "Stripe" })
+    b.face(-0.78, 0.35, 0.28, 0.32)
+end
+function Recipes.CurlyFryCat(b)
+    b.body("Ball", { 1.5, 1.5, 1.5 }, { 0, 0, 0 }, rgb(240, 150, 60))
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.42, 0.42, 0.22 }, { side * 0.45, 0.72, 0 }, rgb(214, 118, 40), { name = "Ear", rotation = CFrame.Angles(0, 0, math.pi / 4) })
+    end
+    for index, spot in ipairs({ { 0.62, 0.0 }, { 0.8, 0.28 }, { 0.68, 0.55 }, { 0.42, 0.62 } }) do
+        b.add("Ball", { 0.24, 0.24, 0.24 }, { spot[1], spot[2], 0.55 }, rgb(214, 118, 40), { name = "Curl" .. index })
+    end
+    b.add("Block", { 1.3, 0.1, 0.1 }, { 0, 0.1, -0.7 }, rgb(214, 118, 40), { name = "Stripe" })
+    b.face(-0.68, 0.22, 0.28, 0.32)
+    b.feet(-0.7, 0.36, rgb(214, 118, 40))
+end
+function Recipes.MayoJar(b)
+    b.body("Cylinder", { 1.4, 1.2, 1.2 }, { 0, 0, 0 }, rgb(252, 246, 222), { upright = true })
+    b.add("Cylinder", { 0.34, 1.28, 1.28 }, { 0, 0.85, 0 }, rgb(92, 150, 232), { upright = true, name = "Lid" })
+    b.add("Cylinder", { 0.5, 1.24, 1.24 }, { 0, -0.12, 0 }, rgb(255, 214, 90), { upright = true, name = "Label" })
+    b.face(-0.63, 0.2, 0.24, 0.3)
+    b.feet(-0.8)
+end
+function Recipes.FryerBot(b)
+    b.body("Block", { 1.4, 1.2, 1.1 }, { 0, 0, 0 }, rgb(170, 186, 202))
+    b.add("Block", { 1.0, 0.6, 0.06 }, { 0, 0.1, -0.56 }, rgb(126, 245, 215), { name = "Screen" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.18, 0.24, 0.05 }, { side * 0.22, 0.14, -0.6 }, Ink, { name = "Eye" })
+        b.add("Block", { 0.2, 0.6, 0.2 }, { side * 0.82, -0.1, 0 }, rgb(140, 156, 172), { name = "Arm" })
+    end
+    b.add("Block", { 0.3, 0.06, 0.05 }, { 0, -0.08, -0.6 }, Ink, { name = "Smile" })
+    b.add("Cylinder", { 0.5, 0.1, 0.1 }, { 0, 0.85, 0 }, rgb(120, 130, 145), { upright = true, name = "Antenna" })
+    b.add("Ball", { 0.28, 0.28, 0.28 }, { 0, 1.15, 0 }, rgb(244, 112, 111), { name = "Light", neon = true })
+    b.feet(-0.72, 0.36, rgb(120, 130, 145))
+end
+function Recipes.FryKing(b)
+    b.body("Block", { 1.0, 2.0, 1.0 }, { 0, 0.05, 0 }, rgb(255, 206, 64))
+    for index, y in ipairs({ -0.55, 0.0 }) do
+        b.add("Block", { 1.04, 0.1, 1.04 }, { 0, y, 0 }, rgb(236, 170, 40), { name = "Crinkle" .. index })
+    end
+    b.add("Block", { 1.0, 1.6, 0.1 }, { 0, -0.1, 0.56 }, rgb(200, 40, 50), { name = "Cape" })
+    b.add("Cylinder", { 0.36, 1.1, 1.1 }, { 0, 1.22, 0 }, rgb(255, 176, 0), { upright = true, name = "Crown", body = false })
+    for index, spot in ipairs({ { -0.32, rgb(220, 50, 70) }, { 0, rgb(70, 130, 230) }, { 0.32, rgb(220, 50, 70) } }) do
+        b.add("Ball", { 0.24, 0.24, 0.24 }, { spot[1], 1.5, -0.25 }, spot[2], { name = "Jewel" .. index })
+    end
+    b.face(-0.51, 0.45, 0.22, 0.32)
+    b.feet(-0.98, 0.26, rgb(214, 140, 40))
+end
+PetModels.Recipes = Recipes
+-- Returns a Model plus its pieces and local offsets, for callers to place each frame.
+function PetModels.build(petType, golden, parent)
+    local model = Instance.new("Model")
+    model.Name = petType .. (if golden then "Golden" else "")
+    local b, pieces = builder(model, golden)
+    local recipe = Recipes[petType] or Recipes.CrinkleFry
+    recipe(b)
+    b.sparkles()
     model.Parent = parent
     return model, pieces
+end
+-- Places every piece relative to a base CFrame (the pet's position and facing).
+function PetModels.place(pieces, base)
+    for _, piece in ipairs(pieces) do piece.part.CFrame = base * piece.offset end
 end
 return PetModels
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00052">
+          <Item class="ModuleScript" referent="RBX00054">
+            <Properties>
+              <string name="Name">PetPortrait</string>
+              <ProtectedString name="Source">-- Live 3D pet portraits for the UI: a ViewportFrame showing the same code-built model the
+-- pet uses in the world, framed from the front and slightly above.
+local PetModels = require(script.Parent.PetModels)
+local PetPortrait = {}
+local Origin = CFrame.new(Vector3.new(0, 0, 0))
+local function frame(viewport)
+    local camera = viewport:FindFirstChild("PortraitCamera")
+    if not camera then
+        camera = Instance.new("Camera")
+        camera.Name, camera.FieldOfView = "PortraitCamera", 30
+        camera.Parent = viewport
+        viewport.CurrentCamera = camera
+    end
+    -- Pets face -Z and are about 2 studs tall: look at them from the front, a little above.
+    camera.CFrame = CFrame.lookAt(Vector3.new(0, 0.7, -6.4), Vector3.new(0, 0.15, 0))
+end
+-- Creates a portrait (or reuses `viewport`) showing `petType`; nil shows an empty frame.
+function PetPortrait.set(viewport, petType, golden)
+    local key = tostring(petType) .. (if golden then "*" else "")
+    if viewport:GetAttribute("Showing") == key then return viewport end
+    viewport:SetAttribute("Showing", key)
+    local old = viewport:FindFirstChild("Pet")
+    if old then old:Destroy() end
+    if petType then
+        local model, pieces = PetModels.build(petType, golden, viewport)
+        model.Name = "Pet"
+        PetModels.place(pieces, Origin)
+    end
+    return viewport
+end
+function PetPortrait.make(parent, name, size, position)
+    local viewport = Instance.new("ViewportFrame")
+    viewport.Name, viewport.BackgroundTransparency = name or "Portrait", 1
+    viewport.Size, viewport.Position = size or UDim2.fromOffset(72, 72), position or UDim2.new()
+    viewport.Ambient, viewport.LightColor = Color3.fromRGB(190, 180, 170), Color3.fromRGB(255, 250, 240)
+    viewport.LightDirection = Vector3.new(-0.4, -1, 0.6)
+    viewport.Parent = parent
+    frame(viewport)
+    return viewport
+end
+return PetPortrait
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00055">
             <Properties>
               <string name="Name">PetText</string>
               <ProtectedString name="Source">-- Shared pet display text and rarity colors.
@@ -2305,75 +2941,98 @@ return PetText
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00053">
+          <Item class="ModuleScript" referent="RBX00056">
             <Properties>
               <string name="Name">PetsView</string>
-              <ProtectedString name="Source">-- Pet inventory: owned pets with rarity, bonus, Equip/Unequip, and a two-tap Delete, plus
--- tools: auto-delete by rarity, delete all of a rarity (two taps), and merging into Golden pets.
--- The server owns the inventory; this view only displays and requests.
+              <ProtectedString name="Source">-- Pet inventory: a grid of pet tiles (live 3D portrait, rarity band, name, bonus, equipped
+-- tick, Golden sparkle). Tapping a tile selects it; the detail bar below shows it larger with
+-- EQUIP or UNEQUIP and a two-tap DELETE. Tools above the grid: auto-delete and delete-all by
+-- rarity, and merging copies into Golden pets. The server owns the inventory; this view only
+-- displays and requests.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local PetConfig = require(Shared.config.Pets)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local PetText = require(script.Parent.PetText)
+local PetPortrait = require(script.Parent.PetPortrait)
 local PetsView = {}
 PetsView.__index = PetsView
-local PanelWidth, PanelHeight, RowHeight = 380, 480, 60
-local ListTop = 188
+PetsView.Accent = Theme.Blue
+local MinWidth, MaxWidth, MinHeight, MaxHeight = 340, 680, 400, 580
+local GridTop, DetailHeight = 202, 86
+local TileWidth, TileHeight = 92, 124
 local ConfirmSeconds = 3
+local function accentOf(pet) return if pet.golden then PetText.color("Legendary") else PetText.color(pet.rarity) end
 local function chipRow(self, parent, name, label, y, onPress)
-    local caption = E.label(parent, label, 26, Theme.Muted)
-    caption.Name, caption.Position, caption.Size, caption.TextSize = name .. "Label", UDim2.fromOffset(20, y), UDim2.fromOffset(92, 26), 10
-    caption.Font = Enum.Font.GothamBold
+    local caption = E.label(parent, label, 28, Theme.Muted)
+    caption.Name, caption.Position, caption.Size, caption.TextSize = name .. "Label", UDim2.fromOffset(20, y), UDim2.fromOffset(94, 28), 12
+    caption.Font = Theme.Display
+    E.fit(caption, 8, 12)
     local chips = {}
-    for index, rarity in ipairs(PetConfig.BulkRarities) do
-        local chip = E.button(parent, string.upper(rarity), function() onPress(rarity) end, Theme.Card)
-        chip.Name, chip.Position, chip.Size = name .. rarity, UDim2.fromOffset(112 + (index - 1) * 86, y), UDim2.fromOffset(80, 26)
-        chip.TextSize, chip.AutoButtonColor = 10, false
-        E.fit(chip, 7, 10)
+    for _, rarity in ipairs(PetConfig.BulkRarities) do
+        local chip = E.button(parent, string.upper(rarity), function() onPress(rarity) end, Theme.Chip)
+        chip.Name, chip.Size = name .. rarity, UDim2.fromOffset(84, 28)
+        chip.TextSize, chip.AutoButtonColor = 12, false
+        chip:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 14)
+        E.fit(chip, 7, 12)
         chips[rarity] = chip
     end
     return chips
 end
 function PetsView.new(gui, send)
-    local self = setmetatable({ send = send, hasStation = false, rows = {}, confirm = {} }, PetsView)
-    self.button = E.button(gui, "PETS", function() self:toggle() end, Theme.Background)
-    self.button.Name, self.button.TextSize, self.button.TextColor3 = "PetsButton", 13, Theme.Blue
-    E.stroke(self.button, Theme.Blue, 1.5, 0.3)
-    E.fit(self.button, 8, 13)
+    local self = setmetatable({ send = send, hasStation = false, tiles = {}, confirm = {}, selected = nil }, PetsView)
+    self.button = E.menuButton(gui, "PetsButton", "PETS", "pets", PetsView.Accent, function() self:toggle() end)
+    local frame = E.panel(gui, "PetsPanel", MaxWidth, MaxHeight, Theme.Blue)
+    local panel = frame.panel
+    self.panel, self.scale, self.close, self.caption = panel, frame.scale, frame.close, frame.caption
+    frame.title.Text = "PETS"
+    self.close.Activated:Connect(function() self:setOpen(false) end)
 
-    local panel = E.box(gui, "PetsPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
-    panel.AnchorPoint, panel.Visible, panel.ZIndex = Vector2.new(0.5, 0.5), false, 5
-    E.stroke(panel, Theme.Blue, 2, 0.12)
-    self.panel = panel
-    self.scale = Instance.new("UIScale")
-    self.scale.Parent = panel
-    local title = E.label(panel, "PETS", 28, Theme.Text)
-    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(260, 28)
-    title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    self.caption = E.label(panel, "", 16, Theme.Muted)
-    self.caption.Name, self.caption.Position, self.caption.Size, self.caption.TextSize = "Caption", UDim2.fromOffset(20, 42), UDim2.fromOffset(280, 16), 11
-    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
-    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
-    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
-
-    self.autoChips = chipRow(self, panel, "Auto", "AUTO-DELETE", 68, function(rarity)
+    self.autoChips = chipRow(self, panel, "Auto", "AUTO-DELETE", 80, function(rarity)
         if self.hasStation then self.send("ToggleAutoDelete", rarity) end
     end)
-    self.clearChips = chipRow(self, panel, "Clear", "DELETE ALL", 100, function(rarity) self:arm("rarity:" .. rarity, "DeleteRarity", rarity) end)
-    local merge = E.box(panel, "Merge", UDim2.fromOffset(16, 134), UDim2.fromOffset(PanelWidth - 32, 44), Theme.Card, 12)
-    E.stroke(merge, Theme.Gold, 1, 0.5)
-    self.mergeText = E.label(merge, "", 30, Theme.GoldLight)
-    self.mergeText.Name, self.mergeText.Position, self.mergeText.Size, self.mergeText.TextSize = "MergeText", UDim2.fromOffset(12, 7), UDim2.new(1, -112, 0, 30), 11
+    self.clearChips = chipRow(self, panel, "Clear", "DELETE ALL", 114, function(rarity) self:arm("rarity:" .. rarity, "DeleteRarity", rarity) end)
+    self.autoLabel, self.clearLabel = panel.AutoLabel, panel.ClearLabel
+    local merge = E.box(panel, "Merge", UDim2.fromOffset(16, 150), UDim2.new(1, -32, 0, 44), Theme.Card, 14)
+    E.stroke(merge, Theme.Gold, 3, 0)
+    local sparkle = Icons.make(merge, "sparkle", 24, Theme.Gold, UDim2.fromOffset(10, 10))
+    sparkle.Name = "Sparkle"
+    self.mergeText = E.label(merge, "", 30, Theme.Accent)
+    self.mergeText.Name, self.mergeText.Position, self.mergeText.Size, self.mergeText.TextSize = "MergeText", UDim2.fromOffset(42, 7), UDim2.new(1, -144, 0, 30), 12
     self.mergeButton = E.button(merge, "MERGE", function() self:merge() end, Theme.Gold)
     self.mergeButton.Name, self.mergeButton.AnchorPoint = "MergeButton", Vector2.new(1, 0.5)
-    self.mergeButton.Position, self.mergeButton.Size, self.mergeButton.TextSize = UDim2.new(1, -8, 0.5, 0), UDim2.fromOffset(88, 32), 12
-    self.mergeButton.TextColor3 = Theme.Ink
+    self.mergeButton.Position, self.mergeButton.Size, self.mergeButton.TextSize = UDim2.new(1, -10, 0.5, -1), UDim2.fromOffset(86, 32), 14
 
-    local holder = E.box(panel, "ListArea", UDim2.fromOffset(16, ListTop), UDim2.fromOffset(PanelWidth - 32, PanelHeight - ListTop - 16), Theme.Background, 0)
-    self.list = E.column(holder, "List")
-    self.empty = E.label(holder, "No pets yet. Spin the machine to get one!", 40, Theme.Muted)
-    self.empty.Name, self.empty.TextXAlignment, self.empty.TextSize = "Empty", Enum.TextXAlignment.Center, 13
+    self.mergeBanner = merge
+    local area = E.box(panel, "GridArea", UDim2.fromOffset(12, GridTop), UDim2.new(1, -24, 1, -GridTop - DetailHeight - 28), Theme.Cream, 0)
+    self.gridArea = area
+    self.grid, self.gridLayout = E.grid(area, "Grid", TileWidth, TileHeight, 10)
+    self.empty = E.label(area, "No pets yet. Spin the machine to get one!", 40, Theme.Muted)
+    self.empty.Name, self.empty.TextXAlignment, self.empty.TextSize = "Empty", Enum.TextXAlignment.Center, 14
+
+    -- Detail bar for the selected pet.
+    local detail = E.card(panel, "Selected", UDim2.new(0, 16, 1, -DetailHeight - 16), UDim2.new(1, -32, 0, DetailHeight), 18)
+    self.detail = detail
+    self.detailPortrait = PetPortrait.make(detail, "Portrait", UDim2.fromOffset(70, 70), UDim2.fromOffset(8, 8))
+    self.detailName = E.label(detail, "", 26, Theme.Ink)
+    self.detailName.Name, self.detailName.Position, self.detailName.Size = "PetName", UDim2.fromOffset(88, 8), UDim2.new(1, -290, 0, 26)
+    self.detailName.Font, self.detailName.TextSize = Theme.Display, 19
+    E.fit(self.detailName, 10, 19)
+    self.detailTags = E.label(detail, "", 16, Theme.Muted)
+    self.detailTags.Name, self.detailTags.Position, self.detailTags.Size, self.detailTags.TextSize = "Rarity", UDim2.fromOffset(88, 36), UDim2.new(1, -290, 0, 16), 11
+    E.fit(self.detailTags, 7, 11)
+    self.detailBonus = E.label(detail, "", 18, Theme.Accent)
+    self.detailBonus.Name, self.detailBonus.Position, self.detailBonus.Size, self.detailBonus.TextSize = "Bonus", UDim2.fromOffset(88, 56), UDim2.new(1, -290, 0, 18), 13
+    E.fit(self.detailBonus, 7, 13)
+    self.equip = E.button(detail, "EQUIP", function() self:equipSelected() end, Theme.Gold)
+    self.equip.Name, self.equip.AnchorPoint = "Equip", Vector2.new(1, 0.5)
+    self.equip.Position, self.equip.Size, self.equip.TextSize = UDim2.new(1, -96, 0.5, -1), UDim2.fromOffset(104, 44), 15
+    self.deleteButton = E.button(detail, "DELETE", function() if self.selected then self:delete(self.selected) end end, Theme.Card)
+    self.deleteButton.Name, self.deleteButton.AnchorPoint = "Delete", Vector2.new(1, 0.5)
+    self.deleteButton.Position, self.deleteButton.Size, self.deleteButton.TextSize = UDim2.new(1, -12, 0.5, -1), UDim2.fromOffset(76, 44), 13
+    self.hint = E.label(detail, "Tap a pet to see it here.", DetailHeight, Theme.Muted)
+    self.hint.Name, self.hint.TextXAlignment, self.hint.TextSize = "Hint", Enum.TextXAlignment.Center, 14
     return self
 end
 function PetsView:setOpen(open) self.panel.Visible = open and self.hasStation end
@@ -2391,6 +3050,15 @@ function PetsView:arm(key, action, argument)
     if self.state then self:update(self.state) end
 end
 function PetsView:delete(id) self:arm("pet:" .. id, "DeletePet", id) end
+function PetsView:select(id)
+    self.selected = id
+    if self.state then self:update(self.state) end
+end
+function PetsView:equipSelected()
+    local pet = self.byId and self.selected and self.byId[self.selected]
+    if not self.hasStation or not pet then return end
+    if pet.equipped then self.send("Unequip", pet.id) elseif not self.slotsFull then self.send("Equip", pet.id) end
+end
 function PetsView:merge()
     local first = self.mergeable and self.mergeable[1]
     if self.hasStation and first then self.send("MergePets", first.type) end
@@ -2405,64 +3073,56 @@ local function sorted(owned)
     end)
     return list
 end
-function PetsView:row(pet, order, full)
-    local accent = if pet.golden then Theme.Gold else PetText.color(pet.rarity)
-    local row = E.box(self.list, pet.id, UDim2.new(), UDim2.new(1, 0, 0, RowHeight), Theme.Card, 12)
-    row.LayoutOrder = order
-    E.stroke(row, accent, if pet.equipped or pet.golden then 2 else 1, if pet.equipped then 0 else 0.6)
-    local name = E.label(row, pet.name, 22, accent)
-    name.Name, name.Position, name.Size = "PetName", UDim2.fromOffset(12, 7), UDim2.new(1, -180, 0, 22)
-    name.Font, name.TextSize = Enum.Font.GothamBold, 14
-    E.fit(name, 9, 14)
-    local tags = string.upper(pet.rarity) .. (if pet.golden then "  ·  GOLDEN" else "") .. (if pet.equipped then "  ·  EQUIPPED" else "")
-    local detail = E.label(row, tags, 14, Theme.Muted)
-    detail.Name, detail.Position, detail.Size, detail.TextSize = "Rarity", UDim2.fromOffset(12, 29), UDim2.new(1, -180, 0, 14), 9
-    local bonus = E.label(row, PetText.bonus(pet.bonuses, true), 14, Theme.GoldLight)
-    bonus.Name, bonus.Position, bonus.Size, bonus.TextSize = "Bonus", UDim2.fromOffset(12, 43), UDim2.new(1, -180, 0, 14), 10
-    E.fit(bonus, 7, 10)
-    local canEquip = pet.equipped or not full
-    local equip = E.button(row, if pet.equipped then "UNEQUIP" else "EQUIP", function()
-        if not self.hasStation then return end
-        if pet.equipped then self.send("Unequip", pet.id) elseif not full then self.send("Equip", pet.id) end
-    end, if pet.equipped then Theme.Background elseif canEquip then Theme.Gold else Theme.Background)
-    equip.Name, equip.AnchorPoint = "Equip", Vector2.new(1, 0.5)
-    equip.Position, equip.Size = UDim2.new(1, if pet.equipped then -8 else -78, 0.5, 0), UDim2.fromOffset(84, 38)
-    equip.TextSize, equip.AutoButtonColor = 11, canEquip
-    equip.TextColor3 = if pet.equipped then Theme.Text elseif canEquip then Theme.Ink else Theme.Muted
-    equip.Active, equip.Selectable = canEquip, canEquip
-    if not pet.equipped then
-        local armed = self:armed("pet:" .. pet.id)
-        local delete = E.button(row, if armed then "SURE?" else "DELETE", function() self:delete(pet.id) end,
-            if armed then Theme.Red else Theme.Background)
-        delete.Name, delete.AnchorPoint, delete.Position, delete.Size = "Delete", Vector2.new(1, 0.5), UDim2.new(1, -8, 0.5, 0), UDim2.fromOffset(64, 38)
-        delete.TextSize, delete.TextColor3 = 10, if armed then Theme.Ink else Theme.Red
-        E.stroke(delete, Theme.Red, 1, 0.5)
+function PetsView:tile(pet)
+    local tile = E.button(self.grid, "", function() self:select(pet.id) end, Theme.Card, 0)
+    tile.Name, tile.AutoButtonColor = pet.id, true
+    tile:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 16)
+    local stroke = E.stroke(tile, accentOf(pet), 3, 0)
+    stroke.Name = "Outline"
+    local band = E.box(tile, "Band", UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 10), accentOf(pet), 8)
+    band.ZIndex = 2
+    PetPortrait.set(PetPortrait.make(tile, "Portrait", UDim2.fromOffset(70, 70), UDim2.new(0.5, -35, 0, 12)), pet.type, pet.golden)
+    local name = E.label(tile, pet.name, 18, Theme.Ink)
+    name.Name, name.Position, name.Size = "PetName", UDim2.new(0, 4, 0, 84), UDim2.new(1, -8, 0, 18)
+    name.Font, name.TextSize, name.TextXAlignment = Theme.Display, 13, Enum.TextXAlignment.Center
+    E.fit(name, 7, 13)
+    local bonus = E.label(tile, PetText.bonus(pet.bonuses, true), 14, Theme.Accent)
+    bonus.Name, bonus.Position, bonus.Size = "Bonus", UDim2.new(0, 4, 0, 104), UDim2.new(1, -8, 0, 14)
+    bonus.TextSize, bonus.TextXAlignment = 10, Enum.TextXAlignment.Center
+    E.fit(bonus, 6, 10)
+    local badge = E.box(tile, "Equipped", UDim2.new(1, -20, 0, -6), UDim2.fromOffset(26, 26), Theme.Green, 13)
+    E.stroke(badge, Theme.White, 2, 0)
+    badge.ZIndex = 3
+    local tick = Icons.make(badge, "check", 18, Theme.White, UDim2.fromOffset(4, 4))
+    tick.ZIndex = 3
+    if pet.golden then
+        local glint = Icons.make(tile, "sparkle", 22, Theme.Gold, UDim2.fromOffset(-6, -6))
+        glint.Name = "Golden"
     end
-    return row
+    return tile
 end
 function PetsView:update(state)
     self.state = state
     self.hasStation = state.hasStation
-    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
-    self.button.TextColor3 = if state.hasStation then Theme.Blue else Theme.Muted
+    E.setMenuEnabled(self.button, state.hasStation, PetsView.Accent)
     if not state.hasStation then self.panel.Visible = false end
     local pets = state.pets
     if not pets then return end
-    local full = pets.equipped &gt;= pets.slots
+    self.slotsFull = pets.equipped &gt;= pets.slots
     self.caption.Text = "Equipped " .. pets.equipped .. " / " .. pets.slots .. "  ·  " .. #pets.owned .. " / " .. pets.max .. " pets"
     self.empty.Visible = #pets.owned == 0
     -- Tools: auto-delete chips are toggles; delete-all chips need a second tap.
     local autoDelete = pets.autoDelete or {}
     for rarity, chip in pairs(self.autoChips) do
         local on = autoDelete[rarity] == true
-        chip.BackgroundColor3 = if on then Theme.Red else Theme.Card
-        chip.TextColor3 = if on then Theme.Ink else PetText.color(rarity)
+        chip.BackgroundColor3 = if on then Theme.Red else Theme.Chip
+        chip.TextColor3 = if on then Theme.OnColor else PetText.color(rarity)
     end
     for rarity, chip in pairs(self.clearChips) do
         local armed = self:armed("rarity:" .. rarity)
         chip.Text = if armed then "SURE?" else string.upper(rarity)
-        chip.BackgroundColor3 = if armed then Theme.Red else Theme.Card
-        chip.TextColor3 = if armed then Theme.Ink else PetText.color(rarity)
+        chip.BackgroundColor3 = if armed then Theme.Red else Theme.Chip
+        chip.TextColor3 = if armed then Theme.OnColor else PetText.color(rarity)
     end
     self.mergeable = pets.mergeable or {}
     local first = self.mergeable[1]
@@ -2470,86 +3130,145 @@ function PetsView:update(state)
     self.mergeText.Text = if first then "Merge " .. (pets.mergeCount or 5) .. " " .. first.name .. " into a Golden "
         .. first.name .. " (2x bonus)" .. (if #self.mergeable &gt; 1 then "  ·  +" .. (#self.mergeable - 1) .. " more" else "")
         else "Collect " .. (pets.mergeCount or 5) .. " unequipped copies of a pet to merge them into a Golden pet (2x bonus)."
-    self.mergeText.TextColor3 = if first then Theme.GoldLight else Theme.Muted
-    -- Rebuild rows only when the pets, their state, or a Delete confirmation changes.
-    local parts = { tostring(full), tostring(self.confirm.key), tostring(self:armed(self.confirm.key)) }
-    for _, pet in ipairs(pets.owned) do table.insert(parts, pet.id .. (if pet.equipped then "*" else "") .. (if pet.golden then "g" else "")) end
-    local signature = table.concat(parts, ",")
-    if signature == self.signature then return end
-    self.signature = signature
-    for _, row in pairs(self.rows) do row:Destroy() end
-    self.rows = {}
-    for order, pet in ipairs(sorted(pets.owned)) do self.rows[pet.id] = self:row(pet, order, full) end
+    self.mergeText.TextColor3 = if first then Theme.Accent else Theme.Muted
+    -- Tiles: reuse by ID so portraits are only built for new pets.
+    self.byId = {}
+    for order, pet in ipairs(sorted(pets.owned)) do
+        self.byId[pet.id] = pet
+        local tile = self.tiles[pet.id]
+        if tile and tile:GetAttribute("Golden") ~= pet.golden then tile:Destroy(); tile = nil end
+        if not tile then
+            tile = self:tile(pet)
+            tile:SetAttribute("Golden", pet.golden)
+            self.tiles[pet.id] = tile
+        end
+        tile.LayoutOrder = order
+        tile.Equipped.Visible = pet.equipped
+        local selected = self.selected == pet.id
+        tile.BackgroundColor3 = if selected then Theme.Cream else Theme.Card
+        tile.Outline.Color = if selected then Theme.Ink else accentOf(pet)
+        tile.Outline.Thickness = if selected then 4 else 3
+    end
+    for id, tile in pairs(self.tiles) do
+        if not self.byId[id] then tile:Destroy(); self.tiles[id] = nil end
+    end
+    -- Detail bar.
+    local pet = self.selected and self.byId[self.selected]
+    if not pet then self.selected = nil end
+    for _, child in ipairs({ self.detailPortrait, self.detailName, self.detailTags, self.detailBonus, self.equip }) do child.Visible = pet ~= nil end
+    self.hint.Visible = pet == nil
+    self.deleteButton.Visible = pet ~= nil and not pet.equipped
+    if pet then
+        PetPortrait.set(self.detailPortrait, pet.type, pet.golden)
+        self.detailName.Text, self.detailName.TextColor3 = pet.name, accentOf(pet)
+        self.detailTags.Text = string.upper(pet.rarity) .. (if pet.golden then "  ·  GOLDEN" else "") .. (if pet.equipped then "  ·  EQUIPPED" else "")
+        self.detailBonus.Text = PetText.bonus(pet.bonuses)
+        local canEquip = pet.equipped or not self.slotsFull
+        self.equip.Text = if pet.equipped then "UNEQUIP" elseif canEquip then "EQUIP" else "SLOTS FULL"
+        self.equip.Active, self.equip.Selectable, self.equip.AutoButtonColor = canEquip, canEquip, canEquip
+        self.equip.BackgroundColor3 = if pet.equipped then Theme.Chip elseif canEquip then Theme.Gold else Theme.Disabled
+        self.equip.TextColor3 = if canEquip then Theme.Ink else Theme.Muted
+        local armed = self:armed("pet:" .. pet.id)
+        self.deleteButton.Text = if armed then "SURE?" else "DELETE"
+        self.deleteButton.BackgroundColor3 = if armed then Theme.Red else Theme.Card
+        self.deleteButton.TextColor3 = if armed then Theme.OnColor else Theme.Red
+    end
 end
+-- The panel grows with the screen (more tile columns) and only scales below its minimum.
 function PetsView:resize(viewport)
-    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+    local availableWidth, availableHeight = viewport.X - 32, viewport.Y - 60 - 24
+    local width = math.clamp(availableWidth, MinWidth, MaxWidth)
+    -- Short, wide screens (phone landscape): both chip rows share one line so a full row of
+    -- pet tiles still fits above the detail bar.
+    local compact = width &gt;= 600 and availableHeight &lt; 480
+    local height = math.clamp(availableHeight, if compact then 410 else MinHeight, MaxHeight)
+    self.panel.Size = UDim2.fromOffset(width, height)
+    self.scale.Scale = math.min(1, availableWidth / width, availableHeight / height)
+    local groupWidth = if compact then math.floor((width - 32 - 16) / 2) else width - 32
+    local chipWidth = math.clamp(math.floor((groupWidth - 88 - 16) / 3), 60, 100)
+    for row, chips in ipairs({ self.autoChips, self.clearChips }) do
+        local left = if compact and row == 2 then 16 + groupWidth + 16 else 16
+        local y = if compact then 80 else (if row == 1 then 80 else 114)
+        local label = if row == 1 then self.autoLabel else self.clearLabel
+        label.Position, label.Size = UDim2.fromOffset(left + 4, y), UDim2.fromOffset(if compact then 82 else 94, 28)
+        for index, rarity in ipairs(PetConfig.BulkRarities) do
+            local chip = chips[rarity]
+            chip.Size = UDim2.fromOffset(chipWidth, 28)
+            chip.Position = UDim2.fromOffset(left + (if compact then 88 else 98) + (index - 1) * (chipWidth + 8), y)
+        end
+    end
+    local gridTop = if compact then GridTop - 34 else GridTop
+    self.mergeBanner.Position = UDim2.fromOffset(16, gridTop - 52)
+    self.gridArea.Position = UDim2.fromOffset(12, gridTop)
+    self.gridArea.Size = UDim2.new(1, -24, 1, -gridTop - DetailHeight - 28)
+    E.fitGrid(self.gridLayout, width - 24, TileWidth)
+    -- Detail bar: buttons side by side on wide panels, stacked on narrow ones so the name fits.
+    local narrow = width &lt; 520
+    local textWidth = if narrow then -(88 + 96 + 24) else -290
+    for _, label in ipairs({ self.detailName, self.detailTags, self.detailBonus }) do
+        label.Size = UDim2.new(1, textWidth, 0, label.Size.Y.Offset)
+    end
+    if narrow then
+        self.equip.AnchorPoint, self.equip.Position, self.equip.Size = Vector2.new(1, 0), UDim2.new(1, -14, 0, 8), UDim2.fromOffset(96, 36)
+        self.deleteButton.AnchorPoint, self.deleteButton.Position = Vector2.new(1, 1), UDim2.new(1, -14, 1, -12)
+        self.deleteButton.Size = UDim2.fromOffset(96, 28)
+    else
+        self.equip.AnchorPoint, self.equip.Position, self.equip.Size = Vector2.new(1, 0.5), UDim2.new(1, -96, 0.5, -1), UDim2.fromOffset(104, 44)
+        self.deleteButton.AnchorPoint, self.deleteButton.Position = Vector2.new(1, 0.5), UDim2.new(1, -12, 0.5, -1)
+        self.deleteButton.Size = UDim2.fromOffset(76, 44)
+    end
 end
 return PetsView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00054">
+          <Item class="ModuleScript" referent="RBX00057">
             <Properties>
               <string name="Name">RebirthView</string>
-              <ProtectedString name="Source">-- Rebirth: a REBIRTH button and a confirmation panel. The server checks the threshold,
+              <ProtectedString name="Source">-- Rebirth: a REBIRTH menu button and a confirmation panel. The server checks the threshold,
 -- resets Cash and the bag, and awards gems; this view only displays and requests.
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local RebirthView = {}
 RebirthView.__index = RebirthView
-local PanelWidth, PanelHeight = 340, 312
-local function line(parent, name, text, y, height, color, size)
-    local label = E.label(parent, text, height, color)
-    label.Name, label.Position, label.Size, label.TextSize = name, UDim2.fromOffset(20, y), UDim2.fromOffset(PanelWidth - 40, height), size
-    return label
-end
+RebirthView.Accent = Theme.Gem
+local PanelWidth, PanelHeight = 360, 344
 function RebirthView.new(gui, send)
     local self = setmetatable({ send = send, hasStation = false, ready = false, count = nil }, RebirthView)
-    self.button = E.button(gui, "REBIRTH", function() self:toggle() end, Theme.Background)
-    self.button.Name, self.button.TextSize, self.button.TextColor3 = "RebirthButton", 13, Theme.Gem
-    self.button.Size = UDim2.fromOffset(105, 44)
-    self.buttonStroke = E.stroke(self.button, Theme.Gem, 1.5, 0.3)
-    E.fit(self.button, 8, 13)
+    self.button = E.menuButton(gui, "RebirthButton", "REBIRTH", "rebirth", RebirthView.Accent, function() self:toggle() end)
+    local frame = E.panel(gui, "RebirthPanel", PanelWidth, PanelHeight, Theme.Gem)
+    self.panel, self.scale, self.close = frame.panel, frame.scale, frame.close
+    frame.title.Text, frame.caption.Text = "REBIRTH", "Trade your Cash for gems"
+    self.close.Activated:Connect(function() self:setOpen(false) end)
 
-    local panel = E.box(gui, "RebirthPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
-    panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
-    panel.ZIndex = 5 -- above the HUD buttons when open
-    E.stroke(panel, Theme.Gem, 2, 0.12)
-    self.panel = panel
-    self.scale = Instance.new("UIScale")
-    self.scale.Parent = panel
-    local title = line(panel, "Title", "REBIRTH", 14, 28, Theme.Text, 21)
-    title.Font, title.Size = Enum.Font.GothamBold, UDim2.fromOffset(240, 28)
-    local caption = line(panel, "Caption", "Trade your Cash for gems", 42, 16, Theme.Muted, 11)
-    caption.Size = UDim2.fromOffset(240, 16)
-    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
-    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
-    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
-
-    local card = E.box(panel, "Details", UDim2.fromOffset(16, 70), UDim2.fromOffset(PanelWidth - 32, 164), Theme.Card, 14)
-    self.reward = E.label(card, "+10 GEMS", 32, Theme.Gem)
-    self.reward.Name, self.reward.Position, self.reward.Size = "Reward", UDim2.fromOffset(14, 8), UDim2.fromOffset(PanelWidth - 60, 32)
-    self.reward.Font, self.reward.TextSize = Enum.Font.GothamBold, 24
-    self.need = E.label(card, "", 18, Theme.Text)
-    self.need.Name, self.need.Position, self.need.Size, self.need.TextSize = "Need", UDim2.fromOffset(14, 44), UDim2.fromOffset(PanelWidth - 60, 18), 13
-    -- Large amounts shrink to one line instead of wrapping out of the card.
-    self.need.TextScaled, self.need.TextWrapped = true, false
-    local fit = Instance.new("UITextSizeConstraint")
-    fit.MinTextSize, fit.MaxTextSize, fit.Parent = 8, 13, self.need
+    local card = E.card(self.panel, "Details", UDim2.fromOffset(16, E.PanelTop + 10), UDim2.fromOffset(PanelWidth - 32, 180))
+    local gem = Icons.make(card, "gem", 40, Theme.Gem, UDim2.fromOffset(14, 10))
+    gem.Name = "GemIcon"
+    self.reward = E.label(card, "+10 GEMS", 40, Theme.Gem)
+    self.reward.Name, self.reward.Position, self.reward.Size = "Reward", UDim2.fromOffset(62, 10), UDim2.fromOffset(PanelWidth - 108, 40)
+    self.reward.Font, self.reward.TextSize = Theme.Display, 30
+    E.fit(self.reward, 14, 30)
+    self.need = E.label(card, "", 18, Theme.Ink)
+    self.need.Name, self.need.Position, self.need.Size, self.need.TextSize = "Need", UDim2.fromOffset(14, 58), UDim2.fromOffset(PanelWidth - 60, 18), 13
+    E.fit(self.need, 8, 13)
     local track
-    track, self.fill = E.bar(card, Theme.Gem, 8)
-    track.Position, track.Size, track.BackgroundColor3 = UDim2.fromOffset(14, 66), UDim2.fromOffset(PanelWidth - 60, 8), Theme.Background
+    track, self.fill = E.bar(card, Theme.Gem, 10)
+    track.Name, track.Position, track.Size = "Progress", UDim2.fromOffset(14, 82), UDim2.fromOffset(PanelWidth - 60, 10)
+    E.dashes(card, "Divider", UDim2.fromOffset(14, 104), PanelWidth - 60)
     local resets = E.label(card, "Resets: your Cash and current bag", 16, Theme.Muted)
-    resets.Name, resets.Position, resets.Size, resets.TextSize = "Resets", UDim2.fromOffset(14, 88), UDim2.fromOffset(PanelWidth - 60, 16), 12
-    local keeps = E.label(card, "Keeps: gems, upgrades, and rebirth count", 16, Theme.Muted)
-    keeps.Name, keeps.Position, keeps.Size, keeps.TextSize = "Keeps", UDim2.fromOffset(14, 108), UDim2.fromOffset(PanelWidth - 60, 16), 12
-    self.countLabel = E.label(card, "REBIRTHS: 0", 16, Theme.Muted)
-    self.countLabel.Name, self.countLabel.Position, self.countLabel.Size = "Count", UDim2.fromOffset(14, 136), UDim2.fromOffset(PanelWidth - 60, 16)
-    self.countLabel.TextSize = 11
+    resets.Name, resets.Position, resets.Size, resets.TextSize = "Resets", UDim2.fromOffset(14, 112), UDim2.fromOffset(PanelWidth - 60, 16), 12
+    local keeps = E.label(card, "Keeps: gems, upgrades, pets, and rebirth count", 16, Theme.Muted)
+    keeps.Name, keeps.Position, keeps.Size, keeps.TextSize = "Keeps", UDim2.fromOffset(14, 130), UDim2.fromOffset(PanelWidth - 60, 16), 12
+    E.fit(keeps, 8, 12)
+    self.countLabel = E.label(card, "REBIRTHS: 0", 16, Theme.Ink)
+    self.countLabel.Name, self.countLabel.Position, self.countLabel.Size = "Count", UDim2.fromOffset(14, 154), UDim2.fromOffset(PanelWidth - 60, 16)
+    self.countLabel.Font, self.countLabel.TextSize = Theme.Display, 12
 
-    self.confirm = E.button(panel, "REBIRTH", function() self:rebirth() end, Theme.Green)
-    self.confirm.Name, self.confirm.Position, self.confirm.Size = "Confirm", UDim2.fromOffset(16, 248), UDim2.fromOffset(PanelWidth - 32, 48)
-    self.confirm.AutoButtonColor, self.confirm.TextColor3, self.confirm.TextSize = false, Theme.Ink, 16
+    self.confirm = E.button(self.panel, "REBIRTH", function() self:rebirth() end, Theme.Green, 5)
+    self.confirm.Name, self.confirm.Position, self.confirm.Size = "Confirm", UDim2.fromOffset(16, PanelHeight - 70), UDim2.fromOffset(PanelWidth - 37, 50)
+    self.confirm.AutoButtonColor, self.confirm.TextColor3, self.confirm.TextSize = false, Theme.OnColor, 20
+    self.confirmOutline = E.textStroke(self.confirm, Theme.Ink, 2)
     return self
 end
 function RebirthView:setOpen(open) self.panel.Visible = open and self.hasStation end
@@ -2560,24 +3279,23 @@ end
 function RebirthView:update(state)
     local info = state.rebirth
     self.hasStation = state.hasStation
-    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
+    E.setMenuEnabled(self.button, state.hasStation, RebirthView.Accent)
     if not state.hasStation then self.panel.Visible = false end
     if not info then return end
     -- A completed rebirth closes the panel; the Cash and Gems card shows the result.
     if self.count and info.count &gt; self.count then self.panel.Visible = false end
     self.count = info.count
     self.ready = state.hasStation and state.profile.cash &gt;= info.threshold
-    local glow = self.ready
-    self.button.BackgroundColor3 = if glow then Theme.Gem else Theme.Background
-    self.button.TextColor3 = if glow then Theme.Ink elseif state.hasStation then Theme.Gem else Theme.Muted
+    self.button.Badge.Visible = self.ready -- "!" when a rebirth is available
     self.reward.Text = "+" .. E.count(info.reward) .. " GEMS"
     self.need.Text = "Needs " .. E.money(info.threshold) .. " Cash  (you have " .. E.money(state.profile.cash) .. ")"
     self.fill.Size = UDim2.fromScale(math.clamp(state.profile.cash / info.threshold, 0, 1), 1)
     self.countLabel.Text = "REBIRTHS: " .. E.count(info.count)
     self.confirm.Active, self.confirm.Selectable = self.ready, self.ready
     self.confirm.Text = if self.ready then "REBIRTH NOW" else "NEED " .. E.money(info.threshold)
-    self.confirm.BackgroundColor3 = if self.ready then Theme.Green else Theme.Card
-    self.confirm.TextColor3 = if self.ready then Theme.Ink else Theme.Muted
+    self.confirm.BackgroundColor3 = if self.ready then Theme.Green else Theme.Disabled
+    self.confirm.TextColor3 = if self.ready then Theme.OnColor else Theme.Muted
+    self.confirmOutline.Enabled = self.ready
 end
 function RebirthView:resize(viewport)
     self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
@@ -2586,7 +3304,7 @@ return RebirthView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00055">
+          <Item class="ModuleScript" referent="RBX00058">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -2702,7 +3420,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00056">
+          <Item class="ModuleScript" referent="RBX00059">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -2727,15 +3445,15 @@ function RestaurantMarkers:create(index, station)
 
     local available = E.box(gui, "Available", UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), Theme.Background, 0)
     available.BackgroundTransparency = 1
-    local caption = E.box(available, "Caption", UDim2.fromOffset(40, 0), UDim2.fromOffset(140, 28), Theme.Background, 10)
-    E.stroke(caption, Theme.Gold, 1.5)
-    local label = E.label(caption, "AVAILABLE", 28, Theme.Gold)
-    label.Font, label.TextSize, label.TextXAlignment = Enum.Font.GothamBold, 13, Enum.TextXAlignment.Center
+    local caption = E.box(available, "Caption", UDim2.fromOffset(40, 0), UDim2.fromOffset(140, 28), Theme.Gold, 14)
+    E.stroke(caption, Theme.White, 3)
+    local label = E.label(caption, "AVAILABLE", 28, Theme.Ink)
+    label.Font, label.TextSize, label.TextXAlignment = Theme.Display, 15, Enum.TextXAlignment.Center
 
-    local owner = E.box(gui, "Owner", UDim2.fromOffset(0, 14), UDim2.fromOffset(220, 76), Theme.Background, 16)
-    E.stroke(owner, Theme.Gold, 2)
+    local owner = E.box(gui, "Owner", UDim2.fromOffset(0, 14), UDim2.fromOffset(220, 76), Theme.Cream, 18)
+    E.stroke(owner, Theme.White, 4)
     local portrait = E.box(owner, "Portrait", UDim2.fromOffset(8, 8), UDim2.fromOffset(60, 60), Theme.Card, 30)
-    local fallback = E.label(portrait, "?", 60, Theme.Gold)
+    local fallback = E.label(portrait, "?", 60, Theme.Accent)
     fallback.Name, fallback.TextSize, fallback.TextXAlignment = "Fallback", 30, Enum.TextXAlignment.Center
     local avatar = Instance.new("ImageLabel")
     avatar.Name, avatar.Size, avatar.BackgroundTransparency = "Avatar", UDim2.fromScale(1, 1), 1
@@ -2745,7 +3463,7 @@ function RestaurantMarkers:create(index, station)
     title.Position, title.Size, title.TextSize = UDim2.fromOffset(78, 14), UDim2.fromOffset(132, 18), 10
     local username = E.label(owner, "", 28, Theme.Text)
     username.Name, username.Position, username.Size = "Username", UDim2.fromOffset(78, 33), UDim2.fromOffset(132, 28)
-    username.Font, username.TextScaled, username.TextWrapped = Enum.Font.GothamBold, true, false
+    username.Font, username.TextScaled, username.TextWrapped = Theme.Display, true, false
     local limit = Instance.new("UITextSizeConstraint")
     limit.MinTextSize, limit.MaxTextSize, limit.Parent = 9, 15, username
     return { station = station, gui = gui, available = available, owner = owner,
@@ -2820,7 +3538,7 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00057">
+          <Item class="ModuleScript" referent="RBX00060">
             <Properties>
               <string name="Name">SettingsView</string>
               <ProtectedString name="Source">-- Settings: a gear button beside Return to Counter and a panel of saved ON/OFF toggles.
@@ -2829,53 +3547,37 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Config = require(Shared.config.Settings)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local SettingsView = {}
 SettingsView.__index = SettingsView
-local PanelWidth, PanelHeight, RowHeight = 340, 92 + #Config.Order * 76, 68
--- A code-built gear: four bars under a ring with a dark centre.
-local function gear(parent)
-    for index = 0, 3 do
-        local tooth = E.box(parent, "Tooth" .. index, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(5, 24), Theme.Muted, 1)
-        tooth.AnchorPoint, tooth.Rotation = Vector2.new(0.5, 0.5), index * 45
-    end
-    local ring = E.box(parent, "Ring", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(18, 18), Theme.Muted, 9)
-    ring.AnchorPoint = Vector2.new(0.5, 0.5)
-    local hole = E.box(parent, "Hole", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(8, 8), Theme.Background, 4)
-    hole.AnchorPoint = Vector2.new(0.5, 0.5)
-end
+local PanelWidth, RowHeight = 350, 72
+local PanelHeight = E.PanelTop + 16 + #Config.Order * (RowHeight + 10)
 function SettingsView.new(gui, send)
     local self = setmetatable({ send = send, rows = {}, hasStation = true }, SettingsView)
-    self.button = E.button(gui, "", function() self:toggle() end, Theme.Background)
-    self.button.Name, self.button.Size = "SettingsButton", UDim2.fromOffset(44, 44)
-    E.stroke(self.button, Theme.Muted, 1.5, 0.4)
-    gear(self.button)
+    self.button = E.button(gui, "", function() self:toggle() end, Theme.Cream, 0)
+    self.button.Name, self.button.Size = "SettingsButton", UDim2.fromOffset(48, 48)
+    self.button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 24)
+    E.sticker(self.button, 4, 5)
+    local gear = Icons.make(self.button, "settings", 30, Theme.Ink)
+    gear.AnchorPoint, gear.Position = Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5)
 
-    local panel = E.box(gui, "SettingsPanel", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
-    panel.AnchorPoint, panel.Visible, panel.ZIndex = Vector2.new(0.5, 0.5), false, 5
-    E.stroke(panel, Theme.Muted, 2, 0.2)
-    self.panel = panel
-    self.scale = Instance.new("UIScale")
-    self.scale.Parent = panel
-    local title = E.label(panel, "SETTINGS", 28, Theme.Text)
-    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(240, 28)
-    title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    local caption = E.label(panel, "Saved to your profile", 16, Theme.Muted)
-    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(20, 42), UDim2.fromOffset(240, 16), 11
-    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
-    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
-    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
+    local frame = E.panel(gui, "SettingsPanel", PanelWidth, PanelHeight, Theme.Ink)
+    self.panel, self.scale, self.close = frame.panel, frame.scale, frame.close
+    frame.title.Text, frame.caption.Text = "SETTINGS", "Saved to your profile"
+    self.close.BackgroundColor3 = Theme.Red
+    self.close.Activated:Connect(function() self:setOpen(false) end)
     for index, key in ipairs(Config.Order) do
-        local row = E.box(panel, key, UDim2.fromOffset(16, 70 + (index - 1) * (RowHeight + 8)), UDim2.fromOffset(PanelWidth - 32, RowHeight), Theme.Card, 14)
-        local name = E.label(row, Config.Names[key], 22, Theme.Text)
-        name.Name, name.Position, name.Size = "SettingName", UDim2.fromOffset(14, 8), UDim2.fromOffset(PanelWidth - 140, 22)
-        name.Font, name.TextSize = Enum.Font.GothamBold, 14
-        E.fit(name, 9, 14)
-        local hint = E.label(row, Config.Hints[key], 30, Theme.Muted)
-        hint.Name, hint.Position, hint.Size, hint.TextSize = "Hint", UDim2.fromOffset(14, 32), UDim2.fromOffset(PanelWidth - 140, 30), 10
+        local row = E.card(self.panel, key, UDim2.fromOffset(16, E.PanelTop + 12 + (index - 1) * (RowHeight + 10)), UDim2.fromOffset(PanelWidth - 32, RowHeight))
+        local name = E.label(row, Config.Names[key], 24, Theme.Ink)
+        name.Name, name.Position, name.Size = "SettingName", UDim2.fromOffset(14, 8), UDim2.fromOffset(PanelWidth - 140, 24)
+        name.Font, name.TextSize = Theme.Display, 16
+        E.fit(name, 9, 16)
+        local hint = E.label(row, Config.Hints[key], 32, Theme.Muted)
+        hint.Name, hint.Position, hint.Size, hint.TextSize = "Hint", UDim2.fromOffset(14, 34), UDim2.fromOffset(PanelWidth - 140, 32), 11
         local switch = E.button(row, "", function() self.send("ToggleSetting", key) end, Theme.Green)
-        switch.Name, switch.AnchorPoint, switch.Position, switch.Size = "Toggle", Vector2.new(1, 0.5), UDim2.new(1, -12, 0.5, 0), UDim2.fromOffset(76, 36)
-        switch.TextSize, switch.AutoButtonColor = 13, false
-        E.stroke(switch, Theme.Muted, 1.5, 0.4)
+        switch.Name, switch.AnchorPoint, switch.Position, switch.Size = "Toggle", Vector2.new(1, 0.5), UDim2.new(1, -14, 0.5, -1), UDim2.fromOffset(72, 36)
+        switch.TextSize, switch.AutoButtonColor = 16, false
+        switch:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 18)
         self.rows[key] = switch
     end
     return self
@@ -2887,8 +3589,8 @@ function SettingsView:update(state)
     for key, switch in pairs(self.rows) do
         local on = values[key] ~= false
         switch.Text = if on then "ON" else "OFF"
-        switch.BackgroundColor3 = if on then Theme.Green else Theme.Card
-        switch.TextColor3 = if on then Theme.Ink else Theme.Muted
+        switch.BackgroundColor3 = if on then Theme.Green else Theme.Chip
+        switch.TextColor3 = if on then Theme.OnColor else Theme.Muted
     end
 end
 function SettingsView:resize(viewport)
@@ -2898,63 +3600,53 @@ return SettingsView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00058">
+          <Item class="ModuleScript" referent="RBX00061">
             <Properties>
               <string name="Name">ShopView</string>
-              <ProtectedString name="Source">-- Upgrade shop: an UPGRADES button and a panel with one row per gem upgrade track.
+              <ProtectedString name="Source">-- Upgrade shop: an UPGRADES menu button and a panel with one row per gem upgrade track.
 -- Rows display server-computed levels, values, and costs; the server decides purchases.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Upgrades = require(Shared.config.Upgrades)
 local Theme = require(script.Parent.Theme)
 local E = require(script.Parent.Elements)
+local Icons = require(script.Parent.Icons)
 local ShopView = {}
 ShopView.__index = ShopView
-local PanelWidth, PanelHeight = 360, 322
+ShopView.Accent = Theme.Orange
+local PanelWidth, PanelHeight = 380, 350
+local TrackIcons = { FriesPerClick = "upgrade-fries-per-click", MoneyPerFry = "upgrade-money-per-fry", BagCapacity = "upgrade-bag-capacity" }
 local function describe(row)
     if row.id == "MoneyPerFry" then
-        return string.format("$%.2f → $%.2f per fry", row.value, row.nextValue)
+        return string.format("$%.2f » $%.2f per fry", row.value, row.nextValue)
     elseif row.id == "FriesPerClick" then
-        return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries/click"
+        return E.number(row.value) .. " » " .. E.number(row.nextValue) .. " fries/click"
     end
-    return E.number(row.value) .. " → " .. E.number(row.nextValue) .. " fries per bag"
+    return E.number(row.value) .. " » " .. E.number(row.nextValue) .. " fries per bag"
 end
 function ShopView.new(gui, send)
     local self = setmetatable({ send = send, rows = {}, data = {}, hasStation = false }, ShopView)
-    self.button = E.button(gui, "UPGRADES", function() self:toggle() end, Theme.Background)
-    self.button.Name, self.button.TextSize, self.button.TextColor3 = "UpgradesButton", 13, Theme.Gold
-    self.button.Size = UDim2.fromOffset(218, 44)
-    E.stroke(self.button, Theme.Gold, 1.5, 0.3)
-    E.fit(self.button, 8, 13)
-
-    local panel = E.box(gui, "UpgradeShop", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(PanelWidth, PanelHeight), Theme.Background, 18)
-    panel.AnchorPoint, panel.Visible = Vector2.new(0.5, 0.5), false
-    panel.ZIndex = 5 -- above the HUD buttons when open
-    E.stroke(panel, Theme.Gold, 2, 0.12)
-    self.panel = panel
-    self.scale = Instance.new("UIScale")
-    self.scale.Parent = panel
-    local title = E.label(panel, "UPGRADES", 28, Theme.Text)
-    title.Name, title.Position, title.Size = "Title", UDim2.fromOffset(20, 14), UDim2.fromOffset(250, 28)
-    title.Font, title.TextSize = Enum.Font.GothamBold, 21
-    local caption = E.label(panel, "Spend gems to boost your restaurant", 16, Theme.Muted)
-    caption.Position, caption.Size, caption.TextSize = UDim2.fromOffset(20, 42), UDim2.fromOffset(260, 16), 11
-    self.close = E.button(panel, "X", function() self:setOpen(false) end, Theme.Card)
-    self.close.Name, self.close.Position, self.close.Size = "Close", UDim2.fromOffset(PanelWidth - 52, 14), UDim2.fromOffset(36, 36)
-    self.close.TextColor3, self.close.TextSize = Theme.Text, 14
-
+    self.button = E.menuButton(gui, "UpgradesButton", "UPGRADES", "upgrades", ShopView.Accent, function() self:toggle() end)
+    local frame = E.panel(gui, "UpgradeShop", PanelWidth, PanelHeight)
+    self.panel, self.scale, self.close = frame.panel, frame.scale, frame.close
+    frame.title.Text, frame.caption.Text = "UPGRADES", "Spend gems to boost your restaurant"
+    self.close.Activated:Connect(function() self:setOpen(false) end)
     for index, id in ipairs(Upgrades.Order) do
-        local row = E.box(panel, id, UDim2.fromOffset(16, 70 + (index - 1) * 82), UDim2.fromOffset(PanelWidth - 32, 74), Theme.Card, 14)
-        local name = E.label(row, Upgrades.Tracks[id].Name, 22, Theme.Text)
-        name.Name, name.Position, name.Size = "TrackName", UDim2.fromOffset(14, 8), UDim2.fromOffset(190, 22)
-        name.Font, name.TextSize = Enum.Font.GothamBold, 15
+        local row = E.card(self.panel, id, UDim2.fromOffset(16, E.PanelTop + 12 + (index - 1) * 88), UDim2.fromOffset(PanelWidth - 32, 78))
+        local disc = E.box(row, "IconDisc", UDim2.fromOffset(12, 16), UDim2.fromOffset(46, 46), Theme.Cream, 23)
+        Icons.make(disc, TrackIcons[id], 34, Theme.Ink, UDim2.fromOffset(6, 6))
+        local name = E.label(row, Upgrades.Tracks[id].Name, 24, Theme.Ink)
+        name.Name, name.Position, name.Size = "TrackName", UDim2.fromOffset(68, 8), UDim2.fromOffset(170, 24)
+        name.Font, name.TextSize = Theme.Display, 17
+        E.fit(name, 10, 17)
         local level = E.label(row, "LEVEL 0", 16, Theme.Muted)
-        level.Name, level.Position, level.Size, level.TextSize = "Level", UDim2.fromOffset(14, 30), UDim2.fromOffset(190, 16), 11
-        local value = E.label(row, "", 18, Theme.GoldLight)
-        value.Name, value.Position, value.Size, value.TextSize = "Value", UDim2.fromOffset(14, 48), UDim2.fromOffset(196, 18), 12
-        value.TextWrapped = false
+        level.Name, level.Position, level.Size, level.TextSize = "Level", UDim2.fromOffset(68, 33), UDim2.fromOffset(170, 16), 12
+        local value = E.label(row, "", 18, Theme.Accent)
+        value.Name, value.Position, value.Size, value.TextSize = "Value", UDim2.fromOffset(68, 51), UDim2.fromOffset(176, 18), 13
+        E.fit(value, 8, 13)
         local buy = E.button(row, "", function() self:buy(id) end, Theme.Gold)
-        buy.Name, buy.Position, buy.Size = "Buy", UDim2.fromOffset(PanelWidth - 32 - 112, 15), UDim2.fromOffset(100, 44)
+        buy.Name, buy.Position, buy.Size = "Buy", UDim2.fromOffset(PanelWidth - 32 - 104, 17), UDim2.fromOffset(90, 42)
         buy.AutoButtonColor, buy.TextColor3 = false, Theme.Ink
+        E.fit(buy, 9, 15)
         self.rows[id] = { level = level, value = value, buy = buy }
     end
     return self
@@ -2971,8 +3663,7 @@ function ShopView:buy(id)
 end
 function ShopView:update(state)
     self.hasStation = state.hasStation
-    self.button.Active, self.button.Selectable, self.button.AutoButtonColor = state.hasStation, state.hasStation, state.hasStation
-    self.button.TextColor3 = if state.hasStation then Theme.Gold else Theme.Muted
+    E.setMenuEnabled(self.button, state.hasStation, ShopView.Accent)
     if not state.hasStation then self.panel.Visible = false end
     for _, row in ipairs(state.shop or {}) do
         local view = self.rows[row.id]
@@ -2984,7 +3675,7 @@ function ShopView:update(state)
             view.buy.Text = E.count(row.cost) .. (if row.cost == 1 then " GEM" else " GEMS")
             view.buy.TextSize = if #view.buy.Text &gt; 10 then 11 else 14
             view.buy.Active, view.buy.Selectable = affordable, affordable
-            view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Background
+            view.buy.BackgroundColor3 = if affordable then Theme.Gold else Theme.Disabled
             view.buy.TextColor3 = if affordable then Theme.Ink else Theme.Muted
         end
     end
@@ -2997,23 +3688,45 @@ return ShopView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00059">
+          <Item class="ModuleScript" referent="RBX00062">
             <Properties>
               <string name="Name">Theme</string>
-              <ProtectedString name="Source">return {
-    Background = Color3.fromRGB(35, 43, 42),
-    Card = Color3.fromRGB(49, 61, 55),
-    Text = Color3.fromRGB(255, 248, 228),
-    Muted = Color3.fromRGB(198, 207, 191),
-    Gold = Color3.fromRGB(255, 199, 70),
-    GoldLight = Color3.fromRGB(255, 221, 127),
-    Green = Color3.fromRGB(107, 218, 153),
-    GreenLight = Color3.fromRGB(155, 239, 183),
-    Red = Color3.fromRGB(244, 112, 111),
-    Blue = Color3.fromRGB(92, 175, 243),
-    Gem = Color3.fromRGB(183, 140, 255),
-    Ink = Color3.fromRGB(57, 44, 25),
-    Shadow = Color3.fromRGB(25, 31, 28),
+              <ProtectedString name="Source">-- Diner Sticker palette and type (agreed 17 October 2026). See docs/STYLE_GUIDE.md.
+local function rgb(r, g, b) return Color3.fromRGB(r, g, b) end
+return {
+    -- Surfaces
+    Cream = rgb(255, 244, 220), -- panel and card bodies
+    Card = rgb(255, 255, 255), -- rows and tiles on cream
+    Tan = rgb(229, 201, 163), -- dashed dividers, quiet borders
+    Chip = rgb(247, 227, 191), -- inactive chips and empty tracks
+    White = rgb(255, 255, 255), -- sticker borders
+    -- Ink: text, outlines, and offset shadows
+    Ink = rgb(61, 31, 31),
+    Text = rgb(61, 31, 31),
+    Muted = rgb(138, 90, 60),
+    Accent = rgb(181, 101, 29), -- readable orange-brown for values on white or cream
+    OnColor = rgb(255, 255, 255), -- text on ketchup, grape, blueberry, or teal
+    -- Brand colours
+    Red = rgb(230, 57, 70), -- ketchup: headers, Return to Counter, danger
+    Gold = rgb(255, 183, 3), -- mustard: pack, buy, merge, highlights
+    GoldLight = rgb(255, 209, 102),
+    Green = rgb(42, 157, 143), -- teal: sell, equipped, ON
+    GreenLight = rgb(82, 199, 184),
+    Orange = rgb(247, 127, 0), -- upgrades
+    Gem = rgb(123, 44, 191), -- grape: gems and rebirth
+    GemLight = rgb(196, 161, 255),
+    Blue = rgb(29, 111, 216), -- blueberry: pets
+    Disabled = rgb(214, 196, 170),
+    -- Back-compat names used by older modules
+    Background = rgb(255, 244, 220),
+    Shadow = rgb(61, 31, 31),
+    -- Type: both fonts ship with Roblox
+    Display = Enum.Font.LuckiestGuy, -- titles, numbers, button labels
+    Body = Enum.Font.FredokaOne, -- body text
+    -- Shape
+    Border = 4, -- white sticker border
+    ShadowOffset = 5, -- ink shadow, down and right
+    Radius = 18,
 }
 </ProtectedString>
             </Properties>
@@ -3022,23 +3735,23 @@ return ShopView
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00060">
+  <Item class="StarterGui" referent="RBX00063">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00061">
+  <Item class="Lighting" referent="RBX00064">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00062">
+  <Item class="Players" referent="RBX00065">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00063">
+  <Item class="SoundService" referent="RBX00066">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>
