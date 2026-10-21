@@ -1,4 +1,4 @@
-Compilation passed for 55 Luau files.
+Compilation passed for 60 Luau files.
 PASS fresh profiles start with an empty bag and zero cash
 PASS corrupt nonfinite and future core profiles are rejected
 PASS basic fryer click and sale values do not depend on old progression
@@ -56,6 +56,7 @@ PASS server merges Golden pets bulk deletes auto-deletes and publishes following
 PASS following pets render behind their players respect settings and clean up
 PASS every pet has a code-built model and portraits rebuild only when the pet changes
 PASS settings panel and pet tools show server state and send only allowed requests
+PASS expanding at the kiosk buys the next tier with Cash and dresses the restaurant
 PASS respawn keeps a claimed restaurant and return targets the same plot
 PASS disconnect frees the chosen plot for another player
 PASS gem upgrade costs follow the agreed curves and round to whole gems
@@ -95,4 +96,9 @@ PASS short numbers use K M B T and longer suffixes then scientific notation
 PASS Cash has no practical cap but can never become infinity
 PASS every pet adds all three stats and each machine has six to eight pets
 PASS Starter pets lean towards one stat and rarer pets are stronger
-RESULT: 95 passed, 0 failed
+PASS six restaurant tiers each add one machine with eight pets four times stronger than the last
+PASS expanding costs the next tier's Cash, goes one tier at a time, and stops at the top
+PASS locked machines cannot spin and charge nothing until the restaurant reaches their tier
+PASS rebirth keeps the restaurant tier and tiers are validated and saved
+PASS the world shows every stand, unlocks them by tier, themes the plot, and resets on release
+RESULT: 101 passed, 0 failed

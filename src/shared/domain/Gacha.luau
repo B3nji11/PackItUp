@@ -2,6 +2,7 @@
 local Machines = require(script.Parent.Parent.config.Machines)
 local PetConfig = require(script.Parent.Parent.config.Pets)
 local Pets = require(script.Parent.Pets)
+local Restaurant = require(script.Parent.Restaurant)
 local Gacha = {}
 function Gacha.isMachine(id) return type(id) == "string" and Machines.Machines[id] ~= nil end
 function Gacha.pity(p, id)
@@ -49,6 +50,7 @@ end
 function Gacha.spin(p, id, random)
     local machine = Machines.Machines[id]
     if not machine then return false, "That machine is unavailable." end
+    if not Restaurant.unlocked(p, id) then return false, "Expand your restaurant to unlock this machine." end
     if Pets.full(p) then return false, "Your pet inventory is full. Delete a pet to spin again." end
     if p.cash < machine.Price then return false, "Not enough Cash to spin." end
     local petType, rarity = Gacha.roll(p, id, random)
@@ -71,6 +73,7 @@ function Gacha.snapshot(p, id)
         if #names > 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names, types = types }) end
     end
     return { id = id, name = machine.Name, price = machine.Price, odds = rows, pity = Gacha.pity(p, id),
-        pityEvery = machine.PityEvery, pityRarity = machine.PityRarity }
+        pityEvery = machine.PityEvery, pityRarity = machine.PityRarity, tier = machine.Tier, accent = machine.Accent,
+        unlocked = Restaurant.unlocked(p, id) }
 end
 return Gacha

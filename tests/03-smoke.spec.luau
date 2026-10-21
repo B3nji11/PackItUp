@@ -29,7 +29,7 @@ vectorMeta.__mul = function(a,b) return Vector3.new(a.X*b,a.Y*b,a.Z*b) end
 Vector3.zero = Vector3.new(0,0,0)
 Vector2 = { new = function(x,y) return {X=x,Y=y} end }
 local cfMeta = {}
-CFrame = { new = function(position) return setmetatable({Position=position, yaw=0}, cfMeta) end }
+CFrame = { new = function(position) return setmetatable({Position=position or Vector3.zero, yaw=0}, cfMeta) end }
 function CFrame.Angles(_, yaw, _) return setmetatable({Position=Vector3.zero, yaw=yaw}, cfMeta) end
 function CFrame.lookAt(at, target)
     local d = target - at
@@ -110,6 +110,10 @@ function instanceMethods:FindFirstChildOfClass(class)
     for _, child in ipairs(self._children or {}) do if child.ClassName == class then return child end end
 end
 function instanceMethods:Destroy() self.Parent = nil end
+function instanceMethods:GetChildren() return table.clone(self._children or {}) end
+function instanceMethods:IsA(class)
+    return self.ClassName == class or (class == "BasePart" and (self.ClassName == "Part" or self.ClassName == "SpawnLocation"))
+end
 function instanceMethods:SetAttribute(name, value)
     if not self._attributes then self._attributes = {} end
     self._attributes[name] = value
@@ -619,8 +623,9 @@ test("client has click sell teleport settings and the upgrade rebirth spin and p
         for _, child in ipairs(node._children or {}) do visit(child) end
     end
     -- Click, Sell, Teleport, four menu buttons, Settings, five Close, Confirm, three Buy, Spin,
-    -- two setting toggles, six rarity chips, Merge, and the pet detail bar's Equip and Delete.
-    visit(gui); eq(count, 29)
+    -- two setting toggles, six rarity chips, Merge, the pet detail bar's Equip and Delete, and the
+    -- EXPAND panel's Close and Confirm.
+    visit(gui); eq(count, 31)
     eq(gui.SettingsPanel.Visible, false)
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
     replicated.FriesRemotes.Notice.OnClientEvent:Fire("Core loop ready", true)
@@ -924,16 +929,24 @@ test("server spins charge Cash roll on the server and equip unequip and delete o
     end
     local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
     local s = sync()
-    eq(s.machine.id, "StarterFryer"); eq(s.machine.price, 150); eq(#s.pets.owned, 0); eq(s.pets.slots, 3); eq(s.pets.max, 50)
-    eq(s.spin, nil)
+    eq(s.machines.StarterFryer.price, 150); eq(s.machines.StarterFryer.unlocked, true); eq(s.machines.DeluxeFryer.unlocked, false)
+    eq(#s.machineOrder, 6); eq(s.restaurant.tier, 1); eq(s.restaurant.nextTier.name, "Fry Diner"); eq(s.restaurant.nextTier.price, 5e6)
+    eq(#s.pets.owned, 0); eq(s.pets.slots, 3); eq(s.pets.max, 50)
+    eq(s.spin, nil); eq(s.nearMachine, nil); eq(s.nearExpand, false)
+    -- Spinning needs the player at the machine's stand.
+    act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Walk up to that machine's stand to spin.")
+    s = act("VisitMachine"); eq(s.nearMachine, "StarterFryer"); eq(s.nearStation, false)
     act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Not enough Cash to spin."); eq(#sync().pets.owned, 0)
+    act("Spin", "DeluxeFryer"); eq(Notice.lastArgs[1], "Walk up to that machine's stand to spin.")
+    act("Return")
     for _ = 1, 8 do fill(40); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
     eq(sync().profile.cash, 320)
+    act("VisitMachine")
     -- A second spin inside the cooldown is ignored.
     serverTime += 1; remote.OnServerEvent:Fire(first, "Spin", "StarterFryer"); remote.OnServerEvent:Fire(first, "Spin", "StarterFryer")
     s = State.lastArgs[1]
     eq(s.profile.cash, 170); eq(#s.pets.owned, 1); eq(s.spin.id, "P1"); eq(s.pets.owned[1].name, "Crinkle Fry")
-    eq(s.machine.pity, 1)
+    eq(s.machines.StarterFryer.pity, 1)
     local serial = s.spin.serial
     s = act("Spin", "StarterFryer"); eq(s.profile.cash, 20); eq(s.spin.id, "P2"); assert(s.spin.serial > serial)
     act("Spin", "StarterFryer"); eq(Notice.lastArgs[1], "Not enough Cash to spin.")
@@ -950,7 +963,8 @@ test("server spins charge Cash roll on the server and equip unequip and delete o
     act("Spin"); act("Equip")
     s = sync(); eq(s.profile.cash, 20); eq(#s.pets.owned, 1); eq(s.pets.equipped, 0)
     serverTime += 1; remote.OnServerEvent:Fire(second, "Sync")
-    eq(#State.lastArgs[1].pets.owned, 0); eq(State.lastArgs[1].machine.pity, 0)
+    eq(#State.lastArgs[1].pets.owned, 0); eq(State.lastArgs[1].machines.StarterFryer.pity, 0)
+    act("Return")
 end)
 
 test("machine and pets panels show server data and send only spin equip and delete requests", function()
@@ -961,7 +975,10 @@ test("machine and pets panels show server data and send only spin equip and dele
     local function show() replicated.FriesRemotes.State.OnClientEvent:Fire(state) end
     show()
     gui.PetsButton.Activated:Fire(); eq(petsPanel.Visible, true)
-    gui.SpinButton.Activated:Fire(); eq(machine.Visible, true); eq(petsPanel.Visible, false)
+    -- The SPIN menu button asks the server to walk the player to their best machine.
+    remote.lastServerArgs = nil; gui.SpinButton.Activated:Fire(); eq(remote.lastServerArgs[1], "VisitMachine"); eq(machine.Visible, false)
+    -- Arriving at a stand opens its panel and closes the others.
+    state.nearMachine = "StarterFryer"; show(); eq(machine.Visible, true); eq(petsPanel.Visible, false)
     eq(machine.Title.Text, "STARTER FRYER")
     eq(machine.Caption.Text, "$150 per spin  ·  Epic or better within 48 spins")
     -- Every pet in the machine has a tile with a live portrait and its own chance; chances add up to 100%.
@@ -994,6 +1011,15 @@ test("machine and pets panels show server data and send only spin equip and dele
     state.pets.owned = many; show()
     eq(machine.Spin.Text, "INVENTORY FULL"); eq(machine.Spin.Active, false); eq(machine.Count.Text, "PETS 50 / 50  ·  inventory full")
     state.pets.owned = owned; show()
+    -- A locked machine's stand shows its pets but cannot spin.
+    state.nearMachine = "DeluxeFryer"; show()
+    eq(machine.Title.Text, "DELUXE FRYER"); eq(machine.Spin.Text, "LOCKED"); eq(machine.Spin.Active, false)
+    eq(machine.Caption.Text, "Locked  ·  expand your restaurant to use this machine")
+    assert(machine.PoolArea.Pool:FindFirstChild("NapkinGhost")); eq(machine.PoolArea.Pool:FindFirstChild("CrinkleFry"), nil)
+    eq(machine.Result.Mystery.Visible, true)
+    remote.lastServerArgs = nil; machine.Spin.Activated:Fire(); eq(remote.lastServerArgs, nil)
+    -- Walking away closes the panel.
+    state.nearMachine = nil; show(); eq(machine.Visible, false)
     -- Fractional stats from upgrade percentages display cleanly.
     state.stats.perClick = 3.15; show(); eq(gui.Actions.Click.Title.Text, "+3.15 fries/click")
     eq(loadModule("client/ui/Elements").number(2.1), "2.1"); eq(loadModule("client/ui/Elements").number(20), "20")
@@ -1046,12 +1072,13 @@ test("server merges Golden pets bulk deletes auto-deletes and publishes followin
     local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
     local s = sync(); eq(s.profile.cash, 20); eq(#s.pets.owned, 1); eq(#s.pets.mergeable, 0)
     for _ = 1, 27 do fill(40); serverTime += 1; remote.OnServerEvent:Fire(first, "Sell") end
+    act("VisitMachine")
     for _ = 1, 4 do act("Spin", "StarterFryer") end
     s = sync(); eq(s.profile.cash, 500); eq(#s.pets.owned, 5); eq(s.pets.mergeable[1].type, "CrinkleFry"); eq(s.pets.mergeable[1].count, 5)
     s = act("MergePets", "CrinkleFry")
     eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P7"); eq(s.pets.owned[1].golden, true); eq(s.pets.owned[1].name, "Golden Crinkle Fry")
     eq(s.pets.owned[1].bonuses[1].stat, "FriesPerClick"); eq(s.pets.owned[1].bonuses[1].amount, 8) -- Golden doubles +4
-    s = act("Equip", "P7"); near(s.stats.perClick, 12) -- (2 + 8) x 1.2; eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
+    s = act("Equip", "P7"); near(s.stats.perClick, 12); eq(first:GetAttribute("FollowPets"), "CrinkleFry*") -- (2 + 8) x 1.2
     s = act("ToggleSetting", "PetsFollow"); eq(s.settings.PetsFollow, false); eq(first:GetAttribute("FollowPets"), "")
     s = act("ToggleSetting", "PetsFollow"); eq(s.settings.PetsFollow, true); eq(first:GetAttribute("FollowPets"), "CrinkleFry*")
     s = act("ToggleAutoDelete", "Common"); eq(s.pets.autoDelete.Common, true)
@@ -1062,6 +1089,7 @@ test("server merges Golden pets bulk deletes auto-deletes and publishes followin
     s = act("DeleteRarity", "Common"); eq(#s.pets.owned, 1); eq(s.pets.owned[1].id, "P7")
     act("DeleteRarity", "Common"); eq(Notice.lastArgs[1], "No unequipped Common pets to delete.")
     act("MergePets", "CrinkleFry"); eq(Notice.lastArgs[1], "You need 5 unequipped copies of that pet to merge.")
+    act("Return")
     -- Forged arguments are dropped before dispatch.
     for _, pair in ipairs({ {"MergePets", "Dragon"}, {"DeleteRarity", "Epic"}, {"ToggleAutoDelete", "Legendary"},
         {"ToggleSetting", "Admin"}, {"ToggleSetting", {PetsFollow=false}}, {"DeleteRarity", nil} }) do
@@ -1152,7 +1180,7 @@ test("every pet has a code-built model and portraits rebuild only when the pet c
             assert(math.abs(pieces[1].part.CFrame.Position.Y - 5) < 2)
         end
     end
-    eq(count, 10)
+    eq(count, 48) -- 8 pets in each of the 6 machines
     local holder = Instance.new("Frame")
     local view = PetPortrait.make(holder, "Portrait", UDim2.fromOffset(80, 80))
     eq(view.ClassName, "ViewportFrame"); assert(view.CurrentCamera, "portrait has a camera")
@@ -1211,6 +1239,54 @@ test("settings panel and pet tools show server state and send only allowed reque
     remote.lastServerArgs = nil; petsPanel.AutoCommon.Activated:Fire(); eq(remote.lastServerArgs, nil)
     settings.Close.Activated:Fire()
     replicated.FriesRemotes.State.OnClientEvent:Fire(replicated.FriesRemotes.State.lastArgs[1])
+end)
+
+test("expanding at the kiosk buys the next tier with Cash and dresses the restaurant", function()
+    local State, Notice = replicated.FriesRemotes.State, replicated.FriesRemotes.Notice
+    local world = workspace.FriesRestaurant
+    local station = world.Station1
+    local root = first.Character.HumanoidRootPart
+    local function sync() serverTime += 1; remote.OnServerEvent:Fire(first, "Sync"); return State.lastArgs[1] end
+    local function act(name, argument) serverTime += 1; remote.OnServerEvent:Fire(first, name, argument); return State.lastArgs[1] end
+    local kioskFront = station.ExpandKiosk.Pad.Position + Vector3.new(0, 2.5, 0)
+    act("Return")
+    local s = sync(); eq(s.restaurant.tier, 1); eq(s.nearExpand, false); eq(station:GetAttribute("RestaurantTier"), 1)
+    eq(station.MachineStands.StarterFryer:GetAttribute("Unlocked"), true); eq(station.MachineStands.DeluxeFryer:GetAttribute("Unlocked"), false)
+    eq(station:FindFirstChild("TierDecor"), nil)
+    act("Expand"); eq(Notice.lastArgs[1], "Walk to the EXPAND kiosk in your restaurant.")
+    root.Position = kioskFront
+    s = sync(); eq(s.nearExpand, true); eq(s.nearMachine, nil)
+    act("Expand"); eq(Notice.lastArgs[1], "Not enough Cash to expand."); eq(sync().restaurant.tier, 1)
+    -- Earn the $5M for real at the counter.
+    act("Return")
+    local capacity = sync().stats.capacity
+    local need = math.ceil(capacity / sync().stats.perClick)
+    local cash = sync().profile.cash
+    while cash < 5e6 do
+        for _ = 1, 400 do
+            local packs = 0
+            repeat serverTime += 0.3; remote.OnServerEvent:Fire(first, "Pack"); packs += 1 until packs >= need
+            serverTime += 1; remote.OnServerEvent:Fire(first, "Sell")
+        end
+        cash = sync().profile.cash
+    end
+    root.Position = kioskFront
+    serverTime += 3; remote.OnServerEvent:Fire(first, "Expand")
+    s = State.lastArgs[1]
+    eq(Notice.lastArgs[1], "Welcome to your Fry Diner!"); eq(Notice.lastArgs[2], true)
+    eq(s.restaurant.tier, 2); eq(s.restaurant.name, "Fry Diner"); eq(s.profile.cash, cash - 5e6)
+    eq(s.restaurant.nextTier.name, "Drive-In"); eq(s.machines.DeluxeFryer.unlocked, true); eq(s.machines.DriveInGrill.unlocked, false)
+    -- A second request inside the cooldown is ignored; the tier only rises by one.
+    remote.OnServerEvent:Fire(first, "Expand"); eq(sync().restaurant.tier, 2)
+    -- The world follows the saved tier.
+    eq(station:GetAttribute("RestaurantTier"), 2); assert(station:FindFirstChild("TierDecor"))
+    eq(station.MachineStands.DeluxeFryer:GetAttribute("Unlocked"), true); eq(station.MachineStands.DriveInGrill:GetAttribute("Unlocked"), false)
+    assert(string.find(station.RestaurantPlaque.WallArt.TextLabel.Text, "FRY DINER"), station.RestaurantPlaque.WallArt.TextLabel.Text)
+    -- SPIN visits the best machine, now the Deluxe Fryer.
+    s = act("VisitMachine"); eq(s.nearMachine, "DeluxeFryer")
+    eq(capacity, s.stats.capacity)
+    act("Return")
+    serverTime += 1; remote.OnServerEvent:Fire(second, "Sync"); eq(State.lastArgs[1].restaurant.tier, 1)
 end)
 
 test("respawn keeps a claimed restaurant and return targets the same plot", function()

@@ -7,6 +7,7 @@ local Pets = require(Shared.domain.Pets)
 local PetConfig = require(Shared.config.Pets)
 local Machines = require(Shared.config.Machines)
 local Settings = require(Shared.domain.Settings)
+local Restaurant = require(Shared.domain.Restaurant)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
 function SnapshotService.new(data, stations, network)
@@ -39,6 +40,11 @@ local function followText(p)
     return table.concat(parts, ",")
 end
 SnapshotService.followText = followText
+local function machineRows(p)
+    local rows = {}
+    for _, id in ipairs(Machines.Order) do rows[id] = Gacha.snapshot(p, id) end
+    return rows
+end
 function SnapshotService:send(player, extra)
     local p = self.data:get(player)
     if not p or not player.Parent then return end
@@ -51,7 +57,11 @@ function SnapshotService:send(player, extra)
             capacity = Pricing.capacity(p), saleValue = Pricing.sale(p) },
         shop = Upgrades.snapshot(p),
         rebirth = Rebirth.snapshot(p),
-        machine = Gacha.snapshot(p, Machines.Order[1]),
+        -- Every machine with its locked state; the panel shows the one whose stand the player is at.
+        machines = machineRows(p), machineOrder = Machines.Order,
+        nearMachine = self.stations.nearMachine and self.stations:nearMachine(player) or nil,
+        nearExpand = self.stations.nearExpand and self.stations:nearExpand(player) or false,
+        restaurant = Restaurant.snapshot(p),
         pets = { owned = petRows(p), equipped = #Pets.equipped(p), slots = PetConfig.EquipSlots, max = PetConfig.MaxPets,
             mergeable = Pets.mergeable(p), mergeCount = PetConfig.MergeCount, autoDelete = table.clone(p.autoDelete or {}) },
         settings = Settings.snapshot(p),

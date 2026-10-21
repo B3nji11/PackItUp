@@ -25,6 +25,7 @@
 -- one name or ID, which the server validates: an upgrade track, a machine, a pet ID, a pet
 -- type, a bulk rarity (Common, Uncommon, Rare), or a setting name.
 return table.freeze({ Pack = "none", Sell = "none", Return = "none", Sync = "none", Rebirth = "none",
+    Expand = "none", VisitMachine = "none",
     Upgrade = "upgrade", Spin = "machine", Equip = "pet", Unequip = "pet", DeletePet = "pet",
     MergePets = "petType", DeleteRarity = "bulkRarity", ToggleAutoDelete = "bulkRarity", ToggleSetting = "setting" })
 </ProtectedString>
@@ -79,21 +80,26 @@ return table.freeze({
         <Item class="ModuleScript" referent="RBX00007">
           <Properties>
             <string name="Name">Machines</string>
-            <ProtectedString name="Source">-- Gacha machines are data: a fixed Cash price, rarity odds, a pet pool, and pity.
--- Pets in the same rarity share that rarity's chance equally. New machines are added here.
-local Machines = {
-    StarterFryer = table.freeze({
-        Name = "Starter Fryer",
-        Price = 150,
-        Odds = table.freeze({ Common = 0.60, Uncommon = 0.25, Rare = 0.10, Epic = 0.04, Legendary = 0.01 }),
-        Pool = table.freeze({ "CrinkleFry", "SaltShaker", "PaperCup", "PotatoPup", "KetchupPacket", "MayoJar",
-            "FryerBot", "FryKing" }),
+            <ProtectedString name="Source">-- Gacha machines are data: a fixed Cash price, rarity odds, a pet pool, and pity. Each
+-- machine belongs to a restaurant tier (config/Restaurants) and needs that tier to spin.
+-- Pets in the same rarity share that rarity's chance equally. Prices from tools/simulate.py.
+local Odds = table.freeze({ Common = 0.60, Uncommon = 0.25, Rare = 0.10, Epic = 0.04, Legendary = 0.01 })
+local function machine(name, tier, price, accent, pool)
+    return table.freeze({ Name = name, Tier = tier, Price = price, Odds = Odds, Pool = table.freeze(pool),
         -- The PityEvery-th spin in a row without PityRarity or better is guaranteed PityRarity or better.
-        PityEvery = 50,
-        PityRarity = "Epic",
-    }),
+        PityEvery = 50, PityRarity = "Epic",
+        -- Theme colour name (client Theme) for the panel header and stand.
+        Accent = accent })
+end
+local Machines = {
+    StarterFryer = machine("Starter Fryer", 1, 150, "Green", { "CrinkleFry", "SaltShaker", "PaperCup", "PotatoPup", "KetchupPacket", "MayoJar", "FryerBot", "FryKing" }),
+    DeluxeFryer = machine("Deluxe Fryer", 2, 150000, "Red", { "OnionRing", "PickleChip", "NapkinGhost", "HashBrownHamster", "Milkshake", "CurlyFryCat", "CheeseSlime", "FryPhoenix" }),
+    DriveInGrill = machine("Drive-In Grill", 3, 1500000, "Orange", { "SesameBun", "MustardBottle", "PaperTray", "BurgerBear", "SodaSeal", "HotDogPup", "CarhopBot", "BurgerDragon" }),
+    PierFryer = machine("Pier Fryer", 4, 25000000, "Blue", { "FishStick", "TartarTub", "NewspaperCone", "ChipCrab", "VinegarOwl", "SeagullThief", "BatterOctopus", "FryKraken" }),
+    CosmicFryer = machine("Cosmic Fryer", 5, 200000000, "Gem", { "MoonFry", "StarSalt", "AstroCup", "AlienTot", "CometCola", "SaucerBurger", "RoboChef", "GalaxyFry" }),
+    RoyalFryer = machine("Royal Fryer", 6, 4000000000, "Gold", { "TruffleFry", "PepperKnight", "VelvetBox", "ButlerSpud", "CrownKetchup", "DiamondDip", "FryUnicorn", "FryEmperor" }),
 }
-return table.freeze({ Order = table.freeze({ "StarterFryer" }), Machines = table.freeze(Machines) })
+return table.freeze({ Order = table.freeze({ "StarterFryer", "DeluxeFryer", "DriveInGrill", "PierFryer", "CosmicFryer", "RoyalFryer" }), Machines = table.freeze(Machines) })
 </ProtectedString>
           </Properties>
         </Item>
@@ -115,20 +121,62 @@ local function pet(name, rarity, click, money, bag)
     return table.freeze({ Name = name, Rarity = rarity,
         Stats = table.freeze({ FriesPerClick = click, MoneyPerFry = money, BagCapacity = bag }) })
 end
--- Numbers from tools/simulate.py (agreed 20 October 2026).
+-- Numbers from tools/simulate.py. Every machine's pets are 4x the machine before, slot for slot.
 local Types = {
-    -- Starter Fryer
-    CrinkleFry = pet("Crinkle Fry", "Common", 4, 1.00, 10),
-    SaltShaker = pet("Salt Shaker", "Common", 2, 2.00, 10),
-    PaperCup = pet("Paper Cup", "Common", 2, 1.00, 20),
+    -- Fry Stand (StarterFryer): stats x1 the Starter pet in the same slot
+    CrinkleFry = pet("Crinkle Fry", "Common", 4, 1, 10),
+    SaltShaker = pet("Salt Shaker", "Common", 2, 2, 10),
+    PaperCup = pet("Paper Cup", "Common", 2, 1, 20),
     PotatoPup = pet("Potato Pup", "Uncommon", 6, 1.50, 15),
-    KetchupPacket = pet("Ketchup Packet", "Uncommon", 3, 3.00, 15),
-    MayoJar = pet("Mayo Jar", "Rare", 4, 4.00, 20),
-    FryerBot = pet("Fryer Bot", "Epic", 6, 3.00, 60),
-    FryKing = pet("Fry King", "Legendary", 12, 6.00, 60),
-    -- Deluxe Fryer (restaurant tier 2, not built yet). Kept here so existing saves stay valid.
-    NapkinGhost = pet("Napkin Ghost", "Common", 8, 4.00, 80),
-    CurlyFryCat = pet("Curly Fry Cat", "Rare", 16, 16.00, 80),
+    KetchupPacket = pet("Ketchup Packet", "Uncommon", 3, 3, 15),
+    MayoJar = pet("Mayo Jar", "Rare", 4, 4, 20),
+    FryerBot = pet("Fryer Bot", "Epic", 6, 3, 60),
+    FryKing = pet("Fry King", "Legendary", 12, 6, 60),
+    -- Fry Diner (DeluxeFryer): stats x4 the Starter pet in the same slot
+    OnionRing = pet("Onion Ring", "Common", 16, 4, 40),
+    PickleChip = pet("Pickle Chip", "Common", 8, 8, 40),
+    NapkinGhost = pet("Napkin Ghost", "Common", 8, 4, 80),
+    HashBrownHamster = pet("Hash Brown Hamster", "Uncommon", 24, 6, 60),
+    Milkshake = pet("Milkshake", "Uncommon", 12, 12, 60),
+    CurlyFryCat = pet("Curly Fry Cat", "Rare", 16, 16, 80),
+    CheeseSlime = pet("Cheese Sauce Slime", "Epic", 24, 12, 240),
+    FryPhoenix = pet("Fry Phoenix", "Legendary", 48, 24, 240),
+    -- Drive-In (DriveInGrill): stats x16 the Starter pet in the same slot
+    SesameBun = pet("Sesame Bun", "Common", 64, 16, 160),
+    MustardBottle = pet("Mustard Bottle", "Common", 32, 32, 160),
+    PaperTray = pet("Paper Tray", "Common", 32, 16, 320),
+    BurgerBear = pet("Burger Bear", "Uncommon", 96, 24, 240),
+    SodaSeal = pet("Soda Seal", "Uncommon", 48, 48, 240),
+    HotDogPup = pet("Hot Dog Pup", "Rare", 64, 64, 320),
+    CarhopBot = pet("Carhop Bot", "Epic", 96, 48, 960),
+    BurgerDragon = pet("Burger Dragon", "Legendary", 192, 96, 960),
+    -- Fish &amp; Chips Pier (PierFryer): stats x64 the Starter pet in the same slot
+    FishStick = pet("Fish Stick", "Common", 256, 64, 640),
+    TartarTub = pet("Tartar Tub", "Common", 128, 128, 640),
+    NewspaperCone = pet("Newspaper Cone", "Common", 128, 64, 1280),
+    ChipCrab = pet("Chip Crab", "Uncommon", 384, 96, 960),
+    VinegarOwl = pet("Vinegar Owl", "Uncommon", 192, 192, 960),
+    SeagullThief = pet("Seagull Thief", "Rare", 256, 256, 1280),
+    BatterOctopus = pet("Battered Octopus", "Epic", 384, 192, 3840),
+    FryKraken = pet("Fry Kraken", "Legendary", 768, 384, 3840),
+    -- Cosmic Diner (CosmicFryer): stats x256 the Starter pet in the same slot
+    MoonFry = pet("Moon Fry", "Common", 1024, 256, 2560),
+    StarSalt = pet("Star Salt", "Common", 512, 512, 2560),
+    AstroCup = pet("Astro Cup", "Common", 512, 256, 5120),
+    AlienTot = pet("Alien Tot", "Uncommon", 1536, 384, 3840),
+    CometCola = pet("Comet Cola", "Uncommon", 768, 768, 3840),
+    SaucerBurger = pet("Saucer Burger", "Rare", 1024, 1024, 5120),
+    RoboChef = pet("Robo Chef", "Epic", 1536, 768, 15360),
+    GalaxyFry = pet("Galaxy Fry Lord", "Legendary", 3072, 1536, 15360),
+    -- Fry Palace (RoyalFryer): stats x1024 the Starter pet in the same slot
+    TruffleFry = pet("Truffle Fry", "Common", 4096, 1024, 10240),
+    PepperKnight = pet("Pepper Knight", "Common", 2048, 2048, 10240),
+    VelvetBox = pet("Velvet Box", "Common", 2048, 1024, 20480),
+    ButlerSpud = pet("Butler Spud", "Uncommon", 6144, 1536, 15360),
+    CrownKetchup = pet("Crown Ketchup", "Uncommon", 3072, 3072, 15360),
+    DiamondDip = pet("Diamond Dip", "Rare", 4096, 4096, 20480),
+    FryUnicorn = pet("Fry Unicorn", "Epic", 6144, 3072, 61440),
+    FryEmperor = pet("Fry Emperor", "Legendary", 12288, 6144, 61440),
 }
 return table.freeze({
     RarityOrder = table.freeze({ "Common", "Uncommon", "Rare", "Epic", "Legendary" }),
@@ -162,11 +210,44 @@ return table.freeze({
         </Item>
         <Item class="ModuleScript" referent="RBX00010">
           <Properties>
+            <string name="Name">Restaurants</string>
+            <ProtectedString name="Source">-- Restaurant tiers (owner, 20 October 2026). Each tier is bought with Cash at the EXPAND kiosk,
+-- keeps every earlier machine, adds one gacha machine, and dresses the restaurant in its theme.
+-- Tiers are permanent and survive rebirth. Prices from tools/simulate.py (--calibrate).
+local function rgb(r, g, b) return { r, g, b } end
+local function tier(id, name, price, machine, tagline, theme)
+    return table.freeze({ Id = id, Name = name, Price = price, Machine = machine, Tagline = tagline,
+        Theme = table.freeze(theme) })
+end
+-- Theme colours (RGB lists, so this module needs no engine types): Main for the roof, fascia,
+-- and stand body; Trim for edges and stripes; Glow for neon; Floor for the restaurant floor.
+local Tiers = {
+    tier("FryStand", "Fry Stand", 0, "StarterFryer", "Where every fry empire starts.",
+        { Main = rgb(245, 112, 113), Trim = rgb(255, 247, 226), Glow = rgb(255, 214, 102), Floor = rgb(255, 247, 226) }),
+    tier("FryDiner", "Fry Diner", 5e6, "DeluxeFryer", "Chrome, neon, and milkshakes.",
+        { Main = rgb(230, 57, 70), Trim = rgb(214, 226, 233), Glow = rgb(255, 92, 168), Floor = rgb(250, 250, 250) }),
+    tier("DriveIn", "Drive-In", 30e6, "DriveInGrill", "Burgers served right to your car.",
+        { Main = rgb(42, 157, 143), Trim = rgb(247, 127, 0), Glow = rgb(255, 183, 3), Floor = rgb(255, 236, 200) }),
+    tier("FishPier", "Fish &amp; Chips Pier", 750e6, "PierFryer", "Salty sea air and golden chips.",
+        { Main = rgb(29, 53, 87), Trim = rgb(255, 255, 255), Glow = rgb(72, 202, 228), Floor = rgb(196, 150, 104) }),
+    tier("CosmicDiner", "Cosmic Diner", 10e9, "CosmicFryer", "Fries that are out of this world.",
+        { Main = rgb(60, 26, 110), Trim = rgb(123, 44, 191), Glow = rgb(76, 201, 240), Floor = rgb(40, 34, 70) }),
+    tier("FryPalace", "Fry Palace", 350e9, "RoyalFryer", "Fit for the Fry Emperor.",
+        { Main = rgb(90, 24, 154), Trim = rgb(255, 183, 3), Glow = rgb(255, 230, 140), Floor = rgb(244, 238, 228) }),
+}
+return table.freeze({ Tiers = table.freeze(Tiers), Max = #Tiers })
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00011">
+          <Properties>
             <string name="Name">Runtime</string>
             <ProtectedString name="Source">return table.freeze({
     StationCount = 6,
     StationDistance = 16,
     ClaimDistance = 10,
+    -- How close to a gacha stand pad or the EXPAND kiosk a player must be to use it.
+    StandDistance = 6,
     SnapshotInterval = 0.2,
     StudioUseDataStore = false,
     LiveStoreName = "FriesProfiles_v1",
@@ -179,7 +260,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00011">
+        <Item class="ModuleScript" referent="RBX00012">
           <Properties>
             <string name="Name">Settings</string>
             <ProtectedString name="Source">-- Player settings, saved per profile. Defaults apply when a setting has never been changed.
@@ -195,7 +276,7 @@ return table.freeze({
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00012">
+        <Item class="ModuleScript" referent="RBX00013">
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade tracks, in shop order. Cost in gems = round(BaseCost x Growth ^ level).
@@ -216,17 +297,18 @@ return table.freeze({
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00013">
+      <Item class="Folder" referent="RBX00014">
         <Properties>
           <string name="Name">domain</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00014">
+        <Item class="ModuleScript" referent="RBX00015">
           <Properties>
             <string name="Name">Gacha</string>
             <ProtectedString name="Source">-- Gacha spins. Pure rules: the server injects `random` (returns 0 &lt;= x &lt; 1).
 local Machines = require(script.Parent.Parent.config.Machines)
 local PetConfig = require(script.Parent.Parent.config.Pets)
 local Pets = require(script.Parent.Pets)
+local Restaurant = require(script.Parent.Restaurant)
 local Gacha = {}
 function Gacha.isMachine(id) return type(id) == "string" and Machines.Machines[id] ~= nil end
 function Gacha.pity(p, id)
@@ -274,6 +356,7 @@ end
 function Gacha.spin(p, id, random)
     local machine = Machines.Machines[id]
     if not machine then return false, "That machine is unavailable." end
+    if not Restaurant.unlocked(p, id) then return false, "Expand your restaurant to unlock this machine." end
     if Pets.full(p) then return false, "Your pet inventory is full. Delete a pet to spin again." end
     if p.cash &lt; machine.Price then return false, "Not enough Cash to spin." end
     local petType, rarity = Gacha.roll(p, id, random)
@@ -296,13 +379,14 @@ function Gacha.snapshot(p, id)
         if #names &gt; 0 then table.insert(rows, { rarity = rarity, chance = machine.Odds[rarity] or 0, pets = names, types = types }) end
     end
     return { id = id, name = machine.Name, price = machine.Price, odds = rows, pity = Gacha.pity(p, id),
-        pityEvery = machine.PityEvery, pityRarity = machine.PityRarity }
+        pityEvery = machine.PityEvery, pityRarity = machine.PityRarity, tier = machine.Tier, accent = machine.Accent,
+        unlocked = Restaurant.unlocked(p, id) }
 end
 return Gacha
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00015">
+        <Item class="ModuleScript" referent="RBX00016">
           <Properties>
             <string name="Name">Packing</string>
             <ProtectedString name="Source">local Pricing = require(script.Parent.Pricing)
@@ -328,7 +412,7 @@ return Packing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00016">
+        <Item class="ModuleScript" referent="RBX00017">
           <Properties>
             <string name="Name">Pets</string>
             <ProtectedString name="Source">-- Owned pets, equipping, deleting, and equipped stat bonuses. Pure rules.
@@ -455,7 +539,7 @@ return Pets
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00017">
+        <Item class="ModuleScript" referent="RBX00018">
           <Properties>
             <string name="Name">Pricing</string>
             <ProtectedString name="Source">-- Effective stats: (base + equipped pets' flat stats) x (1 + upgrade percent). Old prototype
@@ -490,7 +574,7 @@ return Pricing
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00018">
+        <Item class="ModuleScript" referent="RBX00019">
           <Properties>
             <string name="Name">Profile</string>
             <ProtectedString name="Source">local Economy = require(script.Parent.Parent.config.Economy)
@@ -498,12 +582,14 @@ local Upgrades = require(script.Parent.Parent.config.Upgrades)
 local PetConfig = require(script.Parent.Parent.config.Pets)
 local Machines = require(script.Parent.Parent.config.Machines)
 local SettingsConfig = require(script.Parent.Parent.config.Settings)
+local Restaurants = require(script.Parent.Parent.config.Restaurants)
 local Pricing = require(script.Parent.Pricing)
 local Profile = {}
 function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
     return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(),
-        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {}, settings = {}, autoDelete = {} }
+        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {}, settings = {}, autoDelete = {},
+        restaurantTier = 1 }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value &gt;= low and value &lt;= high
@@ -559,7 +645,7 @@ local function validPets(p)
     return true
 end
 -- Version 1 core fields, plus optional upgradeLevels, gems, rebirths, pets, equippedPets,
--- nextPetId, pity, settings, and autoDelete (missing means none or defaults). Extra fields from the earlier prototype,
+-- nextPetId, pity, settings, autoDelete, and restaurantTier (missing means none, defaults, or tier 1). Extra fields from the earlier prototype,
 -- such as `upgrades`, stay in storage but are never used or sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end
@@ -577,6 +663,7 @@ function Profile.validate(p)
             end
         end
     end
+    if p.restaurantTier ~= nil and not numberIn(p.restaurantTier, 1, Restaurants.Max, true) then return false end
     if not validPets(p) then return false end
     -- Capacity depends on balance data that may change between releases, so a bag only
     -- needs a sane size here; normalize() trims it to the current capacity on load.
@@ -602,7 +689,7 @@ return Profile
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00019">
+        <Item class="ModuleScript" referent="RBX00020">
           <Properties>
             <string name="Name">Rebirth</string>
             <ProtectedString name="Source">-- Rebirth: convert Cash into gems at a rising threshold. Pure rules: no Instances,
@@ -635,7 +722,58 @@ return Rebirth
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00020">
+        <Item class="ModuleScript" referent="RBX00021">
+          <Properties>
+            <string name="Name">Restaurant</string>
+            <ProtectedString name="Source">-- Restaurant tiers: which machines a player has, and buying the next tier with Cash. Pure rules.
+local Config = require(script.Parent.Parent.config.Restaurants)
+local Machines = require(script.Parent.Parent.config.Machines)
+local Restaurant = {}
+-- Saved in `restaurantTier`; missing (older saves) means tier 1.
+function Restaurant.tier(p)
+    local tier = type(p) == "table" and p.restaurantTier
+    return if type(tier) == "number" and tier &gt;= 1 and tier &lt;= Config.Max and tier % 1 == 0 then tier else 1
+end
+function Restaurant.info(tier) return Config.Tiers[tier] end
+function Restaurant.nextTier(p)
+    local tier = Restaurant.tier(p)
+    return if tier &lt; Config.Max then Config.Tiers[tier + 1] else nil
+end
+-- A machine can be used once the restaurant has reached that machine's tier.
+function Restaurant.unlocked(p, machineId)
+    local machine = Machines.Machines[machineId]
+    return machine ~= nil and machine.Tier &lt;= Restaurant.tier(p)
+end
+-- The best machine the player has (the one the SPIN button visits).
+function Restaurant.bestMachine(p) return Config.Tiers[Restaurant.tier(p)].Machine end
+-- Pays the next tier's price and raises the tier in one non-yielding step. Tiers are never lost.
+function Restaurant.expand(p)
+    local nextTier = Restaurant.nextTier(p)
+    if not nextTier then return false, "Your restaurant is fully upgraded." end
+    if p.cash &lt; nextTier.Price then return false, "Not enough Cash to expand." end
+    p.cash -= nextTier.Price
+    p.restaurantTier = Restaurant.tier(p) + 1
+    return true, nextTier
+end
+-- Display data for the client: current tier and what the next one costs and adds.
+function Restaurant.snapshot(p)
+    local tier = Restaurant.tier(p)
+    local nextTier = Restaurant.nextTier(p)
+    local row = { tier = tier, max = Config.Max, name = Config.Tiers[tier].Name, id = Config.Tiers[tier].Id }
+    if nextTier then
+        local machine = Machines.Machines[nextTier.Machine]
+        row.nextTier = { tier = tier + 1, id = nextTier.Id, name = nextTier.Name, price = nextTier.Price,
+            tagline = nextTier.Tagline, machine = nextTier.Machine, machineName = machine.Name,
+            spinPrice = machine.Price, legendary = machine.Pool[#machine.Pool],
+            affordable = (p.cash or 0) &gt;= nextTier.Price }
+    end
+    return row
+end
+return Restaurant
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00022">
           <Properties>
             <string name="Name">Settings</string>
             <ProtectedString name="Source">-- Saved player settings. Pure rules.
@@ -662,7 +800,7 @@ return Settings
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00021">
+        <Item class="ModuleScript" referent="RBX00023">
           <Properties>
             <string name="Name">Upgrades</string>
             <ProtectedString name="Source">-- Gem upgrade purchases. Pure rules: no Instances, messages, or DataStores.
@@ -712,11 +850,11 @@ return Upgrades
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00022">
+      <Item class="Folder" referent="RBX00024">
         <Properties>
           <string name="Name">util</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00023">
+        <Item class="ModuleScript" referent="RBX00025">
           <Properties>
             <string name="Name">Copy</string>
             <ProtectedString name="Source">local function copy(value)
@@ -729,7 +867,7 @@ return copy
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00024">
+        <Item class="ModuleScript" referent="RBX00026">
           <Properties>
             <string name="Name">Format</string>
             <ProtectedString name="Source">-- Short number text for Cash, prices, and stats: 950, 1.25K, 12.5K, 125K, 1.25M, ... 1.2Dc, then
@@ -775,7 +913,7 @@ return Format
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00025">
+        <Item class="ModuleScript" referent="RBX00027">
           <Properties>
             <string name="Name">RateLimiter</string>
             <ProtectedString name="Source">-- Token bucket used only with server-owned timestamps and server-owned limits.
@@ -801,15 +939,15 @@ return RateLimiter
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX00026">
+  <Item class="ServerScriptService" referent="RBX00028">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="RBX00027">
+    <Item class="Folder" referent="RBX00029">
       <Properties>
         <string name="Name">FriesServer</string>
       </Properties>
-      <Item class="Script" referent="RBX00028">
+      <Item class="Script" referent="RBX00030">
         <Properties>
           <string name="Name">Main</string>
           <ProtectedString name="Source">-- Composition root: connects independently testable game rules to Roblox services.
@@ -924,7 +1062,7 @@ print("[Fries] Restaurant ready. Studio memory mode:", data.volatile)
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00029">
+      <Item class="ModuleScript" referent="RBX00031">
         <Properties>
           <string name="Name">Network</string>
           <ProtectedString name="Source">-- Transport only. All permissions and game rules are handled by ActionService.
@@ -950,11 +1088,11 @@ return Network
 </ProtectedString>
         </Properties>
       </Item>
-      <Item class="Folder" referent="RBX00030">
+      <Item class="Folder" referent="RBX00032">
         <Properties>
           <string name="Name">services</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00031">
+        <Item class="ModuleScript" referent="RBX00033">
           <Properties>
             <string name="Name">ActionService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -969,6 +1107,7 @@ local Gacha = require(Shared.domain.Gacha)
 local Pets = require(Shared.domain.Pets)
 local Profile = require(Shared.domain.Profile)
 local Settings = require(Shared.domain.Settings)
+local Restaurant = require(Shared.domain.Restaurant)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -1008,18 +1147,36 @@ function ActionService:handle(player, action, argument)
         self.network:notice(player, "Return to your counter to work.", false)
         return
     end
+    -- Machines spin only at their own stand; the restaurant expands only at its kiosk.
+    if action == "Spin" and self.stations:nearMachine(player) ~= argument then
+        self.network:notice(player, "Walk up to that machine's stand to spin.", false)
+        return
+    end
+    if action == "Expand" and not self.stations:nearExpand(player) then
+        self.network:notice(player, "Walk to the EXPAND kiosk in your restaurant.", false)
+        return
+    end
     if action == "Pack" then
         if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
     local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" or action == "Spin" then 0.25
-        elseif action == "Rebirth" then 2 elseif action == "Return" or action == "Sync" then 1
+        elseif action == "Rebirth" or action == "Expand" then 2
+        elseif action == "Return" or action == "Sync" or action == "VisitMachine" then 1
         elseif action == "DeleteRarity" or action == "MergePets" then 0.5 else 0.15
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now &lt; (cooldowns[action] or 0) then return end
     cooldowns[action] = now + delay
     if action == "Return" then self.stations:teleport(player)
+    elseif action == "VisitMachine" then self.stations:visitMachine(player, Restaurant.bestMachine(p))
+    elseif action == "Expand" then
+        -- Price and tier change together in one non-yielding step; the world follows.
+        local ok, result = Restaurant.expand(p)
+        if ok then
+            self.stations:render(player, p)
+            self.network:notice(player, "Welcome to your " .. result.Name .. "!", true)
+        else self.network:notice(player, result, false) end
     elseif action == "Sell" then
         local ok, result = Packing.sell(p)
         if not ok then self.network:notice(player, result, false) end
@@ -1059,7 +1216,7 @@ return ActionService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00032">
+        <Item class="ModuleScript" referent="RBX00034">
           <Properties>
             <string name="Name">DataService</string>
             <ProtectedString name="Source">local DataStoreService = game:GetService("DataStoreService")
@@ -1163,7 +1320,7 @@ return DataService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00033">
+        <Item class="ModuleScript" referent="RBX00035">
           <Properties>
             <string name="Name">SnapshotService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
@@ -1175,6 +1332,7 @@ local Pets = require(Shared.domain.Pets)
 local PetConfig = require(Shared.config.Pets)
 local Machines = require(Shared.config.Machines)
 local Settings = require(Shared.domain.Settings)
+local Restaurant = require(Shared.domain.Restaurant)
 local SnapshotService = {}
 SnapshotService.__index = SnapshotService
 function SnapshotService.new(data, stations, network)
@@ -1207,6 +1365,11 @@ local function followText(p)
     return table.concat(parts, ",")
 end
 SnapshotService.followText = followText
+local function machineRows(p)
+    local rows = {}
+    for _, id in ipairs(Machines.Order) do rows[id] = Gacha.snapshot(p, id) end
+    return rows
+end
 function SnapshotService:send(player, extra)
     local p = self.data:get(player)
     if not p or not player.Parent then return end
@@ -1219,7 +1382,11 @@ function SnapshotService:send(player, extra)
             capacity = Pricing.capacity(p), saleValue = Pricing.sale(p) },
         shop = Upgrades.snapshot(p),
         rebirth = Rebirth.snapshot(p),
-        machine = Gacha.snapshot(p, Machines.Order[1]),
+        -- Every machine with its locked state; the panel shows the one whose stand the player is at.
+        machines = machineRows(p), machineOrder = Machines.Order,
+        nearMachine = self.stations.nearMachine and self.stations:nearMachine(player) or nil,
+        nearExpand = self.stations.nearExpand and self.stations:nearExpand(player) or false,
+        restaurant = Restaurant.snapshot(p),
         pets = { owned = petRows(p), equipped = #Pets.equipped(p), slots = PetConfig.EquipSlots, max = PetConfig.MaxPets,
             mergeable = Pets.mergeable(p), mergeCount = PetConfig.MergeCount, autoDelete = table.clone(p.autoDelete or {}) },
         settings = Settings.snapshot(p),
@@ -1230,12 +1397,14 @@ return SnapshotService
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00034">
+        <Item class="ModuleScript" referent="RBX00036">
           <Properties>
             <string name="Name">StationService</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Pricing = require(Shared.domain.Pricing)
 local Runtime = require(Shared.config.Runtime)
+local Restaurant = require(Shared.domain.Restaurant)
+local TierBuilder = require(script.Parent.Parent.world.TierBuilder)
 local StationService = {}
 StationService.__index = StationService
 function StationService.new(stations) return setmetatable({ stations = stations, assigned = {} }, StationService) end
@@ -1259,6 +1428,7 @@ function StationService:claim(player, index)
     station.owner, self.assigned[player] = player, station
     station.prompt.Enabled = false
     station.sign.Text = player.DisplayName .. "'s\nRESTAURANT"
+    station.shownTier = nil -- the next render dresses the plot in the owner's tier
     station.model:SetAttribute("OwnerUsername", player.Name)
     station.model:SetAttribute("OwnerUserId", player.UserId)
     self:teleport(player)
@@ -1274,6 +1444,7 @@ function StationService:release(player)
         station.model:SetAttribute("OwnerUserId", 0)
         station.prompt.Enabled = true
         for _, fry in ipairs(station.fries) do fry.Transparency = 1 end
+        if station.stands then TierBuilder.apply(station, 1) end
     end
     self.assigned[player] = nil
 end
@@ -1289,9 +1460,39 @@ function StationService:near(player)
     local station, root = self.assigned[player], livingRoot(player)
     return station ~= nil and root ~= nil and (root.Position - station.origin).Magnitude &lt;= Runtime.StationDistance
 end
+-- The id of the gacha stand whose pad the player is standing at (locked stands count, so the
+-- panel can show what it needs), or nil.
+function StationService:nearMachine(player)
+    local station, root = self.assigned[player], livingRoot(player)
+    if not station or not root or not station.stands then return nil end
+    local best, bestDistance = nil, Runtime.StandDistance
+    for _, stand in ipairs(station.standOrder) do
+        local distance = (root.Position - stand.front).Magnitude
+        if distance &lt;= bestDistance then best, bestDistance = stand.id, distance end
+    end
+    return best
+end
+function StationService:nearExpand(player)
+    local station, root = self.assigned[player], livingRoot(player)
+    return station ~= nil and root ~= nil and station.kiosk ~= nil
+        and (root.Position - station.kiosk.front).Magnitude &lt;= Runtime.StandDistance
+end
+-- Moves the player onto a stand's pad, facing the stand (the SPIN menu button).
+function StationService:visitMachine(player, machineId)
+    local station, character = self.assigned[player], player.Character
+    local stand = station and station.stands and station.stands[machineId]
+    if stand and character and character:FindFirstChild("HumanoidRootPart") then
+        character:PivotTo(CFrame.lookAt(stand.front, stand.facing))
+        return true
+    end
+    return false
+end
 function StationService:render(player, p)
     local station = self.assigned[player]
     if not station then return end
+    -- Restaurant tier visuals follow the owner's saved tier (claiming, expanding).
+    local tier = Restaurant.tier(p)
+    if station.stands and station.shownTier ~= tier then TierBuilder.apply(station, tier, player.DisplayName) end
     local visible = math.floor(p.bag.fries / Pricing.capacity(p) * #station.fries)
     for n, fry in ipairs(station.fries) do fry.Transparency = if n &lt;= visible then 0 else 1 end
 end
@@ -1300,11 +1501,11 @@ return StationService
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00035">
+      <Item class="Folder" referent="RBX00037">
         <Properties>
           <string name="Name">storage</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00036">
+        <Item class="ModuleScript" referent="RBX00038">
           <Properties>
             <string name="Name">ProfileStore</string>
             <ProtectedString name="Source">-- Persistence transaction rules. No Roblox globals; the store/clock are injected.
@@ -1389,11 +1590,11 @@ return ProfileStore
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="RBX00037">
+      <Item class="Folder" referent="RBX00039">
         <Properties>
           <string name="Name">world</string>
         </Properties>
-        <Item class="ModuleScript" referent="RBX00038">
+        <Item class="ModuleScript" referent="RBX00040">
           <Properties>
             <string name="Name">Primitives</string>
             <ProtectedString name="Source">local Primitives = {}
@@ -1430,12 +1631,13 @@ return Primitives
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00039">
+        <Item class="ModuleScript" referent="RBX00041">
           <Properties>
             <string name="Name">StationBuilder</string>
             <ProtectedString name="Source">local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local Runtime = require(Shared.config.Runtime)
 local P = require(script.Parent.Primitives)
+local TierBuilder = require(script.Parent.TierBuilder)
 return function(parent, index, origin, yaw)
     local model = Instance.new("Model")
     model.Name, model.Parent = "Station" .. index, parent
@@ -1529,13 +1731,259 @@ return function(parent, index, origin, yaw)
             part("DiningBench", Vector3.new(6, 1.6, 1.5), Vector3.new(x, 1.3, z), accent)
         end
     end
-    return { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
-        machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt }
+    local station = { model = model, index = index, origin = origin, spawn = transform * CFrame.new(Vector3.new(0, 4, 4)),
+        machine = machine, bag = bag, fries = fries, sign = sign, claimPart = claimPart, prompt = prompt,
+        transform = transform, accent = accent }
+    -- Gacha stands, the EXPAND kiosk, and tier themes (shown at tier 1 until claimed).
+    TierBuilder.build(station)
+    return station
 end
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX00040">
+        <Item class="ModuleScript" referent="RBX00042">
+          <Properties>
+            <string name="Name">TierBuilder</string>
+            <ProtectedString name="Source">-- Restaurant tiers in the world: one gacha stand per machine along the front of the plot, the
+-- EXPAND kiosk inside, and themed decoration for tiers 2 and up. Stands for tiers the owner has
+-- not reached yet stay visible but grey and LOCKED, so everyone can see what comes next.
+-- Everything here is cosmetic and anchored; the server checks distances to the stand and kiosk
+-- fronts before it spins or expands.
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local Restaurants = require(Shared.config.Restaurants)
+local Machines = require(Shared.config.Machines)
+local Format = require(Shared.util.Format)
+local P = require(script.Parent.Primitives)
+local TierBuilder = {}
+local function color(list) return Color3.fromRGB(list[1], list[2], list[3]) end
+local Upright = CFrame.Angles(0, 0, math.pi / 2) -- Cylinders run along X; this stands them on Y
+local Locked, Ink, White = Color3.fromRGB(150, 140, 130), Color3.fromRGB(61, 31, 31), Color3.fromRGB(255, 255, 255)
+local CeilingBottom = 18.5
+-- Stand slots in plot space (the restaurant faces +Z): nearest the entrance path first.
+local StandX = { -9, 9, -15, 15, -21, 21 }
+local StandZ, PadZ = 21, 24
+local KioskOffset, KioskPad = Vector3.new(-15, 0, 9), Vector3.new(-15, 0.62, 11.6)
+TierBuilder.StandX = StandX
+
+-- Adds an anchored, non-colliding part at a plot-space offset. `options`: shape, material,
+-- transparency, rotation (CFrame), collide.
+local function adder(station, parent)
+    return function(name, size, offset, tint, options)
+        options = options or {}
+        local part = P.part(parent, name, size, station.transform:PointToWorldSpace(offset), tint, options.material)
+        part.CFrame = station.transform * CFrame.new(offset) * (options.rotation or CFrame.new())
+        if options.shape == "Ball" then part.Shape = Enum.PartType.Ball
+        elseif options.shape == "Cylinder" then part.Shape = Enum.PartType.Cylinder end
+        part.Transparency = options.transparency or 0
+        part.CanCollide = options.collide == true
+        part.CanTouch, part.CanQuery, part.CastShadow = false, false, options.shadow == true
+        return part
+    end
+end
+local function sign(part, text, tint)
+    local label = P.surfaceLabel(part, text, Enum.NormalId.Back, tint)
+    label.Font = Enum.Font.LuckiestGuy
+    return label
+end
+
+-- One gacha stand: plinth, body, a glass dome of capsules, a sign, and a glowing pad in front.
+local function buildStand(station, folder, machineId, slot)
+    local machine = Machines.Machines[machineId]
+    local theme = Restaurants.Tiers[machine.Tier].Theme
+    local model = Instance.new("Model")
+    model.Name = machineId
+    model:SetAttribute("Machine", machineId)
+    model.Parent = folder
+    local add = adder(station, model)
+    local x = StandX[slot]
+    local stand = { id = machineId, model = model, theme = theme, capsules = {} }
+    add("Plinth", Vector3.new(5, 0.6, 4), Vector3.new(x, 0.55, StandZ), color(theme.Trim), { collide = true })
+    stand.body = add("Body", Vector3.new(4.2, 4.4, 3), Vector3.new(x, 3.05, StandZ), color(theme.Main), { collide = true, shadow = true })
+    add("Chute", Vector3.new(2.6, 1.4, 0.1), Vector3.new(x, 2.2, StandZ + 1.55), Ink)
+    stand.dome = add("Dome", Vector3.new(3.6, 3.6, 3.6), Vector3.new(x, 6.6, StandZ), Color3.fromRGB(200, 235, 255),
+        { shape = "Ball", material = Enum.Material.Glass, transparency = 0.45 })
+    for n, tint in ipairs({ { 42, 157, 143 }, { 123, 44, 191 }, { 255, 183, 3 } }) do
+        table.insert(stand.capsules, add("Capsule", Vector3.new(0.9, 0.9, 0.9), Vector3.new(x - 1.4 + n * 0.7, 6.1, StandZ), color(tint), { shape = "Ball" }))
+    end
+    stand.cap = add("Cap", Vector3.new(0.6, 1.6, 1.6), Vector3.new(x, 8.6, StandZ), color(theme.Main), { shape = "Cylinder", rotation = Upright })
+    stand.board = add("Sign", Vector3.new(5.4, 1.8, 0.3), Vector3.new(x, 10.2, StandZ), color(theme.Main))
+    stand.label = sign(stand.board, machine.Name, color(theme.Trim))
+    stand.pad = add("Pad", Vector3.new(0.12, 3.4, 3.4), Vector3.new(x, 0.32, PadZ), color(theme.Glow),
+        { shape = "Cylinder", material = Enum.Material.Neon, rotation = Upright })
+    stand.front = station.transform:PointToWorldSpace(Vector3.new(x, 3, PadZ))
+    stand.facing = station.transform:PointToWorldSpace(Vector3.new(x, 3, StandZ))
+    return stand
+end
+
+-- Shows a stand as usable or LOCKED for the given tier.
+local function showStand(stand, tier)
+    local machine = Machines.Machines[stand.id]
+    local open = machine.Tier &lt;= tier
+    stand.model:SetAttribute("Unlocked", open)
+    stand.body.Color = if open then color(stand.theme.Main) else Locked
+    stand.cap.Color = stand.body.Color
+    stand.board.Color = stand.body.Color
+    stand.dome.Transparency = if open then 0.45 else 0.8
+    for _, capsule in ipairs(stand.capsules) do capsule.Transparency = if open then 0 else 1 end
+    stand.pad.Transparency = if open then 0 else 0.7
+    stand.label.Text = if open then string.upper(machine.Name) .. "\n" .. Format.money(machine.Price) .. " A SPIN"
+        else "LOCKED\nNEEDS " .. string.upper(Restaurants.Tiers[machine.Tier].Name)
+end
+
+-- Builds the stands and the kiosk once per station, and remembers the base colours.
+function TierBuilder.build(station)
+    local folder = Instance.new("Folder")
+    folder.Name, folder.Parent = "MachineStands", station.model
+    station.stands, station.standOrder = {}, {}
+    for slot, machineId in ipairs(Machines.Order) do
+        local stand = buildStand(station, folder, machineId, slot)
+        station.stands[machineId] = stand
+        table.insert(station.standOrder, stand)
+    end
+    local kioskModel = Instance.new("Model")
+    kioskModel.Name, kioskModel.Parent = "ExpandKiosk", station.model
+    local add = adder(station, kioskModel)
+    local k = KioskOffset
+    station.kiosk = {
+        model = kioskModel,
+        podium = add("Podium", Vector3.new(3, 3.5, 2), k + Vector3.new(0, 2.35, 0), station.accent, { collide = true, shadow = true }),
+        board = add("Board", Vector3.new(4.6, 2.6, 0.3), k + Vector3.new(0, 5.4, 0.4), Color3.fromRGB(255, 183, 3)),
+        pad = add("Pad", Vector3.new(0.12, 3, 3), KioskPad, Color3.fromRGB(255, 214, 102),
+            { shape = "Cylinder", material = Enum.Material.Neon, rotation = Upright }),
+        front = station.transform:PointToWorldSpace(KioskPad + Vector3.new(0, 2.5, 0)),
+    }
+    station.kiosk.label = sign(station.kiosk.board, "EXPAND", Ink)
+    -- Parts the theme recolours, with their tier 1 colours so a released plot can be reset.
+    station.themed = {}
+    for _, part in ipairs(station.model:GetChildren()) do
+        local name = part.Name
+        if part:IsA("BasePart") and (name == "RoofCap" or name == "Fascia" or name == "FrontPost" or name == "RestaurantPlaque"
+            or name == "Counter" or name == "TableBase" or name == "DiningBench" or name == "RestaurantFloor"
+            or string.sub(name, 1, 12) == "AwningStripe") then
+            table.insert(station.themed, { part = part, original = part.Color })
+        end
+    end
+    TierBuilder.apply(station, 1)
+end
+
+-- Themed decoration for one tier. Every piece is cosmetic.
+local Decor = {}
+Decor[2] = function(add, theme) -- Fry Diner: chrome stools, a jukebox, a checkered entrance
+    for _, x in ipairs({ -6, -2, 2, 6 }) do
+        add("StoolPole", Vector3.new(1.6, 0.3, 0.3), Vector3.new(x, 1.4, 2.4), color(theme.Trim), { shape = "Cylinder", rotation = Upright })
+        add("StoolSeat", Vector3.new(0.4, 1.7, 1.7), Vector3.new(x, 2.4, 2.4), color(theme.Main), { shape = "Cylinder", rotation = Upright })
+    end
+    add("Jukebox", Vector3.new(3, 4.6, 2), Vector3.new(16.5, 2.9, 9), color(theme.Main), { collide = true })
+    add("JukeboxTop", Vector3.new(3, 3, 3), Vector3.new(16.5, 5.2, 9), color(theme.Glow), { shape = "Ball", material = Enum.Material.Neon })
+    for row = 0, 3 do
+        for column = 0, 3 do
+            local dark = (row + column) % 2 == 0
+            add("CheckerTile", Vector3.new(3, 0.06, 3), Vector3.new(-4.5 + column * 3, 0.4, 15.5 + row * 3), if dark then Ink else White)
+        end
+    end
+end
+Decor[3] = function(add, theme) -- Drive-In: a giant burger and a classic car on the roof, string lights
+    local top = CeilingBottom + 1.4
+    add("BurgerBun", Vector3.new(1.4, 8, 8), Vector3.new(-4, top + 0.7, -6), Color3.fromRGB(226, 156, 72), { shape = "Cylinder", rotation = Upright })
+    add("BurgerPatty", Vector3.new(1.1, 8.6, 8.6), Vector3.new(-4, top + 1.9, -6), Color3.fromRGB(110, 60, 35), { shape = "Cylinder", rotation = Upright })
+    add("BurgerCheese", Vector3.new(8.4, 0.3, 8.4), Vector3.new(-4, top + 2.55, -6), Color3.fromRGB(255, 200, 40), { rotation = CFrame.Angles(0, math.pi / 4, 0) })
+    add("BurgerLettuce", Vector3.new(0.4, 8.8, 8.8), Vector3.new(-4, top + 2.9, -6), Color3.fromRGB(110, 200, 70), { shape = "Cylinder", rotation = Upright })
+    add("BurgerTop", Vector3.new(7.6, 7.6, 7.6), Vector3.new(-4, top + 3.6, -6), Color3.fromRGB(232, 168, 82), { shape = "Ball" })
+    add("CarBody", Vector3.new(7, 1.6, 3.4), Vector3.new(12, top + 1.4, -6), color(theme.Trim))
+    add("CarCabin", Vector3.new(3.8, 1.4, 3), Vector3.new(11.6, top + 2.9, -6), color(theme.Main))
+    for _, wx in ipairs({ 9.6, 14.4 }) do
+        for _, wz in ipairs({ -7.7, -4.3 }) do
+            add("CarWheel", Vector3.new(0.7, 1.6, 1.6), Vector3.new(wx, top + 0.7, wz), Ink, { shape = "Cylinder", rotation = CFrame.Angles(0, math.pi / 2, 0) })
+        end
+    end
+    for n = 0, 9 do
+        add("StringLight", Vector3.new(0.7, 0.7, 0.7), Vector3.new(-18 + n * 4, CeilingBottom - 3.6, 15.1),
+            if n % 2 == 0 then color(theme.Glow) else color(theme.Trim), { shape = "Ball", material = Enum.Material.Neon })
+    end
+end
+Decor[4] = function(add, theme) -- Fish &amp; Chips Pier: a lighthouse, a giant fish, life rings
+    local top = CeilingBottom + 1.4
+    for n = 0, 2 do
+        add("Lighthouse", Vector3.new(3, 3, 3), Vector3.new(14, top + 1.5 + n * 3, -10), if n % 2 == 0 then Color3.fromRGB(230, 57, 70) else White,
+            { shape = "Cylinder", rotation = Upright })
+    end
+    add("LighthouseLamp", Vector3.new(2.6, 2.6, 2.6), Vector3.new(14, top + 10.2, -10), color(theme.Glow), { shape = "Ball", material = Enum.Material.Neon })
+    add("LighthouseCap", Vector3.new(0.6, 3.4, 3.4), Vector3.new(14, top + 11.6, -10), color(theme.Main), { shape = "Cylinder", rotation = Upright })
+    add("FishBody", Vector3.new(5, 5, 5), Vector3.new(-8, top + 3, -6), Color3.fromRGB(255, 160, 70), { shape = "Ball" })
+    add("FishTail", Vector3.new(0.6, 3.4, 3.4), Vector3.new(-11.6, top + 3, -6), Color3.fromRGB(255, 130, 50), { rotation = CFrame.Angles(0, math.pi / 2, math.pi / 4) })
+    add("FishEye", Vector3.new(1.2, 1.2, 1.2), Vector3.new(-6.2, top + 3.8, -3.9), White, { shape = "Ball" })
+    add("FishPupil", Vector3.new(0.6, 0.6, 0.6), Vector3.new(-6, top + 3.8, -3.4), Ink, { shape = "Ball" })
+    for _, x in ipairs({ -20, 20 }) do
+        add("LifeRing", Vector3.new(0.5, 3.2, 3.2), Vector3.new(x, 8, 14.8), Color3.fromRGB(230, 57, 70), { shape = "Cylinder", rotation = CFrame.Angles(0, math.pi / 2, 0) })
+        add("LifeRingCentre", Vector3.new(0.6, 1.6, 1.6), Vector3.new(x, 8, 14.8), color(theme.Main), { shape = "Cylinder", rotation = CFrame.Angles(0, math.pi / 2, 0) })
+    end
+end
+Decor[5] = function(add, theme) -- Cosmic Diner: a ringed planet, a satellite dish, floating stars
+    local top = CeilingBottom + 1.4
+    add("Planet", Vector3.new(7, 7, 7), Vector3.new(-9, top + 6, -8), color(theme.Trim), { shape = "Ball" })
+    add("PlanetRing", Vector3.new(0.3, 11.5, 11.5), Vector3.new(-9, top + 6, -8), color(theme.Glow),
+        { shape = "Cylinder", material = Enum.Material.Neon, rotation = CFrame.Angles(0, 0, math.pi / 2 - 0.35) })
+    add("DishBase", Vector3.new(2.4, 1.4, 1.4), Vector3.new(11, top + 1.2, -8), Color3.fromRGB(200, 205, 220), { shape = "Cylinder", rotation = Upright })
+    add("Dish", Vector3.new(0.5, 6, 6), Vector3.new(11, top + 3.6, -8), Color3.fromRGB(225, 230, 240), { shape = "Cylinder", rotation = CFrame.Angles(0, 0, math.pi / 2 - 0.6) })
+    add("DishAntenna", Vector3.new(0.3, 0.3, 3.2), Vector3.new(11, top + 4.6, -7), color(theme.Glow), { material = Enum.Material.Neon })
+    for n, offset in ipairs({ { -16, 6, 2 }, { -2, 9, -2 }, { 4, 7, 6 }, { 17, 10, 2 }, { 8, 12, -12 }, { -14, 11, -14 } }) do
+        add("Star" .. n, Vector3.new(0.9, 0.9, 0.9), Vector3.new(offset[1], top + offset[2], offset[3]), color(theme.Glow), { shape = "Ball", material = Enum.Material.Neon })
+    end
+end
+Decor[6] = function(add, theme) -- Fry Palace: gold columns, a crown on the roof, a red carpet, banners
+    local top = CeilingBottom + 1.4
+    for _, x in ipairs({ -20, 20 }) do
+        add("Column", Vector3.new(CeilingBottom, 2.4, 2.4), Vector3.new(x, CeilingBottom / 2 + 0.5, 15.4), color(theme.Trim), { shape = "Cylinder", rotation = Upright, collide = true })
+        add("Banner", Vector3.new(3, 8, 0.2), Vector3.new(x * 0.6, 11, 14.9), color(theme.Main))
+        add("BannerStripe", Vector3.new(3, 0.6, 0.25), Vector3.new(x * 0.6, 7.3, 14.95), color(theme.Trim))
+    end
+    add("CrownBase", Vector3.new(2, 10, 10), Vector3.new(0, top + 1, -5), color(theme.Trim), { shape = "Cylinder", rotation = Upright })
+    for n = 0, 5 do
+        local angle = n * math.pi / 3
+        local x, z = math.cos(angle) * 4.2, -5 + math.sin(angle) * 4.2
+        add("CrownSpike", Vector3.new(1.4, 3.2, 1.4), Vector3.new(x, top + 3.4, z), color(theme.Trim), { rotation = CFrame.Angles(0, -angle, 0) })
+        add("CrownJewel", Vector3.new(1.2, 1.2, 1.2), Vector3.new(x, top + 5.4, z), if n % 2 == 0 then Color3.fromRGB(230, 57, 70) else color(theme.Main),
+            { shape = "Ball", material = Enum.Material.Neon })
+    end
+    add("RedCarpet", Vector3.new(6, 0.08, 12), Vector3.new(0, 0.42, 20), Color3.fromRGB(196, 30, 58))
+end
+
+-- Dresses the station for a tier: stands, theme colours, roof sign, decoration, and kiosk.
+function TierBuilder.apply(station, tier, ownerName)
+    tier = math.clamp(tier or 1, 1, Restaurants.Max)
+    local info = Restaurants.Tiers[tier]
+    for _, stand in ipairs(station.standOrder) do showStand(stand, tier) end
+    for _, entry in ipairs(station.themed) do
+        local name = entry.part.Name
+        if tier == 1 then entry.part.Color = entry.original
+        elseif name == "RestaurantFloor" then entry.part.Color = color(info.Theme.Floor)
+        elseif string.sub(name, 1, 12) == "AwningStripe" and tonumber(string.sub(name, 13)) % 2 == 0 then entry.part.Color = color(info.Theme.Trim)
+        else entry.part.Color = color(info.Theme.Main) end
+    end
+    local old = station.model:FindFirstChild("TierDecor")
+    if old then old:Destroy() end
+    if tier &gt;= 2 then
+        local folder = Instance.new("Folder")
+        folder.Name, folder.Parent = "TierDecor", station.model
+        local add = adder(station, folder)
+        local board = add("RoofSign", Vector3.new(22, 4.5, 0.6), Vector3.new(0, CeilingBottom + 4.6, 12), color(info.Theme.Main))
+        sign(board, string.upper(info.Name), color(info.Theme.Glow))
+        for _, x in ipairs({ -8, 8 }) do add("RoofSignPost", Vector3.new(0.6, 3, 0.6), Vector3.new(x, CeilingBottom + 2.4, 12), color(info.Theme.Trim)) end
+        add("NeonStrip", Vector3.new(42, 0.3, 0.3), Vector3.new(0, CeilingBottom - 3.4, 14.8), color(info.Theme.Glow), { material = Enum.Material.Neon })
+        Decor[tier](add, info.Theme)
+    end
+    local kiosk, nextTier = station.kiosk, Restaurants.Tiers[tier + 1]
+    kiosk.podium.Color = if tier == 1 then station.accent else color(info.Theme.Main)
+    kiosk.label.Text = if nextTier then "EXPAND\n" .. string.upper(nextTier.Name) .. "  " .. Format.money(nextTier.Price) else "FULLY\nUPGRADED"
+    if ownerName then station.sign.Text = ownerName .. "'s\n" .. string.upper(info.Name) end
+    station.model:SetAttribute("RestaurantTier", tier)
+    station.shownTier = tier
+end
+return TierBuilder
+</ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00043">
           <Properties>
             <string name="Name">WorldBuilder</string>
             <ProtectedString name="Source">local Lighting = game:GetService("Lighting")
@@ -1625,19 +2073,19 @@ end
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="RBX00041">
+  <Item class="StarterPlayer" referent="RBX00044">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="RBX00042">
+    <Item class="StarterPlayerScripts" referent="RBX00045">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="RBX00043">
+      <Item class="Folder" referent="RBX00046">
         <Properties>
           <string name="Name">FriesClient</string>
         </Properties>
-        <Item class="LocalScript" referent="RBX00044">
+        <Item class="LocalScript" referent="RBX00047">
           <Properties>
             <string name="Name">Main</string>
             <ProtectedString name="Source">-- Client composition root. Cash and sales are determined by the server.
@@ -1680,11 +2128,11 @@ end)
 </ProtectedString>
           </Properties>
         </Item>
-        <Item class="Folder" referent="RBX00045">
+        <Item class="Folder" referent="RBX00048">
           <Properties>
             <string name="Name">controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00046">
+          <Item class="ModuleScript" referent="RBX00049">
             <Properties>
               <string name="Name">InputController</string>
               <ProtectedString name="Source">local UserInputService = game:GetService("UserInputService")
@@ -1730,11 +2178,11 @@ end
             </Properties>
           </Item>
         </Item>
-        <Item class="Folder" referent="RBX00047">
+        <Item class="Folder" referent="RBX00050">
           <Properties>
             <string name="Name">ui</string>
           </Properties>
-          <Item class="ModuleScript" referent="RBX00048">
+          <Item class="ModuleScript" referent="RBX00051">
             <Properties>
               <string name="Name">AppView</string>
               <ProtectedString name="Source">-- Screen layout in the Diner Sticker style: a receipt-style wallet (Cash and Gems) at the top
@@ -1749,6 +2197,7 @@ local RebirthView = require(script.Parent.RebirthView)
 local GachaView = require(script.Parent.GachaView)
 local PetsView = require(script.Parent.PetsView)
 local SettingsView = require(script.Parent.SettingsView)
+local RestaurantView = require(script.Parent.RestaurantView)
 local AppView = {}
 AppView.__index = AppView
 local Margin, TopBar = 16, 48
@@ -1809,13 +2258,15 @@ function AppView.new(playerGui, send)
     -- Menu order: Upgrades, Rebirth, Spin, Pets.
     self.menus = { self.shop, self.rebirth, self.gacha, self.pets }
     self.settings = SettingsView.new(gui, send)
+    -- The EXPAND panel has no menu button: it opens at the kiosk in the restaurant.
+    self.restaurant = RestaurantView.new(gui, send)
     -- Opening one panel closes the others so they never stack.
-    self.panels = { self.shop, self.rebirth, self.gacha, self.pets, self.settings }
+    self.panels = { self.shop, self.rebirth, self.gacha, self.pets, self.settings, self.restaurant }
     for _, menu in ipairs(self.panels) do
-        menu.button.Activated:Connect(function()
+        if menu.button then menu.button.Activated:Connect(function()
             if not menu.panel.Visible then return end
             for _, other in ipairs(self.panels) do if other ~= menu then other:setOpen(false) end end
-        end)
+        end) end
     end
     self:resize(Vector2.new(1280, 720))
     return self
@@ -1830,12 +2281,22 @@ function AppView:update(state)
     self.teleport.AutoButtonColor = state.hasStation
     self.teleport.BackgroundColor3 = if state.hasStation then Theme.Red else Theme.Muted
     if not self.errorUntil or os.clock() &gt;= self.errorUntil then
-        self.guidance.Visible = not state.hasStation
-        self.guidance.Text = "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
+        local nextTier = state.restaurant and state.restaurant.nextTier
+        local canExpand = state.hasStation and nextTier ~= nil and nextTier.affordable and not state.nearExpand
+        self.guidance.Visible = not state.hasStation or canExpand
+        self.guidance.Text = if canExpand then "You can afford the " .. nextTier.name .. "! Walk to the EXPAND kiosk inside your restaurant."
+            else "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
         self.guidance.TextColor3 = Theme.Ink
     end
     self.hud:update(state)
     for _, menu in ipairs(self.panels) do menu:update(state) end
+    -- A panel that opened itself (walking up to a stand or the kiosk) closes the others.
+    for _, menu in ipairs(self.panels) do
+        if menu.focusRequested then
+            menu.focusRequested = nil
+            for _, other in ipairs(self.panels) do if other ~= menu then other:setOpen(false) end end
+        end
+    end
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.
@@ -1929,7 +2390,7 @@ return AppView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00049">
+          <Item class="ModuleScript" referent="RBX00052">
             <Properties>
               <string name="Name">Elements</string>
               <ProtectedString name="Source">-- Shared widgets in the Diner Sticker style: white sticker borders, solid ink shadows
@@ -2220,12 +2681,15 @@ return Elements
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00050">
+          <Item class="ModuleScript" referent="RBX00053">
             <Properties>
               <string name="Name">GachaView</string>
               <ProtectedString name="Source">-- Gacha machine: the last pull (live portrait, rarity tag, bonus), a pity progress bar, the
 -- SPIN button, and every pet in the machine as a tile with its own chance. Two columns on
 -- wide screens, stacked on narrow ones. The server rolls; this view only displays and requests.
+-- Machines are physical stands in the player's restaurant: the panel opens for a machine when
+-- the server reports the player at its stand, and closes when they walk away. The SPIN menu
+-- button asks the server to move the player to their best machine.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local PetConfig = require(Shared.config.Pets)
 local Theme = require(script.Parent.Theme)
@@ -2240,7 +2704,7 @@ local WideAt, LeftWidth = 560, 240
 local PoolTileWidth, PoolTileHeight = 88, 112
 function GachaView.new(gui, send)
     local self = setmetatable({ send = send, hasStation = false, canSpin = false, poolTiles = {} }, GachaView)
-    self.button = E.menuButton(gui, "SpinButton", "SPIN", "spin", GachaView.Accent, function() self:toggle() end)
+    self.button = E.menuButton(gui, "SpinButton", "SPIN", "spin", GachaView.Accent, function() self:visit() end)
     local frame = E.panel(gui, "GachaPanel", MaxWidth, MaxHeight, Theme.Green)
     self.panel, self.scale, self.close, self.title, self.caption = frame.panel, frame.scale, frame.close, frame.title, frame.caption
     self.title.Text = "STARTER FRYER"
@@ -2288,10 +2752,43 @@ function GachaView.new(gui, send)
     self.wide = nil
     return self
 end
-function GachaView:setOpen(open) self.panel.Visible = open and self.hasStation end
+function GachaView:setOpen(open) self.panel.Visible = open and self.hasStation and self.machineId ~= nil end
 function GachaView:toggle() if self.hasStation then self:setOpen(not self.panel.Visible) end end
+-- SPIN in the menu walks the player to their best machine (the server moves them).
+function GachaView:visit() if self.hasStation then self.send("VisitMachine") end end
 function GachaView:spinOnce()
     if self.canSpin and self.panel.Visible and self.machineId then self.send("Spin", self.machineId) end
+end
+-- Header, checker strip, and SPIN button follow the machine's theme colour.
+function GachaView:setAccent(color)
+    self.accent = color
+    local header = self.panel:FindFirstChild("Header")
+    if header then
+        header.BackgroundColor3 = color
+        local square = header:FindFirstChild("Square")
+        if square then square.BackgroundColor3 = color end
+    end
+    local checker = self.panel:FindFirstChild("Checker")
+    for _, cell in ipairs(if checker then checker:GetChildren() else {}) do cell.BackgroundColor3 = color end
+end
+-- Shows a different machine: new title, colour, pool tiles, and a fresh result card.
+function GachaView:showMachine(machine)
+    self.machineId = machine.id
+    self:setAccent(Theme[machine.accent or "Green"] or Theme.Green)
+    self.title.Text = string.upper(machine.name)
+    for _, tile in pairs(self.poolTiles) do tile:Destroy() end
+    self.poolTiles = {}
+    local order = 0
+    for _, row in ipairs(machine.odds) do
+        for _, petType in ipairs(row.types or {}) do
+            order += 1
+            self.poolTiles[petType] = self:poolTile(petType, row.rarity, row.chance * 100 / #row.types, order)
+        end
+    end
+    self.mystery.Visible, self.tag.Visible = true, false
+    PetPortrait.set(self.portrait, nil)
+    self.resultName.Text, self.resultName.TextColor3 = "Spin to get a Fry Buddy!", Theme.Ink
+    self.resultBonus.Text = "Pets you win appear in PETS."
 end
 -- One tile per pet in the machine, with that pet's own chance.
 function GachaView:poolTile(petType, rarity, chance, order)
@@ -2325,13 +2822,26 @@ function GachaView:update(state)
     self.hasStation = state.hasStation
     E.setMenuEnabled(self.button, state.hasStation, GachaView.Accent)
     if not state.hasStation then self.panel.Visible = false end
-    local machine, pets = state.machine, state.pets
-    if not machine or not pets then return end
-    self.machineId = machine.id
-    self.title.Text = string.upper(machine.name)
+    local pets, machines = state.pets, state.machines
+    if not machines or not pets then return end
+    -- Open at a stand, close on walking away (only if the stand opened it).
+    local near = state.hasStation and state.nearMachine or nil
+    if near ~= self.nearId then
+        self.nearId = near
+        if near and machines[near] then
+            if self.machineId ~= near then self:showMachine(machines[near]) end
+            self.panel.Visible = true
+            self.focusRequested = true -- AppView closes the other panels
+        elseif self.panel.Visible then
+            self.panel.Visible = false
+        end
+    end
+    local machine = self.machineId and machines[self.machineId]
+    if not machine then return end
     local left = machine.pityEvery - machine.pity
-    self.caption.Text = E.money(machine.price) .. " per spin  ·  " .. machine.pityRarity .. " or better within " .. left
-        .. (if left == 1 then " spin" else " spins")
+    self.caption.Text = if machine.unlocked then E.money(machine.price) .. " per spin  ·  " .. machine.pityRarity
+        .. " or better within " .. left .. (if left == 1 then " spin" else " spins")
+        else "Locked  ·  expand your restaurant to use this machine"
     self.pityText.Text = string.upper(machine.pityRarity) .. "+ GUARANTEED IN " .. left .. (if left == 1 then " SPIN" else " SPINS")
     self.pityFill.Size = UDim2.fromScale(math.clamp(machine.pity / machine.pityEvery, 0, 1), 1)
     if not next(self.poolTiles) then
@@ -2345,10 +2855,12 @@ function GachaView:update(state)
     end
     local full = #pets.owned &gt;= pets.max
     local affordable = state.profile.cash &gt;= machine.price
-    self.canSpin = state.hasStation and affordable and not full
+    local here = state.nearMachine == machine.id
+    self.canSpin = state.hasStation and here and machine.unlocked and affordable and not full
     self.count.Text = "PETS " .. #pets.owned .. " / " .. pets.max .. (if full then "  ·  inventory full" else "")
     self.spin.Active, self.spin.Selectable = self.canSpin, self.canSpin
-    self.spin.Text = if full then "INVENTORY FULL" elseif affordable then "SPIN  " .. E.money(machine.price) else "NEED " .. E.money(machine.price)
+    self.spin.Text = if not machine.unlocked then "LOCKED" elseif full then "INVENTORY FULL"
+        elseif not here then "WALK TO THE STAND" elseif affordable then "SPIN  " .. E.money(machine.price) else "NEED " .. E.money(machine.price)
     self.spin.BackgroundColor3 = if self.canSpin then Theme.Green else Theme.Disabled
     self.spin.TextColor3 = if self.canSpin then Theme.OnColor else Theme.Muted
     self.spinOutline.Enabled = self.canSpin
@@ -2415,7 +2927,7 @@ return GachaView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00051">
+          <Item class="ModuleScript" referent="RBX00054">
             <Properties>
               <string name="Name">HudView</string>
               <ProtectedString name="Source">-- Pack and Sell: two big Diner Sticker buttons at the bottom centre.
@@ -2520,7 +3032,7 @@ return HudView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00052">
+          <Item class="ModuleScript" referent="RBX00055">
             <Properties>
               <string name="Name">Icons</string>
               <ProtectedString name="Source">-- Icons: an uploaded image when shared/config/Icons has an asset ID, otherwise a simple
@@ -2654,7 +3166,7 @@ return Icons
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00053">
+          <Item class="ModuleScript" referent="RBX00056">
             <Properties>
               <string name="Name">PetFollower</string>
               <ProtectedString name="Source">-- Draws every player's equipped pets locally, following and bobbing behind their character.
@@ -2731,7 +3243,7 @@ return PetFollower
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00054">
+          <Item class="ModuleScript" referent="RBX00057">
             <Properties>
               <string name="Name">PetModels</string>
               <ProtectedString name="Source">-- Code-built cartoon pet models (no uploaded assets). Each pet is a short recipe of smooth
@@ -2900,6 +3412,411 @@ function Recipes.FryKing(b)
     b.face(-0.51, 0.45, 0.22, 0.32)
     b.feet(-0.98, 0.26, rgb(214, 140, 40))
 end
+-- Fry Diner (Deluxe Fryer)
+function Recipes.OnionRing(b)
+    b.body("Cylinder", { 0.7, 1.8, 1.8 }, { 0, 0, 0 }, rgb(226, 166, 72), { upright = true })
+    b.add("Cylinder", { 0.72, 0.7, 0.7 }, { 0, 0.02, 0 }, rgb(250, 238, 214), { upright = true, name = "Hole" })
+    for index, spot in ipairs({ { -0.6, -0.4 }, { 0.55, -0.5 }, { 0.7, 0.3 }, { -0.5, 0.55 } }) do
+        b.add("Ball", { 0.2, 0.2, 0.2 }, { spot[1], 0.36, spot[2] }, rgb(196, 130, 50), { name = "Crumb" .. index })
+    end
+    b.face(-0.9, 0.02, 0.24, 0.26)
+    b.feet(-0.5, 0.42, rgb(196, 130, 50))
+end
+function Recipes.PickleChip(b)
+    local facing = CFrame.Angles(0, math.pi / 2, 0)
+    b.body("Cylinder", { 0.32, 1.6, 1.6 }, { 0, 0, 0 }, rgb(118, 176, 64), { rotation = facing })
+    b.add("Cylinder", { 0.34, 1.1, 1.1 }, { 0, 0, 0 }, rgb(170, 214, 100), { rotation = facing, name = "Core" })
+    for index, spot in ipairs({ { -0.3, 0.3 }, { 0.32, 0.25 }, { 0, -0.4 }, { -0.4, -0.2 } }) do
+        b.add("Ball", { 0.14, 0.14, 0.14 }, { spot[1], spot[2], -0.17 }, rgb(240, 236, 190), { name = "Seed" .. index })
+    end
+    b.face(-0.2, 0.15, 0.24, 0.28)
+    b.feet(-0.86, 0.3, rgb(80, 130, 40))
+end
+function Recipes.HashBrownHamster(b)
+    b.body("Block", { 1.5, 1.2, 1.2 }, { 0, -0.05, 0 }, rgb(214, 160, 78))
+    for index, spot in ipairs({ { -0.5, 0.3 }, { 0.4, -0.2 }, { 0.1, 0.4 }, { -0.2, -0.35 } }) do
+        b.add("Block", { 0.2, 0.06, 0.2 }, { spot[1], 0.56, spot[2] }, rgb(186, 126, 52), { name = "Crisp" .. index })
+    end
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Ball", { 0.42, 0.42, 0.42 }, { side * 0.55, 0.62, 0.1 }, rgb(240, 196, 150), { name = "Ear" })
+        b.add("Ball", { 0.46, 0.46, 0.46 }, { side * 0.5, -0.25, -0.5 }, rgb(240, 196, 150), { name = "Cheek" })
+    end
+    b.face(-0.61, 0.18, 0.26, 0.3)
+    b.feet(-0.7, 0.4, rgb(186, 126, 52))
+end
+function Recipes.Milkshake(b)
+    b.body("Cylinder", { 1.3, 1.1, 1.1 }, { 0, -0.15, 0 }, rgb(255, 170, 200), { upright = true })
+    b.add("Cylinder", { 0.18, 1.2, 1.2 }, { 0, 0.5, 0 }, rgb(255, 255, 255), { upright = true, name = "Rim" })
+    b.add("Ball", { 1.0, 1.0, 1.0 }, { 0, 0.75, 0 }, rgb(255, 252, 245), { name = "Cream" })
+    b.add("Ball", { 0.36, 0.36, 0.36 }, { 0, 1.3, 0 }, rgb(220, 30, 50), { name = "Cherry" })
+    b.add("Block", { 0.14, 1.3, 0.14 }, { 0.3, 1.2, 0.15 }, rgb(230, 57, 70), { name = "Straw", rotation = CFrame.Angles(0, 0, -0.3) })
+    b.face(-0.56, -0.05, 0.22, 0.28)
+    b.feet(-0.86, 0.3, rgb(220, 120, 160))
+end
+function Recipes.CheeseSlime(b)
+    b.body("Ball", { 1.7, 1.7, 1.7 }, { 0, 0.05, 0 }, rgb(255, 190, 40), { transparency = 0.08 })
+    for index, spot in ipairs({ { -0.55, -0.1 }, { 0.15, -0.35 }, { 0.6, 0.0 } }) do
+        b.add("Ball", { 0.42, 0.42, 0.42 }, { spot[1], -0.75, spot[2] }, rgb(255, 170, 20), { name = "Drip" .. index })
+    end
+    b.add("Ball", { 0.5, 0.5, 0.5 }, { 0.35, 0.75, 0.1 }, rgb(255, 214, 90), { name = "Bubble" })
+    b.face(-0.82, 0.2, 0.3, 0.34)
+end
+function Recipes.FryPhoenix(b)
+    b.body("Ball", { 1.4, 1.4, 1.4 }, { 0, 0.1, 0 }, rgb(240, 90, 40))
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 1.0, 0.18, 0.7 }, { side * 0.95, 0.3, 0.1 }, rgb(255, 160, 40), { name = "Wing", rotation = CFrame.Angles(0, 0, side * 0.5) })
+        b.add("Block", { 0.7, 0.14, 0.5 }, { side * 1.25, 0.65, 0.15 }, rgb(255, 214, 90), { name = "WingTip", rotation = CFrame.Angles(0, 0, side * 0.8) })
+    end
+    for index, x in ipairs({ -0.22, 0, 0.22 }) do
+        b.add("Block", { 0.16, 0.6 + (index % 2) * 0.2, 0.16 }, { x, 0.95, 0 }, rgb(255, 214, 90), { name = "Crest" .. index })
+    end
+    b.add("Block", { 0.5, 0.18, 0.9 }, { 0, -0.1, 0.85 }, rgb(255, 130, 30), { name = "Tail", rotation = CFrame.Angles(0.5, 0, 0) })
+    b.add("Block", { 0.2, 0.14, 0.24 }, { 0, 0.02, -0.72 }, rgb(255, 200, 40), { name = "Beak" })
+    b.face(-0.64, 0.3, 0.26, 0.3)
+    b.feet(-0.66, 0.26, rgb(255, 160, 40))
+end
+-- Drive-In (Drive-In Grill)
+function Recipes.SesameBun(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, 0, 0 }, rgb(232, 168, 82))
+    b.add("Cylinder", { 0.3, 1.5, 1.5 }, { 0, -0.62, 0 }, rgb(250, 224, 170), { upright = true, name = "Base" })
+    for index, spot in ipairs({ { -0.3, 0.62, -0.2 }, { 0.25, 0.68, 0.05 }, { 0, 0.72, 0.3 }, { 0.42, 0.5, -0.35 }, { -0.5, 0.48, 0.25 } }) do
+        b.add("Block", { 0.14, 0.06, 0.2 }, { spot[1], spot[2], spot[3] }, rgb(255, 248, 230), { name = "Seed" .. index, rotation = CFrame.Angles(0, index, 0) })
+    end
+    b.face(-0.74, 0.05, 0.28, 0.32)
+    b.feet(-0.78, 0.4, rgb(200, 130, 60))
+end
+function Recipes.MustardBottle(b)
+    b.body("Cylinder", { 1.5, 1.0, 1.0 }, { 0, -0.1, 0 }, rgb(255, 204, 0), { upright = true })
+    b.add("Cylinder", { 0.3, 0.7, 0.7 }, { 0, 0.78, 0 }, rgb(230, 57, 70), { upright = true, name = "Cap" })
+    b.add("Cylinder", { 0.4, 0.2, 0.2 }, { 0, 1.1, 0 }, rgb(230, 57, 70), { upright = true, name = "Nozzle" })
+    b.add("Block", { 0.7, 0.32, 0.05 }, { 0, -0.4, -0.5 }, rgb(230, 57, 70), { name = "Label" })
+    b.face(-0.51, 0.18, 0.2, 0.28)
+    b.feet(-0.9, 0.28, rgb(200, 150, 0))
+end
+function Recipes.PaperTray(b)
+    b.body("Block", { 1.6, 0.7, 1.1 }, { 0, -0.3, 0 }, rgb(255, 250, 240))
+    for index, x in ipairs({ -0.6, -0.2, 0.2, 0.6 }) do
+        b.add("Block", { 0.2, 0.72, 1.12 }, { x, -0.3, 0 }, rgb(230, 57, 70), { name = "Check" .. index })
+    end
+    for index, spot in ipairs({ { -0.45, 0.1 }, { -0.15, -0.15 }, { 0.15, 0.2 }, { 0.45, -0.05 }, { 0, 0.05 } }) do
+        b.add("Block", { 0.18, 0.9, 0.18 }, { spot[1], 0.35, spot[2] }, rgb(255, 214, 90), { name = "Fry" .. index, rotation = CFrame.Angles(0, 0, spot[1] * 0.4) })
+    end
+    b.face(-0.57, -0.3, 0.3, 0.28)
+    b.feet(-0.78, 0.5)
+end
+function Recipes.BurgerBear(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, -0.05, 0 }, rgb(156, 98, 56))
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Ball", { 0.5, 0.5, 0.5 }, { side * 0.6, 0.6, 0.05 }, rgb(126, 76, 42), { name = "Ear" })
+    end
+    b.add("Ball", { 0.6, 0.6, 0.6 }, { 0, -0.25, -0.6 }, rgb(222, 180, 130), { name = "Snout" })
+    b.add("Ball", { 0.2, 0.2, 0.2 }, { 0, -0.12, -0.9 }, Ink, { name = "Nose" })
+    b.add("Cylinder", { 0.22, 0.9, 0.9 }, { 0, 0.82, 0 }, rgb(232, 168, 82), { upright = true, name = "MiniBun" })
+    b.add("Cylinder", { 0.16, 0.95, 0.95 }, { 0, 0.98, 0 }, rgb(110, 60, 35), { upright = true, name = "MiniPatty" })
+    b.add("Ball", { 0.8, 0.8, 0.8 }, { 0, 1.15, 0 }, rgb(232, 168, 82), { name = "MiniTop" })
+    b.face(-0.72, 0.2, 0.28, 0.3)
+    b.feet(-0.8, 0.4, rgb(126, 76, 42))
+end
+function Recipes.SodaSeal(b)
+    b.body("Ball", { 1.5, 1.5, 1.5 }, { 0, -0.05, 0 }, rgb(130, 160, 190))
+    b.add("Ball", { 0.7, 0.7, 0.7 }, { 0, -0.4, -0.45 }, rgb(200, 215, 230), { name = "Belly" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.6, 0.14, 0.4 }, { side * 0.75, -0.45, -0.1 }, rgb(100, 130, 160), { name = "Flipper", rotation = CFrame.Angles(0, 0, side * -0.4) })
+    end
+    b.add("Cylinder", { 0.7, 0.62, 0.62 }, { 0, 0.95, 0 }, rgb(230, 57, 70), { upright = true, name = "Cup" })
+    b.add("Block", { 0.1, 0.7, 0.1 }, { 0.1, 1.4, 0 }, rgb(255, 255, 255), { name = "Straw", rotation = CFrame.Angles(0, 0, -0.2) })
+    b.face(-0.68, 0.15, 0.26, 0.3)
+end
+function Recipes.HotDogPup(b)
+    b.body("Cylinder", { 1.9, 0.8, 0.8 }, { 0, 0.05, 0 }, rgb(196, 80, 60))
+    b.add("Block", { 1.7, 0.4, 1.0 }, { 0, -0.35, 0 }, rgb(232, 178, 100), { name = "Bun" })
+    for index = 0, 3 do
+        b.add("Block", { 0.3, 0.06, 0.12 }, { -0.6 + index * 0.4, 0.46, (index % 2) * 0.15 - 0.07 }, rgb(255, 204, 0), { name = "Mustard" .. index, rotation = CFrame.Angles(0, (index % 2 - 0.5) * 1.2, 0) })
+    end
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.22, 0.5, 0.36 }, { side * 0.55, 0.45, 0.05 }, rgb(150, 56, 40), { name = "Ear", rotation = CFrame.Angles(0, 0, side * 0.5) })
+    end
+    b.add("Ball", { 0.3, 0.3, 0.3 }, { 1.0, 0.1, 0 }, rgb(150, 56, 40), { name = "Tail" })
+    b.face(-0.42, 0.1, 0.24, 0.26)
+    b.feet(-0.7, 0.5, rgb(150, 56, 40))
+end
+function Recipes.CarhopBot(b)
+    b.body("Block", { 1.2, 1.3, 1.0 }, { 0, 0.05, 0 }, rgb(42, 157, 143))
+    b.add("Block", { 0.9, 0.55, 0.06 }, { 0, 0.15, -0.51 }, rgb(255, 250, 240), { name = "Screen" })
+    b.add("Cylinder", { 0.3, 1.0, 1.0 }, { 0, 0.85, 0 }, rgb(230, 57, 70), { upright = true, name = "Cap" })
+    b.add("Block", { 0.7, 0.08, 0.5 }, { 0.85, 0.35, -0.2 }, rgb(200, 205, 215), { name = "Tray" })
+    b.add("Cylinder", { 0.36, 0.3, 0.3 }, { 0.85, 0.58, -0.2 }, rgb(230, 57, 70), { upright = true, name = "TrayCup" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Cylinder", { 0.2, 0.4, 0.4 }, { side * 0.3, -0.85, -0.2 }, rgb(247, 127, 0), { name = "Wheel" })
+        b.add("Cylinder", { 0.2, 0.4, 0.4 }, { side * 0.3, -0.85, 0.2 }, rgb(247, 127, 0), { name = "Wheel" })
+    end
+    b.face(-0.55, 0.15, 0.2, 0.26)
+end
+function Recipes.BurgerDragon(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, 0.05, 0 }, rgb(90, 180, 80))
+    b.add("Ball", { 0.9, 0.9, 0.9 }, { 0, -0.25, -0.45 }, rgb(232, 168, 82), { name = "Belly" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.9, 0.12, 0.7 }, { side * 0.95, 0.45, 0.2 }, rgb(60, 140, 60), { name = "Wing", rotation = CFrame.Angles(0, 0, side * 0.6) })
+        b.add("Block", { 0.16, 0.5, 0.16 }, { side * 0.35, 0.95, 0 }, rgb(255, 214, 90), { name = "Horn", rotation = CFrame.Angles(0, 0, side * -0.35) })
+    end
+    b.add("Block", { 0.3, 0.3, 1.0 }, { 0, -0.35, 0.95 }, rgb(70, 160, 70), { name = "Tail", rotation = CFrame.Angles(0.4, 0, 0) })
+    b.add("Ball", { 0.24, 0.24, 0.24 }, { 0, 0.3, -0.85 }, rgb(255, 120, 40), { name = "Ember", neon = true })
+    b.face(-0.74, 0.35, 0.28, 0.32)
+    b.feet(-0.8, 0.4, rgb(60, 140, 60))
+end
+-- Fish &amp; Chips Pier (Pier Fryer)
+function Recipes.FishStick(b)
+    b.body("Block", { 1.9, 0.8, 0.8 }, { 0, -0.1, 0 }, rgb(230, 170, 70))
+    for index, spot in ipairs({ { -0.6, 0.31 }, { -0.1, 0.32 }, { 0.5, 0.31 }, { 0.2, 0.3 } }) do
+        b.add("Block", { 0.16, 0.06, 0.16 }, { spot[1], spot[2], (index % 2) * 0.3 - 0.15 }, rgb(196, 130, 50), { name = "Crumb" .. index })
+    end
+    b.add("Block", { 0.1, 0.5, 0.5 }, { 1.0, -0.1, 0 }, rgb(196, 130, 50), { name = "Tail", rotation = CFrame.Angles(math.pi / 4, 0, 0) })
+    b.face(-0.41, -0.05, 0.26, 0.26)
+    b.feet(-0.65, 0.5, rgb(196, 130, 50))
+end
+function Recipes.TartarTub(b)
+    b.body("Cylinder", { 1.0, 1.3, 1.3 }, { 0, -0.2, 0 }, rgb(250, 246, 226), { upright = true })
+    b.add("Ball", { 1.1, 1.1, 1.1 }, { 0, 0.25, 0 }, rgb(245, 240, 215), { name = "Sauce" })
+    for index, spot in ipairs({ { -0.3, 0.1 }, { 0.2, -0.2 }, { 0.1, 0.3 }, { -0.1, -0.3 } }) do
+        b.add("Block", { 0.12, 0.06, 0.12 }, { spot[1], 0.78, spot[2] }, rgb(110, 170, 60), { name = "Fleck" .. index })
+    end
+    b.add("Cylinder", { 0.16, 1.36, 1.36 }, { 0, -0.62, 0 }, rgb(29, 111, 216), { upright = true, name = "Band" })
+    b.face(-0.66, -0.15, 0.26, 0.3)
+    b.feet(-0.78, 0.36, rgb(29, 111, 216))
+end
+function Recipes.NewspaperCone(b)
+    b.body("Cylinder", { 1.4, 1.1, 1.1 }, { 0, -0.15, 0 }, rgb(226, 224, 216), { upright = true })
+    for index, y in ipairs({ -0.5, -0.25, 0.0 }) do
+        b.add("Block", { 0.6, 0.06, 0.05 }, { 0.15, y, -0.56 }, rgb(90, 90, 90), { name = "Print" .. index })
+    end
+    for index, spot in ipairs({ { -0.3, 0.1 }, { 0, -0.15 }, { 0.3, 0.12 }, { 0.12, 0.25 } }) do
+        b.add("Block", { 0.2, 0.9, 0.2 }, { spot[1], 0.85, spot[2] }, rgb(255, 214, 90), { name = "Chip" .. index, rotation = CFrame.Angles(0, 0, spot[1] * 0.5) })
+    end
+    b.face(-0.56, 0.3, 0.22, 0.28)
+    b.feet(-0.9, 0.3)
+end
+function Recipes.ChipCrab(b)
+    b.body("Block", { 1.5, 0.8, 1.1 }, { 0, -0.15, 0 }, rgb(240, 90, 60))
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Ball", { 0.55, 0.55, 0.55 }, { side * 1.0, 0.1, -0.35 }, rgb(240, 90, 60), { name = "Claw" })
+        b.add("Block", { 0.3, 0.12, 0.12 }, { side * 0.75, -0.1, -0.2 }, rgb(220, 70, 45), { name = "Arm" })
+        for index = 0, 1 do
+            b.add("Block", { 0.4, 0.1, 0.1 }, { side * 0.85, -0.5, -0.1 + index * 0.35 }, rgb(220, 70, 45), { name = "Leg", rotation = CFrame.Angles(0, 0, side * 0.6) })
+        end
+    end
+    b.add("Block", { 0.16, 0.7, 0.16 }, { 1.0, 0.55, -0.35 }, rgb(255, 214, 90), { name = "Chip", rotation = CFrame.Angles(0, 0, -0.3) })
+    b.face(-0.56, 0.0, 0.26, 0.3)
+end
+function Recipes.VinegarOwl(b)
+    b.body("Cylinder", { 1.4, 1.2, 1.2 }, { 0, -0.1, 0 }, rgb(140, 92, 46), { upright = true, transparency = 0.15 })
+    b.add("Cylinder", { 0.3, 0.5, 0.5 }, { 0, 0.75, 0 }, rgb(90, 60, 30), { upright = true, name = "Cork" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.22, 0.4, 0.22 }, { side * 0.42, 0.72, 0 }, rgb(110, 72, 36), { name = "Tuft", rotation = CFrame.Angles(0, 0, side * -0.4) })
+        b.add("Block", { 0.14, 0.7, 0.5 }, { side * 0.66, -0.15, 0 }, rgb(110, 72, 36), { name = "Wing" })
+    end
+    b.add("Block", { 0.18, 0.16, 0.16 }, { 0, 0.02, -0.62 }, rgb(255, 170, 40), { name = "Beak" })
+    b.face(-0.61, 0.25, 0.24, 0.36)
+    b.feet(-0.86, 0.3, rgb(255, 170, 40))
+end
+function Recipes.SeagullThief(b)
+    b.body("Ball", { 1.4, 1.4, 1.4 }, { 0, 0.05, 0 }, rgb(250, 250, 250))
+    b.add("Block", { 1.2, 0.3, 0.1 }, { 0, 0.3, -0.62 }, Ink, { name = "Mask" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.9, 0.12, 0.6 }, { side * 0.85, 0.15, 0.1 }, rgb(170, 180, 190), { name = "Wing", rotation = CFrame.Angles(0, 0, side * 0.3) })
+    end
+    b.add("Block", { 0.24, 0.16, 0.4 }, { 0, -0.05, -0.8 }, rgb(255, 170, 40), { name = "Beak" })
+    b.add("Block", { 0.14, 0.14, 0.9 }, { 0.12, -0.12, -1.0 }, rgb(255, 214, 90), { name = "StolenFry", rotation = CFrame.Angles(0, 0.6, 0) })
+    b.face(-0.71, 0.3, 0.26, 0.3)
+    b.feet(-0.7, 0.26, rgb(255, 170, 40))
+end
+function Recipes.BatterOctopus(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, 0.2, 0 }, rgb(226, 166, 72))
+    for index = 0, 5 do
+        local angle = index * math.pi / 3
+        b.add("Cylinder", { 0.7, 0.3, 0.3 }, { math.cos(angle) * 0.55, -0.55, math.sin(angle) * 0.55 }, rgb(206, 140, 52),
+            { name = "Tentacle" .. index, rotation = CFrame.Angles(0, -angle, -0.9) })
+    end
+    for index, spot in ipairs({ { -0.4, 0.8 }, { 0.3, 0.9 }, { 0.1, 0.6 } }) do
+        b.add("Ball", { 0.2, 0.2, 0.2 }, { spot[1], spot[2], 0.2 }, rgb(196, 130, 50), { name = "Crumb" .. index })
+    end
+    b.face(-0.78, 0.3, 0.28, 0.32)
+end
+function Recipes.FryKraken(b)
+    b.body("Ball", { 1.8, 1.8, 1.8 }, { 0, 0.25, 0 }, rgb(96, 64, 160))
+    for index = 0, 7 do
+        local angle = index * math.pi / 4
+        b.add("Cylinder", { 0.8, 0.32, 0.32 }, { math.cos(angle) * 0.6, -0.55, math.sin(angle) * 0.6 }, rgb(72, 202, 228),
+            { name = "Tentacle" .. index, rotation = CFrame.Angles(0, -angle, -0.9) })
+    end
+    for index, x in ipairs({ -0.35, 0, 0.35 }) do
+        b.add("Block", { 0.18, 0.7, 0.18 }, { x, 1.35, 0 }, rgb(255, 214, 90), { name = "FryCrown" .. index })
+    end
+    b.face(-0.88, 0.35, 0.3, 0.36)
+end
+-- Cosmic Diner (Cosmic Fryer)
+function Recipes.MoonFry(b)
+    b.body("Block", { 0.85, 1.9, 0.85 }, { 0, 0.1, 0 }, rgb(226, 226, 204))
+    for index, spot in ipairs({ { -0.2, 0.75 }, { 0.22, -0.25 }, { -0.15, -0.6 } }) do
+        b.add("Ball", { 0.24, 0.24, 0.24 }, { spot[1], spot[2], -0.38 }, rgb(170, 170, 150), { name = "Crater" .. index })
+    end
+    b.face(-0.44, 0.35, 0.18, 0.28)
+    b.feet(-0.92, 0.22, rgb(170, 170, 150))
+end
+function Recipes.StarSalt(b)
+    b.body("Cylinder", { 1.4, 1.1, 1.1 }, { 0, 0, 0 }, rgb(40, 50, 110), { upright = true })
+    b.add("Cylinder", { 0.42, 1.16, 1.16 }, { 0, 0.88, 0 }, rgb(200, 205, 220), { upright = true, name = "Cap" })
+    for index, spot in ipairs({ { -0.3, 0.3 }, { 0.32, 0.4 }, { 0.2, -0.45 }, { -0.35, -0.35 } }) do
+        b.add("Ball", { 0.12, 0.12, 0.12 }, { spot[1], spot[2], -0.55 }, rgb(255, 230, 120), { name = "Star" .. index, neon = true })
+    end
+    b.face(-0.56, 0.05)
+    b.feet(-0.78)
+end
+function Recipes.AstroCup(b)
+    b.body("Cylinder", { 1.2, 1.2, 1.2 }, { 0, -0.2, 0 }, rgb(240, 242, 250), { upright = true })
+    b.add("Cylinder", { 0.3, 1.24, 1.24 }, { 0, -0.2, 0 }, rgb(76, 201, 240), { upright = true, name = "Band" })
+    b.add("Ball", { 1.2, 1.2, 1.2 }, { 0, 0.55, 0 }, rgb(210, 240, 255), { name = "Helmet", transparency = 0.55 })
+    for index, x in ipairs({ -0.2, 0.15 }) do
+        b.add("Block", { 0.16, 0.7, 0.16 }, { x, 0.55, 0.05 }, rgb(255, 214, 90), { name = "Fry" .. index })
+    end
+    b.face(-0.62, -0.3, 0.24, 0.28)
+    b.feet(-0.92, 0.32, rgb(76, 201, 240))
+end
+function Recipes.AlienTot(b)
+    b.body("Cylinder", { 1.2, 1.2, 1.2 }, { 0, -0.05, 0 }, rgb(176, 220, 90), { upright = true })
+    for index, y in ipairs({ -0.35, 0.05, 0.42 }) do
+        b.add("Cylinder", { 0.06, 1.24, 1.24 }, { 0, y, 0 }, rgb(140, 190, 60), { upright = true, name = "Ridge" .. index })
+    end
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.08, 0.6, 0.08 }, { side * 0.3, 0.85, 0 }, rgb(140, 190, 60), { name = "Antenna", rotation = CFrame.Angles(0, 0, side * -0.3) })
+        b.add("Ball", { 0.24, 0.24, 0.24 }, { side * 0.42, 1.15, 0 }, rgb(255, 92, 168), { name = "AntennaTip", neon = true })
+    end
+    b.face(-0.61, 0.15, 0.26, 0.3)
+    b.feet(-0.75, 0.34, rgb(140, 190, 60))
+end
+function Recipes.CometCola(b)
+    b.body("Cylinder", { 1.4, 1.0, 1.0 }, { 0, 0, 0 }, rgb(76, 201, 240), { upright = true })
+    b.add("Cylinder", { 0.12, 0.92, 0.92 }, { 0, 0.75, 0 }, rgb(200, 205, 220), { upright = true, name = "Lid" })
+    b.add("Block", { 0.5, 0.25, 0.05 }, { 0, -0.2, -0.51 }, rgb(255, 255, 255), { name = "Label" })
+    for index, spot in ipairs({ { 0.2, 0.9 }, { -0.15, 1.3 }, { 0.1, 1.7 } }) do
+        b.add("Ball", { 0.5 - index * 0.1, 0.5 - index * 0.1, 0.5 - index * 0.1 }, { spot[1], 0.1, spot[2] }, rgb(255, 140, 40), { name = "Flame" .. index, neon = true })
+    end
+    b.face(-0.51, 0.2, 0.2, 0.28)
+    b.feet(-0.8, 0.28)
+end
+function Recipes.SaucerBurger(b)
+    b.body("Cylinder", { 0.5, 1.6, 1.6 }, { 0, -0.15, 0 }, rgb(110, 60, 35), { upright = true })
+    b.add("Cylinder", { 0.4, 1.5, 1.5 }, { 0, -0.55, 0 }, rgb(232, 168, 82), { upright = true, name = "Bun" })
+    b.add("Cylinder", { 0.12, 2.3, 2.3 }, { 0, -0.15, 0 }, rgb(76, 201, 240), { upright = true, name = "Rim", neon = true })
+    b.add("Ball", { 1.2, 1.2, 1.2 }, { 0, 0.3, 0 }, rgb(210, 240, 255), { name = "Dome", transparency = 0.45 })
+    b.add("Ball", { 0.7, 0.7, 0.7 }, { 0, 0.25, 0 }, rgb(232, 168, 82), { name = "TopBun" })
+    b.face(-0.82, -0.15, 0.3, 0.26)
+end
+function Recipes.RoboChef(b)
+    b.body("Block", { 1.3, 1.3, 1.0 }, { 0, -0.05, 0 }, rgb(196, 204, 216))
+    b.add("Cylinder", { 0.5, 1.0, 1.0 }, { 0, 0.85, 0 }, rgb(255, 255, 255), { upright = true, name = "HatBand" })
+    b.add("Ball", { 1.1, 1.1, 1.1 }, { 0, 1.3, 0 }, rgb(255, 255, 255), { name = "HatTop" })
+    b.add("Block", { 0.12, 0.7, 0.12 }, { 0.9, 0.1, -0.2 }, rgb(150, 160, 175), { name = "SpatulaHandle" })
+    b.add("Block", { 0.4, 0.3, 0.06 }, { 0.9, 0.55, -0.2 }, rgb(120, 130, 145), { name = "Spatula" })
+    b.add("Block", { 0.7, 0.06, 0.05 }, { 0, -0.45, -0.51 }, rgb(76, 201, 240), { name = "Lights", neon = true })
+    b.face(-0.51, 0.15, 0.24, 0.3)
+    b.feet(-0.8, 0.36, rgb(150, 160, 175))
+end
+function Recipes.GalaxyFry(b)
+    b.body("Block", { 1.0, 2.0, 1.0 }, { 0, 0.05, 0 }, rgb(70, 36, 128))
+    for index, spot in ipairs({ { -0.25, 0.7 }, { 0.3, 0.2 }, { -0.3, -0.5 }, { 0.2, -0.75 } }) do
+        b.add("Ball", { 0.12, 0.12, 0.12 }, { spot[1], spot[2], -0.5 }, rgb(255, 230, 140), { name = "Star" .. index, neon = true })
+    end
+    b.add("Block", { 1.0, 1.6, 0.1 }, { 0, -0.1, 0.56 }, rgb(76, 201, 240), { name = "Cape" })
+    b.add("Cylinder", { 0.36, 1.1, 1.1 }, { 0, 1.22, 0 }, rgb(76, 201, 240), { upright = true, name = "Crown", neon = true })
+    b.face(-0.51, 0.45, 0.22, 0.32)
+    b.feet(-0.98, 0.26, rgb(50, 26, 100))
+end
+-- Fry Palace (Royal Fryer)
+function Recipes.TruffleFry(b)
+    b.body("Block", { 0.85, 1.9, 0.85 }, { 0, 0.1, 0 }, rgb(196, 140, 60))
+    for index, spot in ipairs({ { -0.2, 0.6 }, { 0.25, 0.85 }, { 0.15, -0.3 }, { -0.25, -0.65 }, { 0.2, -0.75 } }) do
+        b.add("Ball", { 0.1, 0.1, 0.1 }, { spot[1], spot[2], -0.43 }, Ink, { name = "Truffle" .. index })
+    end
+    b.add("Block", { 0.87, 0.22, 0.87 }, { 0, 1.0, 0 }, rgb(255, 214, 90), { name = "GoldLeaf" })
+    b.face(-0.44, 0.3, 0.18, 0.28)
+    b.feet(-0.92, 0.22, rgb(150, 100, 40))
+end
+function Recipes.PepperKnight(b)
+    b.body("Cylinder", { 1.6, 1.0, 1.0 }, { 0, -0.05, 0 }, rgb(96, 58, 32), { upright = true })
+    b.add("Ball", { 0.5, 0.5, 0.5 }, { 0, 0.95, 0 }, rgb(70, 40, 20), { name = "Knob" })
+    b.add("Block", { 0.9, 0.24, 0.1 }, { 0, 0.45, -0.5 }, rgb(200, 205, 215), { name = "Visor" })
+    b.add("Block", { 0.7, 0.9, 0.12 }, { 0.75, -0.2, -0.2 }, rgb(200, 205, 215), { name = "Shield", rotation = CFrame.Angles(0, -0.5, 0) })
+    b.add("Block", { 0.3, 0.3, 0.13 }, { 0.78, -0.15, -0.28 }, rgb(230, 57, 70), { name = "Crest", rotation = CFrame.Angles(0, -0.5, 0) })
+    b.face(-0.51, 0.0, 0.2, 0.28)
+    b.feet(-0.9, 0.3, rgb(70, 40, 20))
+end
+function Recipes.VelvetBox(b)
+    b.body("Block", { 1.4, 1.0, 1.1 }, { 0, -0.2, 0 }, rgb(150, 20, 46))
+    b.add("Block", { 1.5, 0.3, 1.2 }, { 0, 0.42, 0 }, rgb(170, 26, 56), { name = "Lid" })
+    b.add("Block", { 1.52, 0.08, 1.22 }, { 0, 0.28, 0 }, rgb(255, 183, 3), { name = "Trim" })
+    b.add("Ball", { 0.36, 0.36, 0.36 }, { 0, 0.66, 0 }, rgb(255, 183, 3), { name = "Clasp" })
+    b.face(-0.56, -0.15, 0.26, 0.3)
+    b.feet(-0.82, 0.42, rgb(110, 14, 34))
+end
+function Recipes.ButlerSpud(b)
+    b.body("Ball", { 1.6, 1.6, 1.6 }, { 0, -0.05, 0 }, rgb(190, 146, 90))
+    b.add("Cylinder", { 0.9, 0.8, 0.8 }, { 0, 1.05, 0 }, Ink, { upright = true, name = "TopHat" })
+    b.add("Cylinder", { 0.08, 1.2, 1.2 }, { 0, 0.62, 0 }, Ink, { upright = true, name = "HatBrim" })
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.3, 0.24, 0.1 }, { side * 0.17, -0.45, -0.7 }, Ink, { name = "BowTie", rotation = CFrame.Angles(0, 0, side * 0.3) })
+    end
+    b.add("Cylinder", { 0.06, 0.42, 0.42 }, { 0.26, 0.25, -0.76 }, rgb(255, 183, 3), { name = "Monocle", rotation = CFrame.Angles(0, math.pi / 2, 0) })
+    b.face(-0.72, 0.22, 0.26, 0.3)
+    b.feet(-0.8, 0.4, rgb(150, 110, 60))
+end
+function Recipes.CrownKetchup(b)
+    b.body("Cylinder", { 1.6, 1.0, 1.0 }, { 0, -0.1, 0 }, rgb(214, 36, 40), { upright = true })
+    b.add("Cylinder", { 0.3, 0.6, 0.6 }, { 0, 0.82, 0 }, rgb(255, 250, 240), { upright = true, name = "Cap" })
+    b.add("Cylinder", { 0.3, 0.8, 0.8 }, { 0, 1.1, 0 }, rgb(255, 183, 3), { upright = true, name = "Crown", body = false })
+    for index = 0, 3 do
+        local angle = index * math.pi / 2
+        b.add("Block", { 0.14, 0.3, 0.14 }, { math.cos(angle) * 0.32, 1.38, math.sin(angle) * 0.32 }, rgb(255, 183, 3), { name = "Point" .. index })
+    end
+    b.add("Block", { 0.6, 0.4, 0.05 }, { 0, -0.35, -0.51 }, rgb(255, 250, 240), { name = "Label" })
+    b.face(-0.51, 0.2, 0.2, 0.28)
+    b.feet(-0.92, 0.28, rgb(160, 24, 28))
+end
+function Recipes.DiamondDip(b)
+    b.body("Cylinder", { 0.8, 1.5, 1.5 }, { 0, -0.35, 0 }, rgb(250, 250, 255), { upright = true })
+    b.add("Cylinder", { 0.2, 1.3, 1.3 }, { 0, 0.08, 0 }, rgb(255, 230, 160), { upright = true, name = "Dip" })
+    b.add("Block", { 0.8, 0.8, 0.8 }, { 0, 0.75, 0 }, rgb(120, 210, 255), { name = "Diamond", neon = true, rotation = CFrame.Angles(math.pi / 4, 0, math.pi / 4) })
+    b.add("Cylinder", { 0.12, 1.56, 1.56 }, { 0, -0.7, 0 }, rgb(255, 183, 3), { upright = true, name = "GoldBand" })
+    b.face(-0.76, -0.35, 0.3, 0.28)
+end
+function Recipes.FryUnicorn(b)
+    b.body("Ball", { 1.5, 1.5, 1.5 }, { 0, 0, 0 }, rgb(252, 250, 255))
+    b.add("Block", { 0.2, 0.9, 0.2 }, { 0, 1.0, -0.25 }, rgb(255, 214, 90), { name = "Horn", rotation = CFrame.Angles(-0.35, 0, 0) })
+    for index, tint in ipairs({ rgb(255, 92, 168), rgb(255, 183, 3), rgb(76, 201, 240), rgb(123, 44, 191) }) do
+        b.add("Ball", { 0.4, 0.4, 0.4 }, { 0.15 - index * 0.05, 0.75 - index * 0.25, 0.55 }, tint, { name = "Mane" .. index })
+    end
+    for _, side in ipairs({ -1, 1 }) do
+        b.add("Block", { 0.2, 0.36, 0.2 }, { side * 0.4, 0.75, 0.05 }, rgb(240, 236, 250), { name = "Ear", rotation = CFrame.Angles(0, 0, side * -0.3) })
+    end
+    b.face(-0.7, 0.18, 0.28, 0.3)
+    b.feet(-0.75, 0.38, rgb(230, 220, 240))
+end
+function Recipes.FryEmperor(b)
+    b.body("Block", { 1.1, 2.1, 1.1 }, { 0, 0.05, 0 }, rgb(255, 214, 90))
+    for index, y in ipairs({ -0.6, 0.0 }) do
+        b.add("Block", { 1.14, 0.1, 1.14 }, { 0, y, 0 }, rgb(236, 170, 40), { name = "Crinkle" .. index })
+    end
+    b.add("Block", { 1.4, 1.8, 0.12 }, { 0, -0.1, 0.62 }, rgb(90, 24, 154), { name = "Cape" })
+    b.add("Block", { 1.42, 0.2, 0.14 }, { 0, -0.95, 0.62 }, rgb(255, 255, 255), { name = "Ermine" })
+    b.add("Cylinder", { 0.5, 1.2, 1.2 }, { 0, 1.35, 0 }, rgb(255, 183, 3), { upright = true, name = "Crown", body = false })
+    for index = 0, 4 do
+        local angle = index * math.pi * 2 / 5
+        b.add("Ball", { 0.22, 0.22, 0.22 }, { math.cos(angle) * 0.5, 1.7, math.sin(angle) * 0.5 }, if index % 2 == 0 then rgb(230, 57, 70) else rgb(76, 201, 240), { name = "Jewel" .. index })
+    end
+    b.add("Block", { 0.12, 1.4, 0.12 }, { 0.8, 0.0, -0.2 }, rgb(255, 183, 3), { name = "Scepter" })
+    b.add("Ball", { 0.3, 0.3, 0.3 }, { 0.8, 0.75, -0.2 }, rgb(123, 44, 191), { name = "ScepterGem", neon = true })
+    b.face(-0.56, 0.45, 0.22, 0.32)
+    b.feet(-1.02, 0.28, rgb(214, 140, 40))
+end
 PetModels.Recipes = Recipes
 -- Returns a Model plus its pieces and local offsets, for callers to place each frame.
 function PetModels.build(petType, golden, parent)
@@ -2920,7 +3837,7 @@ return PetModels
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00055">
+          <Item class="ModuleScript" referent="RBX00058">
             <Properties>
               <string name="Name">PetPortrait</string>
               <ProtectedString name="Source">-- Live 3D pet portraits for the UI: a ViewportFrame showing the same code-built model the
@@ -2967,7 +3884,7 @@ return PetPortrait
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00056">
+          <Item class="ModuleScript" referent="RBX00059">
             <Properties>
               <string name="Name">PetText</string>
               <ProtectedString name="Source">-- Shared pet display text and rarity colors.
@@ -2997,7 +3914,7 @@ return PetText
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00057">
+          <Item class="ModuleScript" referent="RBX00060">
             <Properties>
               <string name="Name">PetsView</string>
               <ProtectedString name="Source">-- Pet inventory: a grid of pet tiles (live 3D portrait, rarity band, name, bonus, equipped
@@ -3280,7 +4197,7 @@ return PetsView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00058">
+          <Item class="ModuleScript" referent="RBX00061">
             <Properties>
               <string name="Name">RebirthView</string>
               <ProtectedString name="Source">-- Rebirth: a REBIRTH menu button and a confirmation panel. The server checks the threshold,
@@ -3362,7 +4279,7 @@ return RebirthView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00059">
+          <Item class="ModuleScript" referent="RBX00062">
             <Properties>
               <string name="Name">RestaurantGuides</string>
               <ProtectedString name="Source">local Theme = require(script.Parent.Theme)
@@ -3478,7 +4395,7 @@ return RestaurantGuides
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00060">
+          <Item class="ModuleScript" referent="RBX00063">
             <Properties>
               <string name="Name">RestaurantMarkers</string>
               <ProtectedString name="Source">local Players = game:GetService("Players")
@@ -3596,7 +4513,108 @@ return RestaurantMarkers
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00061">
+          <Item class="ModuleScript" referent="RBX00064">
+            <Properties>
+              <string name="Name">RestaurantView</string>
+              <ProtectedString name="Source">-- EXPAND: opens at the kiosk in the player's restaurant and shows the next restaurant tier, the
+-- machine it adds (with its top pet as a live portrait), and the Cash price. The server checks
+-- the kiosk distance and the price and raises the tier; this view only displays and requests.
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
+local PetConfig = require(Shared.config.Pets)
+local Theme = require(script.Parent.Theme)
+local E = require(script.Parent.Elements)
+local PetPortrait = require(script.Parent.PetPortrait)
+local RestaurantView = {}
+RestaurantView.__index = RestaurantView
+local PanelWidth, PanelHeight = 380, 372
+function RestaurantView.new(gui, send)
+    local self = setmetatable({ send = send, hasStation = false, ready = false }, RestaurantView)
+    local frame = E.panel(gui, "RestaurantPanel", PanelWidth, PanelHeight, Theme.Gold)
+    self.panel, self.scale, self.close, self.title, self.caption = frame.panel, frame.scale, frame.close, frame.title, frame.caption
+    self.title.Text = "EXPAND"
+    self.close.Activated:Connect(function() self:setOpen(false) end)
+
+    local card = E.card(self.panel, "Next", UDim2.fromOffset(16, E.PanelTop + 10), UDim2.fromOffset(PanelWidth - 32, 206))
+    self.card = card
+    self.tierName = E.label(card, "", 34, Theme.Ink)
+    self.tierName.Name, self.tierName.Position, self.tierName.Size = "TierName", UDim2.fromOffset(14, 10), UDim2.new(1, -28, 0, 34)
+    self.tierName.Font, self.tierName.TextSize = Theme.Display, 28
+    E.fit(self.tierName, 14, 28)
+    self.tagline = E.label(card, "", 18, Theme.Muted)
+    self.tagline.Name, self.tagline.Position, self.tagline.Size, self.tagline.TextSize = "Tagline", UDim2.fromOffset(14, 44), UDim2.new(1, -28, 0, 18), 13
+    E.fit(self.tagline, 8, 13)
+    E.dashes(card, "Divider", UDim2.fromOffset(14, 70), PanelWidth - 60)
+    self.portrait = PetPortrait.make(card, "Portrait", UDim2.fromOffset(100, 100), UDim2.fromOffset(10, 82))
+    self.adds = E.label(card, "", 22, Theme.Ink)
+    self.adds.Name, self.adds.Position, self.adds.Size = "Adds", UDim2.fromOffset(118, 86), UDim2.new(1, -132, 0, 22)
+    self.adds.Font, self.adds.TextSize = Theme.Display, 16
+    E.fit(self.adds, 9, 16)
+    self.spinPrice = E.label(card, "", 18, Theme.Accent)
+    self.spinPrice.Name, self.spinPrice.Position, self.spinPrice.Size, self.spinPrice.TextSize = "SpinPrice", UDim2.fromOffset(118, 110), UDim2.new(1, -132, 0, 18), 13
+    E.fit(self.spinPrice, 8, 13)
+    self.topPet = E.label(card, "", 18, Theme.Muted)
+    self.topPet.Name, self.topPet.Position, self.topPet.Size, self.topPet.TextSize = "TopPet", UDim2.fromOffset(118, 130), UDim2.new(1, -132, 0, 18), 12
+    E.fit(self.topPet, 7, 12)
+    local keeps = E.label(card, "Keeps every machine. Survives rebirth.", 18, Theme.Muted)
+    keeps.Name, keeps.Position, keeps.Size, keeps.TextSize = "Keeps", UDim2.fromOffset(118, 158), UDim2.new(1, -132, 0, 32), 12
+    keeps.TextWrapped = true
+
+    self.confirm = E.button(self.panel, "EXPAND", function() self:expand() end, Theme.Green, 5)
+    self.confirm.Name, self.confirm.Position, self.confirm.Size = "Confirm", UDim2.fromOffset(16, PanelHeight - 70), UDim2.fromOffset(PanelWidth - 37, 50)
+    self.confirm.AutoButtonColor, self.confirm.TextColor3, self.confirm.TextSize = false, Theme.OnColor, 20
+    self.confirmOutline = E.textStroke(self.confirm, Theme.Ink, 2)
+    return self
+end
+function RestaurantView:setOpen(open) self.panel.Visible = open and self.hasStation end
+function RestaurantView:toggle() if self.hasStation then self:setOpen(not self.panel.Visible) end end
+function RestaurantView:expand()
+    if self.hasStation and self.ready and self.panel.Visible then self.send("Expand") end
+end
+function RestaurantView:update(state)
+    self.hasStation = state.hasStation
+    if not state.hasStation then self.panel.Visible = false end
+    -- Open at the kiosk, close on walking away.
+    local near = state.hasStation and state.nearExpand == true
+    if near ~= self.near then
+        self.near = near
+        self.panel.Visible = near
+        if near then self.focusRequested = true end
+    end
+    local info = state.restaurant
+    if not info then return end
+    self.caption.Text = "Tier " .. info.tier .. " of " .. info.max .. "  ·  your " .. info.name
+    local nextTier = info.nextTier
+    if nextTier then
+        self.tierName.Text = string.upper(nextTier.name)
+        self.tagline.Text = nextTier.tagline
+        self.adds.Text = "Adds the " .. string.upper(nextTier.machineName)
+        self.spinPrice.Text = E.money(nextTier.spinPrice) .. " a spin  ·  8 new pets"
+        PetPortrait.set(self.portrait, nextTier.legendary, false)
+        local top = PetConfig.Types[nextTier.legendary]
+        self.topPet.Text = "Top pet: " .. (if top then top.Name .. " (Legendary)" else "a new Legendary")
+        self.portrait.Visible = true
+    else
+        self.tierName.Text = "FULLY UPGRADED"
+        self.tagline.Text = "Your " .. info.name .. " is the finest on the plaza."
+        self.adds.Text, self.spinPrice.Text, self.topPet.Text = "Every machine is unlocked", "", ""
+        self.portrait.Visible = false
+    end
+    self.ready = state.hasStation and nextTier ~= nil and nextTier.affordable == true
+    self.confirm.Active, self.confirm.Selectable = self.ready, self.ready
+    self.confirm.Text = if not nextTier then "ALL UNLOCKED" elseif self.ready then "EXPAND  " .. E.money(nextTier.price)
+        else "NEED " .. E.money(nextTier.price)
+    self.confirm.BackgroundColor3 = if self.ready then Theme.Green else Theme.Disabled
+    self.confirm.TextColor3 = if self.ready then Theme.OnColor else Theme.Muted
+    self.confirmOutline.Enabled = self.ready
+end
+function RestaurantView:resize(viewport)
+    self.scale.Scale = math.min(1, (viewport.X - 32) / PanelWidth, (viewport.Y - 60 - 24) / PanelHeight)
+end
+return RestaurantView
+</ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00065">
             <Properties>
               <string name="Name">SettingsView</string>
               <ProtectedString name="Source">-- Settings: a gear button beside Return to Counter and a panel of saved ON/OFF toggles.
@@ -3658,7 +4676,7 @@ return SettingsView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00062">
+          <Item class="ModuleScript" referent="RBX00066">
             <Properties>
               <string name="Name">ShopView</string>
               <ProtectedString name="Source">-- Upgrade shop: an UPGRADES menu button and a panel with one row per gem upgrade track.
@@ -3750,7 +4768,7 @@ return ShopView
 </ProtectedString>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="RBX00063">
+          <Item class="ModuleScript" referent="RBX00067">
             <Properties>
               <string name="Name">Theme</string>
               <ProtectedString name="Source">-- Diner Sticker palette and type (agreed 17 October 2026). See docs/STYLE_GUIDE.md.
@@ -3797,23 +4815,23 @@ return {
       </Item>
     </Item>
   </Item>
-  <Item class="StarterGui" referent="RBX00064">
+  <Item class="StarterGui" referent="RBX00068">
     <Properties>
       <string name="Name">StarterGui</string>
     </Properties>
   </Item>
-  <Item class="Lighting" referent="RBX00065">
+  <Item class="Lighting" referent="RBX00069">
     <Properties>
       <string name="Name">Lighting</string>
       <token name="LightingStyle">1</token>
     </Properties>
   </Item>
-  <Item class="Players" referent="RBX00066">
+  <Item class="Players" referent="RBX00070">
     <Properties>
       <string name="Name">Players</string>
     </Properties>
   </Item>
-  <Item class="SoundService" referent="RBX00067">
+  <Item class="SoundService" referent="RBX00071">
     <Properties>
       <string name="Name">SoundService</string>
       <bool name="RespectFilteringEnabled">true</bool>

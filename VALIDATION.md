@@ -1,5 +1,26 @@
 # Validation record
 
+## Restaurant tiers: six restaurants, six machines, 48 pets
+
+Validation date: 20 October 2026.
+
+Scope: restaurant tiers 1-6 (Fry Stand, Fry Diner, Drive-In, Fish & Chips Pier, Cosmic Diner, Fry Palace) bought with Cash at an EXPAND kiosk and kept through rebirth; one gacha machine per tier as a physical stand along the front of every plot (locked stands visible); spins only at the right stand for an owned tier; the SPIN menu button moves the player to their best machine; 38 new pets (8 per machine, 4x the previous machine slot for slot) with code-built models; themed restaurant decoration per tier; the EXPAND panel; prices for tiers 3-6 from the new `tools/simulate.py --calibrate`. The owner gave full control over themes, pets, and numbers.
+
+**101 tests passed, 0 failed.** All **60 Luau source/test files** compiled. Output is in TEST_RESULTS.txt.
+
+New or changed coverage:
+
+- Config: six tiers with rising prices, one machine each, 8 pets per machine, every pet in exactly one machine, 4x stats slot for slot, theme colours present.
+- Rules: expanding charges once, one tier at a time, refuses without Cash and at the top; locked machines refuse without charging; pity per machine; older machines keep working; rebirth keeps the tier; `restaurantTier` validated (1-6 whole numbers) and saved.
+- Server: Spin refused away from the stand (and at the wrong stand); VisitMachine moves the player onto the best stand; Expand refused away from the kiosk and without Cash; a real $5M earned by packing and selling buys the Fry Diner once (a rapid second request is ignored); the world shows tier 2 (attribute, decoration, unlocked Deluxe stand, plaque name); another player's tier is unaffected.
+- World: every plot has six stands and a kiosk; applying tiers 2-6 unlocks the right stands, recolours the plot, adds anchored non-touching decoration, and names the restaurant; applying tier 1 restores the original colours and removes decoration; pads sit inside the plot clear of the entrance path.
+- Client: the SPIN button sends VisitMachine; standing at a stand opens its panel (and closes others); a locked machine shows its pets and LOCKED and sends nothing; walking away closes it; the button count includes the EXPAND panel.
+- Pet models: all 48 recipes build anchored, non-colliding parts with two eyes, a body, and Golden sparkles.
+
+Found and fixed while building: two files were briefly copied to the project before their last edit (the EXPAND panel's top-pet text and a test-only field in the world builder that would have errored in Roblox); a test comment had swallowed one assertion in the merge test; the SPIN teleport faced away from the stand on south-side plots.
+
+Not yet done: Studio playtesting (docs/STUDIO_TESTS.md, restaurant tiers) and owner review. Model and decoration proportions especially need a real Studio look.
+
 ## Rebalance: flat three-stat pets, percentage upgrades, short numbers, no Cash cap
 
 Validation date: 20 October 2026.

@@ -1,6 +1,18 @@
 # Roblox Studio acceptance checks
 
-Awaiting review: **the rebalance**. Run its checks first. Visual overhaul 2 (pet models, gacha, and inventory panels) was accepted on 20 October 2026; the sections after it are regression checks for accepted stages, newest first. The overhaul changes how everything looks, so re-run them all once (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026). Sections older than the rebalance quote the old numbers ($100 spins, $1,000 rebirth, 20-fry bags, % pet bonuses); check the behaviour against the current numbers in docs/GAME_RULES.md.
+Awaiting review: **restaurant tiers** and **the rebalance**. Run their checks first. Visual overhaul 2 (pet models, gacha, and inventory panels) was accepted on 20 October 2026; the sections after it are regression checks for accepted stages, newest first. The overhaul changes how everything looks, so re-run them all once (the Increment 2 checks replace the Increment 1 upgrade shop checks, since upgrades now cost gems). The sections after it are regression checks from the accepted UI/UX iteration (accepted 8 October 2026). Sections older than the rebalance quote the old numbers ($100 spins, $1,000 rebirth, 20-fry bags, % pet bonuses); check the behaviour against the current numbers in docs/GAME_RULES.md.
+
+## Restaurant tiers: six restaurants, six stands, the EXPAND kiosk
+
+1. Claim a restaurant. Six stands stand in front of it, three each side of the entrance path: the Starter Fryer is open and five are grey and LOCKED with the restaurant they need. Signs are readable from the plaza and nothing clips the hedges, posts, or path.
+2. Walk onto the Starter Fryer's glowing pad: its panel opens (green). Walk off: it closes. Step onto a locked stand: its panel shows its pets and LOCKED, and spinning does nothing.
+3. Press SPIN in the menu from the counter: you are moved onto your best machine's pad, facing it. Check on a south-side restaurant too.
+4. Walk onto the kiosk pad (inside, front left): the EXPAND panel shows the Fry Diner, the Deluxe Fryer, the Fry Phoenix portrait, and NEED $5M. With $5M (a long session, or edit the simulation numbers temporarily), EXPAND: the roof, fascia, awning, counter, and floor change colour, a FRY DINER roof sign and props appear, the Deluxe Fryer stand lights up, and your Cash drops by $5M.
+5. Spin the Deluxe Fryer: new pets (Onion Ring and friends) with 4x stats. The Starter Fryer still works.
+6. Rebirth: the restaurant stays a Fry Diner.
+7. A second player sees your Fry Diner from the plaza. Leave the game: your plot returns to the Fry Stand look.
+8. Look at each new pet model (spin, or use a test save) and note any that look wrong or float.
+9. If possible, check the higher tiers' looks by temporarily lowering their prices in `config/Restaurants.luau` (do not save that change).
 
 ## Rebalance: flat pets, percentage upgrades, short numbers
 

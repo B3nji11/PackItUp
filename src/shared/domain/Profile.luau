@@ -3,12 +3,14 @@ local Upgrades = require(script.Parent.Parent.config.Upgrades)
 local PetConfig = require(script.Parent.Parent.config.Pets)
 local Machines = require(script.Parent.Parent.config.Machines)
 local SettingsConfig = require(script.Parent.Parent.config.Settings)
+local Restaurants = require(script.Parent.Parent.config.Restaurants)
 local Pricing = require(script.Parent.Pricing)
 local Profile = {}
 function Profile.emptyBag() return { fries = 0 } end
 function Profile.new()
     return { version = 1, cash = 0, sales = 0, lifetimeCash = 0, bag = Profile.emptyBag(),
-        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {}, settings = {}, autoDelete = {} }
+        upgradeLevels = {}, gems = 0, rebirths = 0, pets = {}, equippedPets = {}, nextPetId = 0, pity = {}, settings = {}, autoDelete = {},
+        restaurantTier = 1 }
 end
 local function numberIn(value, low, high, integer)
     return type(value) == "number" and value == value and value >= low and value <= high
@@ -64,7 +66,7 @@ local function validPets(p)
     return true
 end
 -- Version 1 core fields, plus optional upgradeLevels, gems, rebirths, pets, equippedPets,
--- nextPetId, pity, settings, and autoDelete (missing means none or defaults). Extra fields from the earlier prototype,
+-- nextPetId, pity, settings, autoDelete, and restaurantTier (missing means none, defaults, or tier 1). Extra fields from the earlier prototype,
 -- such as `upgrades`, stay in storage but are never used or sent to clients.
 function Profile.validate(p)
     if type(p) ~= "table" or p.version ~= 1 then return false end
@@ -82,6 +84,7 @@ function Profile.validate(p)
             end
         end
     end
+    if p.restaurantTier ~= nil and not numberIn(p.restaurantTier, 1, Restaurants.Max, true) then return false end
     if not validPets(p) then return false end
     -- Capacity depends on balance data that may change between releases, so a bag only
     -- needs a sane size here; normalize() trims it to the current capacity on load.

@@ -30,11 +30,19 @@ Every stat = (base + equipped pets' flat amounts) x (1 + upgrade percent). Numbe
 - Gems, upgrade levels, the rebirth count, sales, and lifetime Cash are kept.
 - The client sends only the request. The server checks the restaurant claim and the threshold, and applies the whole rebirth in one non-yielding operation. A short cooldown stops a rapid repeat from rebirthing twice.
 
+## Restaurant tiers
+
+- Six restaurants: Fry Stand (free), Fry Diner ($5M), Drive-In ($30M), Fish & Chips Pier ($750M), Cosmic Diner ($10B), Fry Palace ($350B). Each adds one gacha machine and keeps every earlier one.
+- Buy the next tier with Cash at the EXPAND kiosk inside your restaurant (front left). The client sends only Expand; the server checks the claim, that the player is at the kiosk, and the Cash, then deducts the price and raises the tier by one in one non-yielding step. Tiers cannot be skipped and a short cooldown stops a double purchase.
+- Tiers are permanent: rebirth resets Cash and the bag, never the tier. Saved as `restaurantTier` (1-6; missing means 1).
+- Tiers change machines and looks only. The basic fryer stays at 0.5 fries per second.
+
 ## Gacha and pets
 
+- **Machines** (one per tier, each a stand in front of the restaurant): Starter Fryer $150, Deluxe Fryer $150K, Drive-In Grill $1.5M, Pier Fryer $25M, Cosmic Fryer $200M, Royal Fryer $4B per spin. A machine needs its restaurant tier, and the player standing on its pad; the server checks both.
 - **Starter Fryer:** $150 Cash per spin, 8 pets. Odds: Common 60%, Uncommon 25%, Rare 10%, Epic 4%, Legendary 1%. Pets in a rarity share its chance equally (Common 20% each, Uncommon 12.5% each, Rare 10%, Epic 4%, Legendary 1%).
-- **Pets** (fries per click / money per fry / bag): Crinkle Fry +4 / +$1 / +10, Salt Shaker +2 / +$2 / +10, Paper Cup +2 / +$1 / +20 (Common); Potato Pup +6 / +$1.50 / +15, Ketchup Packet +3 / +$3 / +15 (Uncommon); Mayo Jar +4 / +$4 / +20 (Rare); Fryer Bot +6 / +$3 / +60 (Epic); Fry King +12 / +$6 / +60 (Legendary). Napkin Ghost and Curly Fry Cat are no longer in the Starter Fryer (they join the Deluxe Fryer); copies already owned keep working.
-- **Pity:** the 50th spin in a row without an Epic or better is Epic or better (Epic 80%, Legendary 20%). Any Epic or Legendary resets the counter.
+- **Pets** (fries per click / money per fry / bag): Crinkle Fry +4 / +$1 / +10, Salt Shaker +2 / +$2 / +10, Paper Cup +2 / +$1 / +20 (Common); Potato Pup +6 / +$1.50 / +15, Ketchup Packet +3 / +$3 / +15 (Uncommon); Mayo Jar +4 / +$4 / +20 (Rare); Fryer Bot +6 / +$3 / +60 (Epic); Fry King +12 / +$6 / +60 (Legendary). Every later machine has 8 pets in the same slots at 4x the previous machine's stats (see README, Restaurant tiers, for the names). Napkin Ghost and Curly Fry Cat moved from the Starter Fryer to the Deluxe Fryer; copies already owned keep working.
+- **Pity:** the 50th spin in a row without an Epic or better is Epic or better (Epic 80%, Legendary 20%). Any Epic or Legendary resets the counter. Pity is counted per machine.
 - The client sends only Spin with the machine name. The server checks the claim, Cash, and inventory space, then deducts the price, rolls with a server-side random number, adds the pet, and updates pity in one non-yielding step.
 - **Inventory:** up to 50 pets, each with a unique ID that is never reused. Spinning is blocked when full.
 - **Equipping:** up to 3 pets. Their flat amounts add together, then upgrade percentages apply.
@@ -79,7 +87,7 @@ Four menu buttons: UPGRADES, REBIRTH, SPIN, and PETS. On tall screens they are l
 
 - UPGRADES opens one row per track: level, current value -> next value, and a Buy button showing the gem cost. Unaffordable Buy buttons are greyed out and send nothing.
 - REBIRTH glows when the threshold is reached. Its panel shows the gems it gives, the threshold and current Cash with a progress bar, what resets and what is kept, and the rebirth count. The confirm button reads NEED $X until the threshold is reached, then REBIRTH NOW. A completed rebirth closes the panel.
-- SPIN opens the Starter Fryer: price and pity in the caption, the last result (3D portrait, rarity tag, name, bonus), a pity bar, the pet count, a button reading SPIN $150, NEED $150, or INVENTORY FULL, and every pet in the machine with its own chance (its rarity's chance split evenly between that rarity's pets).
+- SPIN moves the player onto their best machine's pad. Standing on any stand's pad opens that machine's panel (in its colour) and walking off closes it: price and pity in the caption, the last result (3D portrait, rarity tag, name, bonus), a pity bar, the pet count, a button reading SPIN $X, NEED $X, INVENTORY FULL, or LOCKED (locked machines still show their pets), and every pet in the machine with its own chance (its rarity's chance split evenly between that rarity's pets).
 - PETS shows owned pets as tiles (equipped first, then by rarity, Golden first) with portrait, name, and bonus. Tapping a tile selects it; the detail bar below shows its rarity and full bonus, EQUIP/UNEQUIP (SLOTS FULL when three are equipped), and DELETE (unequipped only; tap twice within 3 seconds). Above the grid: AUTO-DELETE and DELETE ALL chips for Common, Uncommon, and Rare, and a merge banner with MERGE for the rarest mergeable pet.
 - X closes any panel.
 

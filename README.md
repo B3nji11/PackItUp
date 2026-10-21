@@ -18,8 +18,9 @@ Everything in the world and UI is built in code. No paid assets, plugins, extern
 | Visual overhaul 1 | Diner Sticker style foundation, icon system, new HUD layout, all panels restyled | Accepted 18 Oct |
 | Visual overhaul 2 | Cartoon pet models, live pet portraits, PETS as a tile grid, new SPIN machine panel | Accepted 20 Oct |
 | Rebalance | Flat three-stat pets, percentage upgrades, 40-fry bag, short numbers, no Cash cap, faster first world | **Built, awaiting Studio test and review** |
+| Restaurant tiers | Six restaurants (Fry Stand to Fry Palace) bought with Cash, six physical gacha stands, 48 pets, EXPAND kiosk, themed restaurants | **Built, awaiting Studio test and review** |
 
-Overhaul increments 1 and 2 are accepted. **The rebalance is built and awaiting review**; **restaurant tiers come next** (criteria awaiting agreement). Both are below. Robux stays on hold.
+Overhaul increments 1 and 2 are accepted. **The rebalance and restaurant tiers are built and awaiting review** (both below). The owner gave full control over the tiers' themes, pets, and numbers. Robux stays on hold.
 
 ## What the game has now
 
@@ -31,8 +32,9 @@ Overhaul increments 1 and 2 are accepted. **The rebalance is built and awaiting 
 **Progression**
 - **Rebirth:** at $250K Cash (x2 each rebirth), reset Cash and the current bag for gems (10, then +5 each rebirth). Gems, upgrades, pets, and the rebirth count are kept.
 - **Upgrades (gems):** +10% fries per click, money per fry, or bag capacity per level (levels add up). Permanent; costs rise 1.25x per level.
-- **Gacha (Cash):** the Starter Fryer costs $150 per spin, shows every pet's chance, and guarantees an Epic or better by the 50th spin without one.
-- **Pets:** 8 Fry Buddies in the Starter Fryer, from Common to Legendary. Every pet adds flat fries per click, money per fry, and bag size, leaning towards one. Equip up to 3; stat = (base + equipped pets) x (1 + upgrade percent).
+- **Restaurant tiers (Cash):** six restaurants from the Fry Stand to the Fry Palace, bought at the EXPAND kiosk. Each keeps every earlier machine, adds a new one, and dresses the restaurant in its theme. Permanent; survive rebirth.
+- **Gacha (Cash):** six machines as physical stands in front of your restaurant, from the Starter Fryer ($150) to the Royal Fryer ($4B). Walk onto a stand's pad to spin. Each shows every pet's chance and guarantees an Epic or better by the 50th spin without one.
+- **Pets:** 48 Fry Buddies, 8 per machine, from Common to Legendary. Every pet adds flat fries per click, money per fry, and bag size, leaning towards one. Equip up to 3; stat = (base + equipped pets) x (1 + upgrade percent).
 - **Inventory management:** 50 pets; merge 5 copies into a Golden pet (2x stats); delete one pet, or all unequipped Commons, Uncommons, or Rares; auto-delete chosen rarities as you spin.
 - **Following pets and Settings:** equipped pets follow their owner for everyone to see. Settings: *Pets follow me* and *Show other players' pets*.
 
@@ -75,31 +77,32 @@ Agreed criteria. Numbers come from `tools/simulate.py`; the owner asked for high
 4. **Base player:** 2 fries per click, $1 per fry, 40-fry bag ($40 per bag). The basic fryer stays at 0.5 fries per second.
 5. **Short numbers:** Cash, prices, and stats show as $1.25K, $3.4M, $1.25B, $2T and so on (see 6 for the full list).
 6. **No practical Cash cap** (owner decision, 20 October 2026). The $1 trillion cap goes. A hidden safety limit at 1e300 stays only so a number can never become infinity, which would corrupt a save; no player can reach it. Short names run K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc, then scientific notation (1.2e36). Above about 9 quadrillion, amounts are kept to about 15 significant digits, far finer than anything the game shows.
-7. **Prices:** Starter spin $150 (about 20 seconds of a new player's income); rebirth $250K, then x2 each time; gems per rebirth unchanged (10, +5 each). Restaurant tiers will use Fry Diner $5M and Deluxe spin $150K. Odds and pity unchanged.
+7. **Prices:** Starter spin $150 (about 20 seconds of a new player's income); rebirth $250K, then x2 each time; gems per rebirth unchanged (10, +5 each). Restaurant tiers: Fry Diner $5M and Deluxe spin $150K (see Restaurant tiers for the rest). Odds and pity unchanged.
    Simulated pace (median, `tools/simulate.py`): first spin 20 s, first rebirth 3 min, rebirths 2 and 3 at 6 and 9 min, Fry Diner 18 min. The first Legendary comes at about 1 minute: the Starter Fryer is the quick first machine; the longer chases are Golden pets, the Diner, and the Deluxe Fryer.
 8. **Tests and docs** updated: pricing formula, pet text, shop text, number formatting, caps.
 
-## Then: restaurant tiers (proposed 20 October 2026)
+## Restaurant tiers (built 20 October 2026, awaiting review)
 
-Better gacha machines are how players progress, and each new machine also upgrades the restaurant: a better machine means a more elaborate restaurant that everyone on the plaza can see. Agreed with the owner on 20 October 2026:
+Better gacha machines are how players progress, and each new machine also upgrades the restaurant: a better machine means a more elaborate restaurant that everyone on the plaza can see. Agreed with the owner on 20 October 2026: machines are physical stands; new machines join the old ones; tiers cost Cash, are permanent, and survive rebirth; tiers change machines and looks only (the fryer rate stays fixed). The owner then asked for four more tiers beyond the Fry Diner and gave full control over their themes, pets, and numbers.
 
-- **Machines are physical stands** inside the player's own restaurant. Walking up to one opens the existing SPIN panel for that machine; walking away closes it. The server checks the player is at the stand before it spins, as it already does for selling at the counter.
-- **New machines join the old ones.** Every tier keeps all earlier machines, so older pets can still be collected and merged.
-- **Restaurant upgrades cost Cash.**
-- **Tiers are permanent.** They survive rebirth (rebirth already resets Cash, so losing the restaurant too would be too punishing).
-- **Tiers change machines and looks only.** The base fryer rate stays fixed. A fryer upgrade may come later as a player upgrade track with a small effect.
-- **Start with two tiers:** the base restaurant and one upgrade. Once that works, keep adding tiers.
+| Tier | Restaurant | Price | Machine (spin) | Theme | Pets (Common, Common, Common, Uncommon, Uncommon, Rare, Epic, Legendary) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Fry Stand | free | Starter Fryer ($150) | the original coral and cream | Crinkle Fry, Salt Shaker, Paper Cup, Potato Pup, Ketchup Packet, Mayo Jar, Fryer Bot, Fry King |
+| 2 | Fry Diner | $5M | Deluxe Fryer ($150K) | 50s diner: red, chrome, pink neon, chrome stools, a jukebox, a checkered entrance | Onion Ring, Pickle Chip, Napkin Ghost, Hash Brown Hamster, Milkshake, Curly Fry Cat, Cheese Sauce Slime, Fry Phoenix |
+| 3 | Drive-In | $30M | Drive-In Grill ($1.5M) | teal and sunset orange, a giant burger and a classic car on the roof, string lights | Sesame Bun, Mustard Bottle, Paper Tray, Burger Bear, Soda Seal, Hot Dog Pup, Carhop Bot, Burger Dragon |
+| 4 | Fish & Chips Pier | $750M | Pier Fryer ($25M) | navy and white with a wooden floor, a lighthouse, a giant fish, life rings | Fish Stick, Tartar Tub, Newspaper Cone, Chip Crab, Vinegar Owl, Seagull Thief, Battered Octopus, Fry Kraken |
+| 5 | Cosmic Diner | $10B | Cosmic Fryer ($200M) | deep purple and cyan neon, a ringed planet, a satellite dish, floating stars | Moon Fry, Star Salt, Astro Cup, Alien Tot, Comet Cola, Saucer Burger, Robo Chef, Galaxy Fry Lord |
+| 6 | Fry Palace | $350B | Royal Fryer ($4B) | royal purple and gold, gold columns, a crown on the roof, banners, a red carpet | Truffle Fry, Pepper Knight, Velvet Box, Butler Spud, Crown Ketchup, Diamond Dip, Fry Unicorn, Fry Emperor |
 
-### Proposed acceptance criteria (first draft, numbers are first guesses)
+How it works:
 
-1. **Tier 1, Fry Stand** (every player): today's restaurant plus a physical Starter Fryer stand ($150 per spin, the 8 Starter pets).
-2. **Tier 2, Fry Diner:** bought for **$5M Cash** at an EXPAND sign inside the restaurant. It adds a **Deluxe Fryer** stand ($150K per spin) and a visibly fancier restaurant: a bigger sign, an awning, neon trim, and seating, all inside the existing plot.
-3. **Deluxe Fryer pets:** 6 to 8 pets including Napkin Ghost and Curly Fry Cat, 4 times the Starter pet in the same slot (see the rebalance), with the same rarity odds and pity (Epic or better within 50 spins). Names and models to be agreed.
-4. **SPIN menu button:** no longer opens the panel from anywhere. It shows an arrow to the nearest machine stand in your restaurant.
-5. **Saving:** the tier is a new profile field (never a reused legacy name), kept through rebirth. Old saves start at tier 1.
-6. **Others see it:** every player's restaurant shows its own tier on the plaza.
-7. **Tests:** the tier price is charged on the server only; you can't buy tier 2 twice or skip tiers; spins need the right machine and the right tier and the player at its stand; rebirth keeps the tier.
-
+- **Stands:** all six machine stands stand along the front of every plot, three each side of the entrance path. Stands your restaurant has not reached are grey and LOCKED (with the restaurant they need), so everyone sees what comes next. Walk onto a stand's glowing pad to open its SPIN panel; walk off to close it. The server only spins at the right stand, for a tier you own.
+- **SPIN menu button:** moves you onto your best machine's pad (like Return to Counter does for the counter). Walk along the row to reach the others.
+- **EXPAND kiosk:** inside the restaurant, front left. Walk onto its pad to open the EXPAND panel: the next restaurant, its tagline, the machine it adds with its top pet as a live portrait, and the price. A hint appears when you can afford it.
+- **Pets:** every machine's pets are 4x the previous machine's, slot for slot (Fry Emperor: +12,288 fries/click, +$6,144/fry, +61,440 bag). Same odds and pity everywhere; pity is counted per machine.
+- **Looks:** each tier recolours the roof, fascia, posts, awning, counter, benches, and floor, adds a roof sign with the restaurant's name, neon trim, and themed props. Releasing a plot returns it to the Fry Stand look.
+- **Saving:** `restaurantTier` (1-6) in the profile; missing means 1. Kept through rebirth.
+- **Pace** (`tools/simulate.py`, one ideal player): Fry Diner at about 18 min, Drive-In 46, Pier 66, Cosmic 90, Palace about 110. Prices for tiers 3-6 were derived with `python3 tools/simulate.py --calibrate` (5 minutes of saving for tier 3, 1.5x longer for each tier after), then rounded.
 
 ## Visual overhaul (increments 1 and 2 accepted)
 
@@ -132,11 +135,17 @@ Icons drop in at any point: add the PNG to `art/icons/`, upload it, and paste it
 
 ## Later (on hold)
 
-- Restaurant tiers 3 and up (more machines and restaurant looks), later perhaps unlockable worlds.
+- More restaurant tiers past the Fry Palace, later perhaps unlockable worlds. Add a tier in `config/Restaurants.luau`, a machine in `config/Machines.luau`, its 8 pets in `config/Pets.luau` (4x the previous machine), pet recipes in `client/ui/PetModels.luau`, a stand slot and decoration in `server/world/TierBuilder.luau`, then rerun `tools/simulate.py --calibrate`.
 - Robux purchases (odds must be shown; selling gems would sell upgrades directly, so choose carefully).
 - Possible: rebirth-count unlocks, extra pet slots, more upgrade tracks.
 
 ## Known issues and things to improve
+
+**Restaurant tiers (new)**
+- The six stands, kiosk, and themed props are built from simple parts and have not been seen in Studio yet: check sizes, overlaps with walls and hedges, and that the signs read well.
+- Every claimed plot shows its owner's tier to everyone on the server; unclaimed plots show the Fry Stand look with the Starter Fryer open and the other five LOCKED.
+- 38 new pet models are code-built recipes; some will need tuning once seen in 3D.
+- Late tiers come quickly once rebirths stop gating (the rebirth threshold doubles while income grows about 16-30x per tier). Retune `tools/simulate.py` after playtests.
 
 **Needs testing**
 - Real DataStore saving has never been tested end to end in a published test experience.

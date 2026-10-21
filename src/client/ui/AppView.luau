@@ -10,6 +10,7 @@ local RebirthView = require(script.Parent.RebirthView)
 local GachaView = require(script.Parent.GachaView)
 local PetsView = require(script.Parent.PetsView)
 local SettingsView = require(script.Parent.SettingsView)
+local RestaurantView = require(script.Parent.RestaurantView)
 local AppView = {}
 AppView.__index = AppView
 local Margin, TopBar = 16, 48
@@ -70,13 +71,15 @@ function AppView.new(playerGui, send)
     -- Menu order: Upgrades, Rebirth, Spin, Pets.
     self.menus = { self.shop, self.rebirth, self.gacha, self.pets }
     self.settings = SettingsView.new(gui, send)
+    -- The EXPAND panel has no menu button: it opens at the kiosk in the restaurant.
+    self.restaurant = RestaurantView.new(gui, send)
     -- Opening one panel closes the others so they never stack.
-    self.panels = { self.shop, self.rebirth, self.gacha, self.pets, self.settings }
+    self.panels = { self.shop, self.rebirth, self.gacha, self.pets, self.settings, self.restaurant }
     for _, menu in ipairs(self.panels) do
-        menu.button.Activated:Connect(function()
+        if menu.button then menu.button.Activated:Connect(function()
             if not menu.panel.Visible then return end
             for _, other in ipairs(self.panels) do if other ~= menu then other:setOpen(false) end end
-        end)
+        end) end
     end
     self:resize(Vector2.new(1280, 720))
     return self
@@ -91,12 +94,22 @@ function AppView:update(state)
     self.teleport.AutoButtonColor = state.hasStation
     self.teleport.BackgroundColor3 = if state.hasStation then Theme.Red else Theme.Muted
     if not self.errorUntil or os.clock() >= self.errorUntil then
-        self.guidance.Visible = not state.hasStation
-        self.guidance.Text = "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
+        local nextTier = state.restaurant and state.restaurant.nextTier
+        local canExpand = state.hasStation and nextTier ~= nil and nextTier.affordable and not state.nearExpand
+        self.guidance.Visible = not state.hasStation or canExpand
+        self.guidance.Text = if canExpand then "You can afford the " .. nextTier.name .. "! Walk to the EXPAND kiosk inside your restaurant."
+            else "Follow an AVAILABLE arrow. Press E or tap the entrance prompt to claim."
         self.guidance.TextColor3 = Theme.Ink
     end
     self.hud:update(state)
     for _, menu in ipairs(self.panels) do menu:update(state) end
+    -- A panel that opened itself (walking up to a stand or the kiosk) closes the others.
+    for _, menu in ipairs(self.panels) do
+        if menu.focusRequested then
+            menu.focusRequested = nil
+            for _, other in ipairs(self.panels) do if other ~= menu then other:setOpen(false) end end
+        end
+    end
 end
 function AppView:notice(text, success)
     -- Sales are acknowledged by the wallet and bag reset, without a bottom toast.

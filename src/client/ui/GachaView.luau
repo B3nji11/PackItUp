@@ -1,6 +1,9 @@
 -- Gacha machine: the last pull (live portrait, rarity tag, bonus), a pity progress bar, the
 -- SPIN button, and every pet in the machine as a tile with its own chance. Two columns on
 -- wide screens, stacked on narrow ones. The server rolls; this view only displays and requests.
+-- Machines are physical stands in the player's restaurant: the panel opens for a machine when
+-- the server reports the player at its stand, and closes when they walk away. The SPIN menu
+-- button asks the server to move the player to their best machine.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("FriesShared")
 local PetConfig = require(Shared.config.Pets)
 local Theme = require(script.Parent.Theme)
@@ -15,7 +18,7 @@ local WideAt, LeftWidth = 560, 240
 local PoolTileWidth, PoolTileHeight = 88, 112
 function GachaView.new(gui, send)
     local self = setmetatable({ send = send, hasStation = false, canSpin = false, poolTiles = {} }, GachaView)
-    self.button = E.menuButton(gui, "SpinButton", "SPIN", "spin", GachaView.Accent, function() self:toggle() end)
+    self.button = E.menuButton(gui, "SpinButton", "SPIN", "spin", GachaView.Accent, function() self:visit() end)
     local frame = E.panel(gui, "GachaPanel", MaxWidth, MaxHeight, Theme.Green)
     self.panel, self.scale, self.close, self.title, self.caption = frame.panel, frame.scale, frame.close, frame.title, frame.caption
     self.title.Text = "STARTER FRYER"
@@ -63,10 +66,43 @@ function GachaView.new(gui, send)
     self.wide = nil
     return self
 end
-function GachaView:setOpen(open) self.panel.Visible = open and self.hasStation end
+function GachaView:setOpen(open) self.panel.Visible = open and self.hasStation and self.machineId ~= nil end
 function GachaView:toggle() if self.hasStation then self:setOpen(not self.panel.Visible) end end
+-- SPIN in the menu walks the player to their best machine (the server moves them).
+function GachaView:visit() if self.hasStation then self.send("VisitMachine") end end
 function GachaView:spinOnce()
     if self.canSpin and self.panel.Visible and self.machineId then self.send("Spin", self.machineId) end
+end
+-- Header, checker strip, and SPIN button follow the machine's theme colour.
+function GachaView:setAccent(color)
+    self.accent = color
+    local header = self.panel:FindFirstChild("Header")
+    if header then
+        header.BackgroundColor3 = color
+        local square = header:FindFirstChild("Square")
+        if square then square.BackgroundColor3 = color end
+    end
+    local checker = self.panel:FindFirstChild("Checker")
+    for _, cell in ipairs(if checker then checker:GetChildren() else {}) do cell.BackgroundColor3 = color end
+end
+-- Shows a different machine: new title, colour, pool tiles, and a fresh result card.
+function GachaView:showMachine(machine)
+    self.machineId = machine.id
+    self:setAccent(Theme[machine.accent or "Green"] or Theme.Green)
+    self.title.Text = string.upper(machine.name)
+    for _, tile in pairs(self.poolTiles) do tile:Destroy() end
+    self.poolTiles = {}
+    local order = 0
+    for _, row in ipairs(machine.odds) do
+        for _, petType in ipairs(row.types or {}) do
+            order += 1
+            self.poolTiles[petType] = self:poolTile(petType, row.rarity, row.chance * 100 / #row.types, order)
+        end
+    end
+    self.mystery.Visible, self.tag.Visible = true, false
+    PetPortrait.set(self.portrait, nil)
+    self.resultName.Text, self.resultName.TextColor3 = "Spin to get a Fry Buddy!", Theme.Ink
+    self.resultBonus.Text = "Pets you win appear in PETS."
 end
 -- One tile per pet in the machine, with that pet's own chance.
 function GachaView:poolTile(petType, rarity, chance, order)
@@ -100,13 +136,26 @@ function GachaView:update(state)
     self.hasStation = state.hasStation
     E.setMenuEnabled(self.button, state.hasStation, GachaView.Accent)
     if not state.hasStation then self.panel.Visible = false end
-    local machine, pets = state.machine, state.pets
-    if not machine or not pets then return end
-    self.machineId = machine.id
-    self.title.Text = string.upper(machine.name)
+    local pets, machines = state.pets, state.machines
+    if not machines or not pets then return end
+    -- Open at a stand, close on walking away (only if the stand opened it).
+    local near = state.hasStation and state.nearMachine or nil
+    if near ~= self.nearId then
+        self.nearId = near
+        if near and machines[near] then
+            if self.machineId ~= near then self:showMachine(machines[near]) end
+            self.panel.Visible = true
+            self.focusRequested = true -- AppView closes the other panels
+        elseif self.panel.Visible then
+            self.panel.Visible = false
+        end
+    end
+    local machine = self.machineId and machines[self.machineId]
+    if not machine then return end
     local left = machine.pityEvery - machine.pity
-    self.caption.Text = E.money(machine.price) .. " per spin  ·  " .. machine.pityRarity .. " or better within " .. left
-        .. (if left == 1 then " spin" else " spins")
+    self.caption.Text = if machine.unlocked then E.money(machine.price) .. " per spin  ·  " .. machine.pityRarity
+        .. " or better within " .. left .. (if left == 1 then " spin" else " spins")
+        else "Locked  ·  expand your restaurant to use this machine"
     self.pityText.Text = string.upper(machine.pityRarity) .. "+ GUARANTEED IN " .. left .. (if left == 1 then " SPIN" else " SPINS")
     self.pityFill.Size = UDim2.fromScale(math.clamp(machine.pity / machine.pityEvery, 0, 1), 1)
     if not next(self.poolTiles) then
@@ -120,10 +169,12 @@ function GachaView:update(state)
     end
     local full = #pets.owned >= pets.max
     local affordable = state.profile.cash >= machine.price
-    self.canSpin = state.hasStation and affordable and not full
+    local here = state.nearMachine == machine.id
+    self.canSpin = state.hasStation and here and machine.unlocked and affordable and not full
     self.count.Text = "PETS " .. #pets.owned .. " / " .. pets.max .. (if full then "  ·  inventory full" else "")
     self.spin.Active, self.spin.Selectable = self.canSpin, self.canSpin
-    self.spin.Text = if full then "INVENTORY FULL" elseif affordable then "SPIN  " .. E.money(machine.price) else "NEED " .. E.money(machine.price)
+    self.spin.Text = if not machine.unlocked then "LOCKED" elseif full then "INVENTORY FULL"
+        elseif not here then "WALK TO THE STAND" elseif affordable then "SPIN  " .. E.money(machine.price) else "NEED " .. E.money(machine.price)
     self.spin.BackgroundColor3 = if self.canSpin then Theme.Green else Theme.Disabled
     self.spin.TextColor3 = if self.canSpin then Theme.OnColor else Theme.Muted
     self.spinOutline.Enabled = self.canSpin

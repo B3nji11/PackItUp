@@ -87,7 +87,9 @@ do
     local Rebirth=loadModule("shared/domain/Rebirth")
     local Gacha=loadModule("shared/domain/Gacha")
     local PetConfig=loadModule("shared/config/Pets")
-    local sampleProfile={cash=1250000,gems=12,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2},pity={StarterFryer=7},
+    local Machines=loadModule("shared/config/Machines")
+    local Restaurant=loadModule("shared/domain/Restaurant")
+    local sampleProfile={cash=1250000,gems=12,restaurantTier=2,rebirths=1,upgradeLevels={FriesPerClick=1,BagCapacity=2},pity={StarterFryer=7},
         pets={{id="P1",type="FryKing",machine="StarterFryer"},{id="P2",type="MayoJar",machine="StarterFryer"},
             {id="P3",type="PotatoPup",machine="StarterFryer"},{id="P4",type="CrinkleFry",machine="StarterFryer"},
             {id="P5",type="PaperCup",machine="StarterFryer"}},equippedPets={"P1","P2"}}
@@ -105,18 +107,22 @@ do
         {1280,720,true,12,"desktop-rebirth","rebirth"},{390,844,true,12,"phone-rebirth","rebirth"},{640,360,true,12,"landscape-rebirth","rebirth"},
         {1280,720,true,12,"desktop-spin","gacha"},{390,844,true,12,"phone-spin","gacha"},{844,390,true,12,"wide-landscape",nil},
         {1280,720,true,12,"desktop-pets","pets"},{390,844,true,12,"phone-pets","pets"},
-        {1280,720,true,12,"desktop-settings","settings"},{640,360,true,12,"landscape-pets","pets"}}) do
+        {1280,720,true,12,"desktop-settings","settings"},{640,360,true,12,"landscape-pets","pets"},
+        {1280,720,true,12,"desktop-expand","restaurant"},{390,844,true,12,"phone-expand","restaurant"},
+        {1280,720,true,12,"desktop-spin-locked","gacha","DriveInGrill"},{1280,720,true,12,"desktop-spin-diner","gacha","DeluxeFryer"}}) do
         local app=loadModule("client/ui/AppView").new(makeInstance("PlayerGui"),function() end)
         app:resize(Vector2.new(example[1],example[2]))
         app:update({hasStation=example[3],nearStation=example[3],volatile=true,
             profile={cash=1250000,gems=12,bag={fries=example[4]}},shop=Upgrades.snapshot(sampleProfile),rebirth=Rebirth.snapshot(sampleProfile),
-            machine=Gacha.snapshot(sampleProfile,"StarterFryer"),pets={owned=owned,equipped=2,slots=3,max=50,mergeCount=5,
+            machines=(function() local rows={} for _,id in ipairs(Machines.Order) do rows[id]=Gacha.snapshot(sampleProfile,id) end return rows end)(),
+            machineOrder=Machines.Order, restaurant=Restaurant.snapshot(sampleProfile),
+            nearMachine=if example[6]=="gacha" then (example[7] or "StarterFryer") else nil, nearExpand=example[6]=="restaurant",pets={owned=owned,equipped=2,slots=3,max=50,mergeCount=5,
                 mergeable={{type="CrinkleFry",name="Crinkle Fry",count=5,rank=1}},autoDelete={Common=true}},
             settings={PetsFollow=true,ShowOtherPets=false},
             spin={serial=1,id="P2",type="MayoJar"},
             stats={perClick=Pricing.click(sampleProfile),perSecond=0.5,perFry=Pricing.perFry(sampleProfile),
                 capacity=Pricing.capacity(sampleProfile),saleValue=Pricing.sale(sampleProfile)}})
-        if example[6] == "rebirth" then app.rebirth:toggle() elseif example[6] == "gacha" then app.gacha:toggle()
+        if example[6] == "rebirth" then app.rebirth:toggle() elseif example[6] == "gacha" or example[6] == "restaurant" then -- opened by being at the stand or kiosk
         elseif example[6] == "pets" then app.pets:toggle(); app.pets:select("P2") elseif example[6] == "settings" then app.settings:toggle()
         elseif example[6] then app.shop:toggle() end
         print("UI_PREVIEW:"..encode({name=example[5],width=example[1],height=example[2],ui=capture(app.hud.frame.Parent)}))

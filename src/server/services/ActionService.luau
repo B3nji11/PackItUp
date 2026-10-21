@@ -10,6 +10,7 @@ local Gacha = require(Shared.domain.Gacha)
 local Pets = require(Shared.domain.Pets)
 local Profile = require(Shared.domain.Profile)
 local Settings = require(Shared.domain.Settings)
+local Restaurant = require(Shared.domain.Restaurant)
 local ActionService = {}
 ActionService.__index = ActionService
 function ActionService.new(data, stations, network, snapshots)
@@ -49,18 +50,36 @@ function ActionService:handle(player, action, argument)
         self.network:notice(player, "Return to your counter to work.", false)
         return
     end
+    -- Machines spin only at their own stand; the restaurant expands only at its kiosk.
+    if action == "Spin" and self.stations:nearMachine(player) ~= argument then
+        self.network:notice(player, "Walk up to that machine's stand to spin.", false)
+        return
+    end
+    if action == "Expand" and not self.stations:nearExpand(player) then
+        self.network:notice(player, "Walk to the EXPAND kiosk in your restaurant.", false)
+        return
+    end
     if action == "Pack" then
         if self.clickLimit:allow(player, now) then Packing.add(p, Pricing.click(p)) end
         return -- Periodic snapshots coalesce rapid input.
     end
     local delay = if action == "Sell" then 0.2 elseif action == "Upgrade" or action == "Spin" then 0.25
-        elseif action == "Rebirth" then 2 elseif action == "Return" or action == "Sync" then 1
+        elseif action == "Rebirth" or action == "Expand" then 2
+        elseif action == "Return" or action == "Sync" or action == "VisitMachine" then 1
         elseif action == "DeleteRarity" or action == "MergePets" then 0.5 else 0.15
     local cooldowns = self.cooldowns[player] or {}
     self.cooldowns[player] = cooldowns
     if now < (cooldowns[action] or 0) then return end
     cooldowns[action] = now + delay
     if action == "Return" then self.stations:teleport(player)
+    elseif action == "VisitMachine" then self.stations:visitMachine(player, Restaurant.bestMachine(p))
+    elseif action == "Expand" then
+        -- Price and tier change together in one non-yielding step; the world follows.
+        local ok, result = Restaurant.expand(p)
+        if ok then
+            self.stations:render(player, p)
+            self.network:notice(player, "Welcome to your " .. result.Name .. "!", true)
+        else self.network:notice(player, result, false) end
     elseif action == "Sell" then
         local ok, result = Packing.sell(p)
         if not ok then self.network:notice(player, result, false) end

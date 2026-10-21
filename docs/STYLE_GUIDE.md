@@ -83,6 +83,13 @@ Uploaded images when `src/shared/config/Icons.luau` has an asset ID, otherwise c
 - **SPIN:** a result card (portrait or a "?" before the first spin, a rarity tag, "You got X!", the bonus), the pity bar, the pet count, the big green SPIN button, and an "IN THIS MACHINE" grid of every pet with its own chance. Two columns on wide panels; stacked on narrow ones, where the panel may grow taller.
 - A panel's shadow scales with the panel on small screens.
 
+## Restaurant tiers (world)
+
+- **Stands:** a plinth, a body in the tier's Main colour, a glass dome of three capsules, a Luckiest Guy sign ("DELUXE FRYER / $150K A SPIN"), and a glowing neon pad in the Glow colour. Locked stands are grey with a faded dome, no capsules, and "LOCKED / NEEDS FRY DINER".
+- **Kiosk:** a podium with a mustard board ("EXPAND / FRY DINER  $5M") and a neon pad, inside the restaurant at the front left.
+- **Themes:** each tier has Main, Trim, Glow, and Floor colours (in `config/Restaurants.luau`). Tiers 2 and up recolour the roof cap, fascia, posts, awning (Main and Trim stripes), plaque, counter, benches, and floor, and add a roof sign, a neon strip, and props: Fry Diner stools, jukebox, and checkered entrance; Drive-In giant burger, car, and string lights; Pier lighthouse, giant fish, and life rings; Cosmic Diner ringed planet, dish, and stars; Fry Palace gold columns, crown, banners, and red carpet. Props are anchored and non-colliding (except a few solid bases).
+- **Panels:** the SPIN panel header, checker strip, and stand share the machine's colour (green, red, orange, blue, grape, gold for tiers 1-6). The EXPAND panel is mustard.
+
 ## Motion (next increment)
 
 Planned, not built yet: buttons squash on press, panels pop open, numbers count up, "+$" pops on sale, a spin reveal, and a rebirth celebration. Keep motion short (0.1-0.3 s) and never block input.
